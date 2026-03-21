@@ -40,6 +40,14 @@ client = Client(
     database=url.path.lstrip("/") or "default"
 )
 
+# SQL Microsoft server connection
+MSSQL_CONN = Variable.get("MSSQL_CONN")
+
+mssql_engine = create_engine(
+    MSSQL_CONN,
+    fast_executemany=True
+)
+
 # Creating a session for musicbrainz api
 session = requests.Session()
 HEADERS = {
@@ -227,6 +235,32 @@ def load_to_clickhouse(ti):
         DEDUPLICATE BY song, album, artist, played_at
     """)
 
+def load_to_mssql(ti):
+    records = ti.xcom_pull(
+        key="spotify_history_enriched",
+        task_ids="enrich_artist_data"
+    )
+
+    if not records:
+        print("No data to load to MSSQL")
+        return
+
+    df = pd.DataFrame(records)
+
+    df['played_at'] = pd.to_datetime(df['played_at'], utc=True)
+    df['date'] = pd.to_datetime(df['date']).dt.date
+    df['played_at'] = df['played_at'].dt.tz_convert(None)
+    df = df[['played_at', 'song', 'artist', 'album', 'date', 'country', 'begin_area', 'user_id']]
+
+    df.to_sql(
+        "music_history",
+        mssql_engine,
+        schema="dbo",
+        if_exists="append",
+        index=False,
+        method="multi"
+    )
+
 fetch_spotify_history_task = PythonOperator(
     task_id="fetch_spotify_history",
     python_callable=fetch_spotify_history,
@@ -247,4 +281,10 @@ load_to_clickhouse_task = PythonOperator(
     do_xcom_push=False
 )
 
-fetch_spotify_history_task >> enrich_artist_data_task >> load_to_clickhouse_task
+load_to_mssql_task = PythonOperator(
+    task_id="load_to_mssql",
+    python_callable=load_to_mssql,
+    dag=dag
+)
+
+fetch_spotify_history_task >> enrich_artist_data_task >> [load_to_clickhouse_task, load_to_mssql_task]
