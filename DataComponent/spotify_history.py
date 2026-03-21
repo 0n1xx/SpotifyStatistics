@@ -93,7 +93,6 @@ Steps:
 3. Send request to MusicBrainz API.
 4. Extract:
    - country (ISO code, e.g., CA, US)
-   - area (country/region name)
    - begin_area (city of origin)
 5. Return "unknown" if data is missing or the request fails.
 6. Cache result and apply a small delay to respect API rate limits.
@@ -113,28 +112,23 @@ def get_artist_info(artist_name):
     data = safe_request(url, params)
 
     if not data:
-        result = {"country": "unknown", "area": "unknown", "begin_area": "unknown"}
+        result = {"country": "unknown", "begin_area": "unknown"}
         artist_cache[artist_name] = result
         return result
 
     artists = data.get("artists", [])
 
     if not artists:
-        result = {"country": "unknown", "area": "unknown", "begin_area": "unknown"}
+        result = {"country": "unknown", "begin_area": "unknown"}
         artist_cache[artist_name] = result
         return result
 
     artist = artists[0]
 
     country = artist.get("country", "unknown")
-    area = artist.get("area", {}).get("name") if artist.get("area") else "unknown"
     begin_area = artist.get("begin-area", {}).get("name") if artist.get("begin-area") else "unknown"
 
-    result = {
-        "country": country if country else "unknown",
-        "area": area if area else "unknown",
-        "begin_area": begin_area if begin_area else "unknown"
-    }
+    result = {"country": "unknown", "begin_area": "unknown"}
 
     artist_cache[artist_name] = result
 
@@ -192,17 +186,14 @@ def enrich_artist_data(ti):
     df = pd.DataFrame(records)
 
     countries = []
-    areas = []
     begin_areas = []
 
     # Looping through every artist to find their country, country code and city
     for artist in df['artist']:
         info = get_artist_info(artist)
         countries.append(info['country'])
-        areas.append(info['area'])
         begin_areas.append(info['begin_area'])
     df['country'] = countries
-    df['area'] = areas
     df['begin_area'] = begin_areas
     df['user_id'] = 'admin'
 
@@ -224,7 +215,7 @@ def load_to_clickhouse(ti):
     df['date'] = pd.to_datetime(df['date']).dt.date
 
     # Changing the order of the columns, so it follows the order in the databse
-    df = df[['played_at', 'song', 'artist', 'album', 'date', 'country', 'area', 'begin_area', 'user_id']]
+    df = df[['played_at', 'song', 'artist', 'album', 'date', 'country', 'begin_area', 'user_id']]
 
     client.execute(
         "INSERT INTO default.music_history VALUES",
