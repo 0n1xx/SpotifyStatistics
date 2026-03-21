@@ -261,6 +261,26 @@ def load_to_mssql(ti):
         method="multi"
     )
 
+    merge_sql = """
+        MERGE dbo.music_history AS target
+        USING dbo.music_history_staging AS source
+        ON target.song = source.song
+           AND target.artist = source.artist
+           AND target.album = source.album
+           AND target.played_at = source.played_at
+
+        WHEN NOT MATCHED THEN
+            INSERT (played_at, song, artist, album, date, country, begin_area, user_id)
+            VALUES (source.played_at, source.song, source.artist, source.album,
+                    source.date, source.country, source.begin_area, source.user_id);
+        """
+
+    with mssql_engine.begin() as conn:
+        conn.execute(text(merge_sql))
+
+    with mssql_engine.begin() as conn:
+        conn.execute(text("DROP TABLE dbo.music_history_staging"))
+
 fetch_spotify_history_task = PythonOperator(
     task_id="fetch_spotify_history",
     python_callable=fetch_spotify_history,
