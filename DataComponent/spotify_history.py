@@ -210,8 +210,8 @@ def enrich_artist_data(ti):
 
 def load_to_clickhouse(ti):
     records = ti.xcom_pull(
-        key="spotify_history",
-        task_ids="fetch_spotify_history"
+        key="spotify_history_enriched",
+        task_ids="enrich_artist_data"
     )
 
     if not records:
