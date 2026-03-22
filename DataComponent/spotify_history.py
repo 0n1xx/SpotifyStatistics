@@ -22,7 +22,7 @@ default_args = {
 }
 
 # Schedule: every hour
-schedule_interval = "0 * * * *"
+schedule_interval = "*/30 * * * *"
 
 # Get the full connection string from Airflow Variable
 conn_string = Variable.get("CLICKHOUSE_CONN")
