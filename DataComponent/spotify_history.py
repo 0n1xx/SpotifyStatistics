@@ -2,9 +2,8 @@ import pandas as pd
 import spotipy
 from spotipy.oauth2 import SpotifyOAuth
 from datetime import datetime, timedelta
-from airflow import DAG
+from airflow.decorators import dag, task
 from airflow.models import Variable
-from airflow.operators.python import PythonOperator
 from clickhouse_driver import Client
 from urllib.parse import urlparse
 from sqlalchemy import create_engine, text
@@ -40,13 +39,13 @@ client = Client(
     database=url.path.lstrip("/") or "default"
 )
 
-# SQL Microsoft server connection
-MSSQL_CONN = Variable.get("MSSQL_CONN")
+# Connection to Spotify ASP.NET Database
+MSSQL_CONN_SPOTIFY = Variable.get("MSSQL_CONN_SPOTIFY")
+spotify_engine = create_engine(MSSQL_CONN_SPOTIFY, fast_executemany=True)
 
-mssql_engine = create_engine(
-    MSSQL_CONN,
-    fast_executemany=True
-)
+# Master DB (history)
+MSSQL_CONN_MASTER = Variable.get("MSSQL_CONN_MASTER")
+master_engine = create_engine(MSSQL_CONN_MASTER, fast_executemany=True)
 
 # Creating a session for musicbrainz api
 session = requests.Session()
@@ -136,7 +135,10 @@ def get_artist_info(artist_name):
     country = artist.get("country", "unknown")
     begin_area = artist.get("begin-area", {}).get("name") if artist.get("begin-area") else "unknown"
 
-    result = {"country": "unknown", "begin_area": "unknown"}
+    result = {
+        "country": country or "unknown",
+        "begin_area": begin_area or "unknown"
+    }
 
     artist_cache[artist_name] = result
 
@@ -144,211 +146,213 @@ def get_artist_info(artist_name):
 
     return result
 
-# DAG definition
-dag = DAG(
-    'spotify_history',
-    default_args=default_args,
-    schedule_interval=schedule_interval,
-    catchup=False
-)
-
-def fetch_spotify_history(ti):
-    sp_oauth = SpotifyOAuth(
-        client_id=Variable.get("VLAD_SPOTIFY_CLIENT_ID"),
-        client_secret=Variable.get("VLAD_SPOTIFY_SECRET_KEY"),
-            redirect_uri=Variable.get("SERVER_LOOPBACK"),
-        scope="user-top-read user-read-recently-played"
-    )
-
-    refresh_token = Variable.get("SPOTIFY_REFRESH_TOKEN")
-    token_info = sp_oauth.refresh_access_token(refresh_token)
-    token = token_info['access_token']
-
-    sp = spotipy.Spotify(auth=token)
-
-    results = sp.current_user_recently_played(limit=50)
-    data = []
-
-    for item in results.get("items", []):
-        track = item["track"]
-        played_at = pd.to_datetime(item["played_at"]).tz_convert("America/Toronto")
-        data.append({
-            "played_at": played_at.isoformat(),
-            "song": track["name"],
-            "artist": track["artists"][0]["name"],
-            "album": track["album"]["name"],
-            "date": played_at.date().isoformat()
-        })
-    df = pd.DataFrame(data)
-
-    ti.xcom_push(key="spotify_history", value=df.to_dict(orient="records"))
-
-def enrich_artist_data(ti):
-    records = ti.xcom_pull(
-        key="spotify_history",
-        task_ids="fetch_spotify_history"
-    )
-    if not records:
-        print("No data to enrich")
-        return
-    df = pd.DataFrame(records)
-
-    countries = []
-    begin_areas = []
-
-    # Looping through every artist to find their country, country code and city
-    for artist in df['artist']:
-        info = get_artist_info(artist)
-        countries.append(info['country'])
-        begin_areas.append(info['begin_area'])
-    df['country'] = countries
-    df['begin_area'] = begin_areas
-    df['user_id'] = 'admin'
-
-    ti.xcom_push(key="spotify_history_enriched", value=df.to_dict(orient="records"))
-
-def load_to_clickhouse(ti):
-    records = ti.xcom_pull(
-        key="spotify_history_enriched",
-        task_ids="enrich_artist_data"
-    )
-
-    if not records:
-        print("No new data to load.")
-        return
-
-    df = pd.DataFrame(records)
-    # Converting columns to the proper date format
-    df['played_at'] = pd.to_datetime(df['played_at'])
-    df['date'] = pd.to_datetime(df['date']).dt.date
-
-    # Changing the order of the columns, so it follows the order in the databse
-    df = df[['played_at', 'song', 'artist', 'album', 'date', 'country', 'begin_area', 'user_id']]
-
-    client.execute(
-        "INSERT INTO default.music_history VALUES",
-        df.to_dict(orient="records")
-    )
-
-    client.execute("""
-        OPTIMIZE TABLE default.music_history
-        DEDUPLICATE BY song, album, artist, played_at
-    """)
-
 """
-Load Spotify history into MSSQL.
+Fetch all Spotify users from MSSQL.
 
 Steps:
-1. Pull enriched track data from XCom.
-2. Convert timestamps and prepare DataFrame.
-3. Truncate staging table (dbo.staging_music).
-4. Bulk insert data into staging.
-5. MERGE into dbo.music_history:
-   - insert only new records
-   - skip duplicates
+1. Connect to SpotifyStatisticsDb using spotify_engine.
+2. Read UserId and RefreshToken from dbo.SpotifyTokens.
+3. Transform query result into a list of dictionaries.
+4. Return list of users for downstream processing.
 
-Notes:
-- Spotify API returns last ~50 tracks (may include duplicates).
-- Deduplication is handled by MERGE.
-- Pipeline is idempotent (safe to rerun).
+Output:
+[
+    {"user_id": "...", "refresh_token": "..."},
+    ...
+]
 """
-def load_to_mssql(ti):
-    records = ti.xcom_pull(
-        key="spotify_history_enriched",
-        task_ids="enrich_artist_data"
-    )
+def get_all_users():
+    query = "SELECT UserId, RefreshToken FROM dbo.SpotifyTokens"
 
-    if not records:
-        print("No data to load to MSSQL")
-        return
+    with spotify_engine.connect() as conn:
+        result = conn.execute(text(query))
+        users = result.fetchall()
 
-    import pandas as pd
+    return [{"user_id": row[0], "refresh_token": row[1]} for row in users]
 
-    df = pd.DataFrame(records)
 
-    df['played_at'] = pd.to_datetime(df['played_at'], utc=True).dt.tz_convert(None)
-    df['date'] = pd.to_datetime(df['date']).dt.date
-    df = df[['played_at', 'song', 'artist', 'album', 'date', 'country', 'begin_area', 'user_id']]
+@dag(
+    schedule_interval=schedule_interval,
+    start_date=datetime(2026, 1, 1),
+    catchup=False
+)
+def spotify_history():
 
-    conn = mssql_engine.raw_connection()
-    cursor = conn.cursor()
+    @task
+    def get_users():
+        users = get_all_users()
+        print(f"USERS: {users}")
+        return get_all_users()
 
-    try:
-        cursor.execute("TRUNCATE TABLE dbo.staging_music")
-        conn.commit()
+    @task
+    def fetch_user(user):
+        # Requesting information for each user
+        user_id = user["user_id"]
+        refresh_token = user["refresh_token"]
 
-        insert_query = """
-        INSERT INTO dbo.staging_music (
-            played_at, song, artist, album, date, country, begin_area, user_id
-        )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-        """
-
-        data = [
-            (
-                row.played_at,
-                row.song,
-                row.artist,
-                row.album,
-                row.date,
-                row.country,
-                row.begin_area,
-                row.user_id
+        # Spotify API requires a user-agent header
+        try:
+            sp_oauth = SpotifyOAuth(
+                client_id=Variable.get("VLAD_SPOTIFY_CLIENT_ID"),
+                client_secret=Variable.get("VLAD_SPOTIFY_SECRET_KEY"),
+                redirect_uri=Variable.get("SERVER_LOOPBACK"),
+                scope="user-top-read user-read-recently-played"
             )
-            for row in df.itertuples(index=False)
-        ]
 
-        cursor.fast_executemany = True
-        cursor.executemany(insert_query, data)
-        conn.commit()
+            token_info = sp_oauth.refresh_access_token(refresh_token)
+            token = token_info['access_token']
 
-        cursor.execute("""
-        MERGE dbo.music_history AS target
-        USING dbo.staging_music AS source
-        ON 
-            target.played_at = source.played_at
-            AND target.song = source.song
-            AND target.artist = source.artist
-            AND target.album = source.album
+            sp = spotipy.Spotify(auth=token)
 
-        WHEN NOT MATCHED THEN
-            INSERT (played_at, song, artist, album, date, country, begin_area, user_id)
-            VALUES (source.played_at, source.song, source.artist, source.album, source.date, source.country, source.begin_area, source.user_id);
+            results = sp.current_user_recently_played(limit=50)
+
+            data = []
+
+            # Extracting relevant information from each track
+            for item in results.get("items", []):
+                track = item["track"]
+                played_at = pd.to_datetime(item["played_at"]).tz_convert("America/Toronto")
+
+                data.append({
+                    "played_at": played_at.isoformat(),
+                    "song": track["name"],
+                    "artist": track["artists"][0]["name"],
+                    "album": track["album"]["name"],
+                    "date": played_at.date().isoformat(),
+                    "user_id": user_id
+                })
+
+            return data
+
+        except Exception as e:
+            print(f"Error processing user {user_id}: {e}")
+            return []
+
+    @task
+    def combine(results):
+        combined = []
+        for r in results:
+            combined.extend(r)
+        return combined
+
+    @task
+    def enrich(records):
+        if not records:
+            print("No data to enrich")
+            return []
+
+        df = pd.DataFrame(records)
+
+        countries = []
+        begin_areas = []
+
+        # Looping through every artist to find their country, country code and city
+        for artist in df['artist']:
+            info = get_artist_info(artist)
+            countries.append(info['country'])
+            begin_areas.append(info['begin_area'])
+
+        df['country'] = countries
+        df['begin_area'] = begin_areas
+
+        return df.to_dict(orient="records")
+
+    @task
+    def load_clickhouse(records):
+        if not records:
+            print("No new data to load.")
+            return
+
+        df = pd.DataFrame(records)
+
+        # Converting columns to the proper date format
+        df['played_at'] = pd.to_datetime(df['played_at'])
+        df['date'] = pd.to_datetime(df['date']).dt.date
+
+        # Changing the order of the columns, so it follows the order in the databse
+        df = df[['played_at', 'song', 'artist', 'album', 'date', 'country', 'begin_area', 'user_id']]
+
+        client.execute(
+            "INSERT INTO default.music_history VALUES",
+            df.to_dict(orient="records")
+        )
+
+        client.execute("""
+            OPTIMIZE TABLE default.music_history
+            DEDUPLICATE BY song, album, artist, played_at, user_id
         """)
-        conn.commit()
 
-    except Exception as e:
-        conn.rollback()
-        raise RuntimeError(f"MSSQL load failed during staging/MERGE step: {str(e)}")
+    """
+    Load Spotify history into MSSQL.
 
-    finally:
-        cursor.close()
-        conn.close()
+    Steps:
+    1. Pull enriched track data.
+    2. Convert timestamps and prepare DataFrame.
+    3. Truncate staging table (dbo.staging_music).
+    4. Bulk insert data into staging.
+    5. MERGE into dbo.music_history:
+       - insert only new records
+       - skip duplicates
+    """
+    @task
+    def load_mssql(records):
+        if not records:
+            print("No data to load to MSSQL")
+            return
 
-fetch_spotify_history_task = PythonOperator(
-    task_id="fetch_spotify_history",
-    python_callable=fetch_spotify_history,
-    dag=dag,
-    do_xcom_push=True
-)
+        df = pd.DataFrame(records)
 
-enrich_artist_data_task = PythonOperator(
-    task_id="enrich_artist_data",
-    python_callable=enrich_artist_data,
-    dag=dag
-)
+        df['played_at'] = pd.to_datetime(df['played_at'], utc=True).dt.tz_convert(None)
+        df['date'] = pd.to_datetime(df['date']).dt.date
 
-load_to_clickhouse_task = PythonOperator(
-    task_id="load_to_clickhouse",
-    python_callable=load_to_clickhouse,
-    dag=dag,
-    do_xcom_push=False
-)
+        df = df[['played_at', 'song', 'artist', 'album', 'date', 'country', 'begin_area', 'user_id']]
 
-load_to_mssql_task = PythonOperator(
-    task_id="load_to_mssql",
-    python_callable=load_to_mssql,
-    dag=dag
-)
+        conn = master_engine.raw_connection()
+        cursor = conn.cursor()
 
-fetch_spotify_history_task >> enrich_artist_data_task >> [load_to_clickhouse_task, load_to_mssql_task]
+        try:
+            cursor.execute("TRUNCATE TABLE dbo.staging_music")
+            conn.commit()
+
+            insert_query = """
+            INSERT INTO dbo.staging_music (
+                played_at, song, artist, album, date, country, begin_area, user_id
+            )
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            """
+
+            data = [tuple(row) for row in df.itertuples(index=False)]
+
+            cursor.fast_executemany = True
+            cursor.executemany(insert_query, data)
+            conn.commit()
+
+            cursor.execute("""
+            MERGE dbo.music_history AS target
+            USING dbo.staging_music AS source
+            ON 
+                target.played_at = source.played_at
+                AND target.song = source.song
+                AND target.artist = source.artist
+                AND target.album = source.album
+                AND target.user_id = source.user_id
+            WHEN NOT MATCHED THEN
+                INSERT (played_at, song, artist, album, date, country, begin_area, user_id)
+                VALUES (source.played_at, source.song, source.artist, source.album, source.date, source.country, source.begin_area, source.user_id);
+            """)
+            conn.commit()
+
+        finally:
+            cursor.close()
+            conn.close()
+
+    users = get_users()
+    user_data = fetch_user.expand(user=users)
+    combined = combine(user_data)
+    enriched = enrich(combined)
+
+    load_clickhouse(enriched)
+    load_mssql(enriched)
+
+
+spotify_dag = spotify_history()
