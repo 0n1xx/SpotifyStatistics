@@ -17,6 +17,11 @@ builder.Services.AddAuthentication()
     {
         options.ClientId = builder.Configuration["Google:ClientId"];
         options.ClientSecret = builder.Configuration["Google:ClientSecret"];
+    })
+    .AddGitHub(options =>
+    {
+        options.ClientId = builder.Configuration["GitHub:ClientId"];
+        options.ClientSecret = builder.Configuration["GitHub:ClientSecret"];
     });
 
 builder.Services.AddRazorPages();
