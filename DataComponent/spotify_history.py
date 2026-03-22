@@ -156,7 +156,7 @@ def fetch_spotify_history(ti):
     sp_oauth = SpotifyOAuth(
         client_id=Variable.get("VLAD_SPOTIFY_CLIENT_ID"),
         client_secret=Variable.get("VLAD_SPOTIFY_SECRET_KEY"),
-        redirect_uri=Variable.get("SERVER_LOOPBACK"),
+            redirect_uri=Variable.get("SERVER_LOOPBACK"),
         scope="user-top-read user-read-recently-played"
     )
 
@@ -235,6 +235,23 @@ def load_to_clickhouse(ti):
         DEDUPLICATE BY song, album, artist, played_at
     """)
 
+"""
+Load Spotify history into MSSQL.
+
+Steps:
+1. Pull enriched track data from XCom.
+2. Convert timestamps and prepare DataFrame.
+3. Truncate staging table (dbo.staging_music).
+4. Bulk insert data into staging.
+5. MERGE into dbo.music_history:
+   - insert only new records
+   - skip duplicates
+
+Notes:
+- Spotify API returns last ~50 tracks (may include duplicates).
+- Deduplication is handled by MERGE.
+- Pipeline is idempotent (safe to rerun).
+"""
 def load_to_mssql(ti):
     records = ti.xcom_pull(
         key="spotify_history_enriched",
@@ -245,41 +262,68 @@ def load_to_mssql(ti):
         print("No data to load to MSSQL")
         return
 
+    import pandas as pd
+
     df = pd.DataFrame(records)
 
-    df['played_at'] = pd.to_datetime(df['played_at'], utc=True)
+    df['played_at'] = pd.to_datetime(df['played_at'], utc=True).dt.tz_convert(None)
     df['date'] = pd.to_datetime(df['date']).dt.date
-    df['played_at'] = df['played_at'].dt.tz_convert(None)
     df = df[['played_at', 'song', 'artist', 'album', 'date', 'country', 'begin_area', 'user_id']]
 
-    df.to_sql(
-        "music_history",
-        mssql_engine,
-        schema="dbo",
-        if_exists="append",
-        index=False,
-        method="multi"
-    )
+    conn = mssql_engine.raw_connection()
+    cursor = conn.cursor()
 
-    merge_sql = """
+    try:
+        cursor.execute("TRUNCATE TABLE dbo.staging_music")
+        conn.commit()
+
+        insert_query = """
+        INSERT INTO dbo.staging_music (
+            played_at, song, artist, album, date, country, begin_area, user_id
+        )
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        """
+
+        data = [
+            (
+                row.played_at,
+                row.song,
+                row.artist,
+                row.album,
+                row.date,
+                row.country,
+                row.begin_area,
+                row.user_id
+            )
+            for row in df.itertuples(index=False)
+        ]
+
+        cursor.fast_executemany = True
+        cursor.executemany(insert_query, data)
+        conn.commit()
+
+        cursor.execute("""
         MERGE dbo.music_history AS target
-        USING dbo.music_history_staging AS source
-        ON target.song = source.song
-           AND target.artist = source.artist
-           AND target.album = source.album
-           AND target.played_at = source.played_at
+        USING dbo.staging_music AS source
+        ON 
+            target.played_at = source.played_at
+            AND target.song = source.song
+            AND target.artist = source.artist
+            AND target.album = source.album
 
         WHEN NOT MATCHED THEN
             INSERT (played_at, song, artist, album, date, country, begin_area, user_id)
-            VALUES (source.played_at, source.song, source.artist, source.album,
-                    source.date, source.country, source.begin_area, source.user_id);
-        """
+            VALUES (source.played_at, source.song, source.artist, source.album, source.date, source.country, source.begin_area, source.user_id);
+        """)
+        conn.commit()
 
-    with mssql_engine.begin() as conn:
-        conn.execute(text(merge_sql))
+    except Exception as e:
+        conn.rollback()
+        raise RuntimeError(f"MSSQL load failed during staging/MERGE step: {str(e)}")
 
-    with mssql_engine.begin() as conn:
-        conn.execute(text("DROP TABLE dbo.music_history_staging"))
+    finally:
+        cursor.close()
+        conn.close()
 
 fetch_spotify_history_task = PythonOperator(
     task_id="fetch_spotify_history",
