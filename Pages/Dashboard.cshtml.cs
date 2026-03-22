@@ -11,6 +11,7 @@ namespace SpotifyStatisticsWebApp.Pages
     {
         private readonly IConfiguration _config;
         public DashboardViewModel Data { get; set; } = new();
+        public bool SpotifyConnected { get; set; }
 
         public DashboardModel(IConfiguration config)
         {
@@ -19,11 +20,21 @@ namespace SpotifyStatisticsWebApp.Pages
 
         public async Task OnGetAsync()
         {
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+            // Check Spotify connection
+            var spotifyConn = _config.GetConnectionString("DefaultConnection");
+            using var spotifyDb = new SqlConnection(spotifyConn);
+            await spotifyDb.OpenAsync();
+            using var checkCmd = new SqlCommand(
+                "SELECT COUNT(*) FROM SpotifyTokens WHERE UserId = @uid", spotifyDb);
+            checkCmd.Parameters.AddWithValue("@uid", userId);
+            SpotifyConnected = (int)(await checkCmd.ExecuteScalarAsync() ?? 0) > 0;
+
+            // Music history queries
             var connStr = _config.GetConnectionString("MusicHistoryConnection");
             using var conn = new SqlConnection(connStr);
             await conn.OpenAsync();
-
-            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
 
             Data.TotalTracks = await ScalarAsync<int>(conn,
                 "SELECT COUNT(*) FROM music_history WHERE user_id = @uid", userId);
