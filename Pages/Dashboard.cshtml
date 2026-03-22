@@ -1,0 +1,811 @@
+﻿@page
+@model SpotifyStatisticsWebApp.Pages.DashboardModel
+@{
+    ViewData["Title"] = "Dashboard";
+    Layout = null;
+}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard — Statify</title>
+    <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+    <style>
+        *, *::before, *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        :root {
+            --green: #1DB954;
+            --green-dim: #17a349;
+            --green-glow: rgba(29,185,84,0.15);
+            --black: #080808;
+            --card: #111111;
+            --card2: #161616;
+            --border: rgba(255,255,255,0.07);
+            --text: #f0f0f0;
+            --muted: #555;
+            --muted2: #888;
+            --input-bg: #1a1a1a;
+            --sidebar: 240px;
+        }
+
+        html, body {
+            height: 100%;
+            background: var(--black);
+            color: var(--text);
+            font-family: 'DM Sans', sans-serif;
+            overflow: hidden;
+        }
+
+        .app {
+            display: grid;
+            grid-template-columns: var(--sidebar) 1fr;
+            height: 100vh;
+        }
+
+        .sidebar {
+            background: #0c0c0c;
+            border-right: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            padding: 28px 0;
+            overflow-y: auto;
+        }
+
+        .sidebar-logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 0 24px 28px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .logo-icon {
+            width: 34px;
+            height: 34px;
+            background: var(--green);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+            .logo-icon svg {
+                width: 18px;
+                height: 18px;
+                fill: #000;
+            }
+
+        .logo-text {
+            font-family: 'Syne', sans-serif;
+            font-size: 18px;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+        }
+
+        .nav {
+            padding: 20px 12px;
+            flex: 1;
+        }
+
+        .nav-label {
+            font-size: 10px;
+            font-weight: 500;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            color: var(--muted);
+            padding: 0 12px;
+            margin-bottom: 8px;
+            margin-top: 20px;
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 12px;
+            border-radius: 8px;
+            font-size: 14px;
+            color: var(--muted2);
+            cursor: pointer;
+            transition: all 0.15s;
+            text-decoration: none;
+            margin-bottom: 2px;
+        }
+
+            .nav-item svg {
+                width: 16px;
+                height: 16px;
+                flex-shrink: 0;
+                opacity: 0.6;
+            }
+
+            .nav-item:hover {
+                background: var(--card);
+                color: var(--text);
+            }
+
+                .nav-item:hover svg {
+                    opacity: 1;
+                }
+
+            .nav-item.active {
+                background: var(--green-glow);
+                color: var(--green);
+                font-weight: 500;
+            }
+
+                .nav-item.active svg {
+                    opacity: 1;
+                }
+
+        .sidebar-user {
+            margin: 0 12px;
+            padding: 12px;
+            background: var(--card);
+            border-radius: 10px;
+            border: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .user-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: var(--green);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 13px;
+            font-weight: 600;
+            color: #000;
+            flex-shrink: 0;
+        }
+
+        .user-name {
+            font-size: 13px;
+            font-weight: 500;
+        }
+
+        .user-sub {
+            font-size: 11px;
+            color: var(--muted2);
+        }
+
+        .main {
+            overflow-y: auto;
+            padding: 32px;
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+        }
+
+        .topbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .page-title {
+            font-family: 'Syne', sans-serif;
+            font-size: 22px;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+        }
+
+        .time-filter {
+            display: flex;
+            background: var(--card);
+            border-radius: 8px;
+            padding: 3px;
+            border: 1px solid var(--border);
+        }
+
+        .tf-btn {
+            padding: 6px 14px;
+            font-size: 12px;
+            font-weight: 500;
+            color: var(--muted2);
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.15s;
+            border: none;
+            background: none;
+            font-family: 'DM Sans', sans-serif;
+        }
+
+            .tf-btn.active {
+                background: var(--green);
+                color: #000;
+            }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 16px;
+        }
+
+        .stat-card {
+            background: var(--card);
+            border-radius: 14px;
+            border: 1px solid var(--border);
+            padding: 20px;
+            animation: fadeUp 0.4s ease both;
+        }
+
+        .stat-card-label {
+            font-size: 11px;
+            font-weight: 500;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            color: var(--muted2);
+            margin-bottom: 10px;
+        }
+
+        .stat-card-val {
+            font-family: 'Syne', sans-serif;
+            font-size: 28px;
+            font-weight: 700;
+            line-height: 1;
+            margin-bottom: 6px;
+        }
+
+        .stat-card-sub {
+            font-size: 12px;
+            color: var(--muted2);
+        }
+
+            .stat-card-sub span {
+                color: var(--green);
+            }
+
+        .charts-row {
+            display: grid;
+            grid-template-columns: 1fr 340px;
+            gap: 16px;
+        }
+
+        .card {
+            background: var(--card);
+            border-radius: 14px;
+            border: 1px solid var(--border);
+            padding: 22px;
+            animation: fadeUp 0.4s ease both;
+        }
+
+        .card-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 20px;
+        }
+
+        .card-title {
+            font-family: 'Syne', sans-serif;
+            font-size: 15px;
+            font-weight: 700;
+        }
+
+        .card-action {
+            font-size: 12px;
+            color: var(--green);
+            cursor: pointer;
+            text-decoration: none;
+        }
+
+        .bottom-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 16px;
+        }
+
+        .top-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .top-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px;
+            border-radius: 10px;
+            transition: background 0.15s;
+            cursor: pointer;
+        }
+
+            .top-item:hover {
+                background: var(--card2);
+            }
+
+        .top-rank {
+            font-family: 'Syne', sans-serif;
+            font-size: 13px;
+            font-weight: 700;
+            color: var(--muted);
+            width: 20px;
+            flex-shrink: 0;
+            text-align: center;
+        }
+
+            .top-rank.gold {
+                color: #f0b429;
+            }
+
+            .top-rank.silver {
+                color: #a0aec0;
+            }
+
+            .top-rank.bronze {
+                color: #c05621;
+            }
+
+        .top-img {
+            width: 40px;
+            height: 40px;
+            border-radius: 6px;
+            background: var(--card2);
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            border: 1px solid var(--border);
+        }
+
+            .top-img.circle {
+                border-radius: 50%;
+            }
+
+        .top-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .top-name {
+            font-size: 13px;
+            font-weight: 500;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .top-sub {
+            font-size: 11px;
+            color: var(--muted2);
+            margin-top: 2px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .top-count {
+            font-size: 12px;
+            color: var(--muted2);
+            flex-shrink: 0;
+        }
+
+        .map-container {
+            position: relative;
+            width: 100%;
+            aspect-ratio: 2/1;
+            background: #0e1621;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        #world-map {
+            width: 100%;
+            height: 100%;
+        }
+
+        .country-tooltip {
+            position: absolute;
+            background: #1a1a1a;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 8px 12px;
+            font-size: 12px;
+            pointer-events: none;
+            display: none;
+            z-index: 10;
+            white-space: nowrap;
+        }
+
+            .country-tooltip strong {
+                color: var(--green);
+                display: block;
+                font-size: 13px;
+            }
+
+        .tod-bars {
+            display: flex;
+            align-items: flex-end;
+            gap: 4px;
+            height: 80px;
+            padding-top: 8px;
+        }
+
+        .tod-bar-wrap {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .tod-bar {
+            width: 100%;
+            background: var(--green-glow);
+            border-radius: 4px 4px 0 0;
+            transition: background 0.2s;
+            cursor: pointer;
+            min-height: 4px;
+        }
+
+            .tod-bar:hover {
+                background: var(--green);
+            }
+
+        .main::-webkit-scrollbar {
+            width: 4px;
+        }
+
+        .main::-webkit-scrollbar-thumb {
+            background: var(--border);
+            border-radius: 2px;
+        }
+
+        @@keyframes fadeUp {
+            from {
+                opacity: 0;
+                transform: translateY(12px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="app">
+        <aside class="sidebar">
+            <div class="sidebar-logo">
+                <div class="logo-icon">
+                    <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.65 14.4c-.2.3-.6.4-.9.2-2.5-1.53-5.63-1.87-9.33-1.03-.36.08-.72-.15-.8-.5-.08-.36.15-.72.5-.8 4.05-.92 7.52-.53 10.33 1.2.3.18.4.58.2.93zm1.24-2.75c-.25.38-.75.5-1.13.25-2.85-1.75-7.2-2.26-10.57-1.23-.43.13-.9-.1-1.03-.53-.13-.43.1-.9.53-1.03 3.85-1.17 8.63-.6 11.93 1.41.37.23.5.73.27 1.13zm.1-2.86C14.5 8.9 8.68 8.7 5.2 9.73c-.52.16-1.07-.14-1.23-.65-.16-.52.14-1.07.65-1.23 4-.22 10.35.43 14.43 2.85.46.27.62.86.35 1.32-.27.45-.87.6-1.32.34l-.09-.07z" /></svg>
+                </div>
+                <span class="logo-text">Statify</span>
+            </div>
+            <nav class="nav">
+                <div class="nav-label">Menu</div>
+                <a class="nav-item active" asp-page="/Dashboard">
+                    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z" /></svg>
+                    Dashboard
+                </a>
+                <a class="nav-item" href="#">
+                    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z" /></svg>
+                    Top Tracks
+                </a>
+                <a class="nav-item" href="#">
+                    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" /></svg>
+                    Top Artists
+                </a>
+                <a class="nav-item" href="#">
+                    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 14.5v-9l6 4.5-6 4.5z" /></svg>
+                    Top Albums
+                </a>
+                <a class="nav-item" href="#">
+                    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z" /></svg>
+                    World Map
+                </a>
+                <div class="nav-label">Account</div>
+                <a class="nav-item" href="/Identity/Account/Manage">
+                    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M19.14,12.94c0.04-0.3,0.06-0.61,0.06-0.94c0-0.32-0.02-0.64-0.07-0.94l2.03-1.58c0.18-0.14,0.23-0.41,0.12-0.61l-1.92-3.32c-0.12-0.22-0.37-0.29-0.59-0.22l-2.39,0.96c-0.5-0.38-1.03-0.7-1.62-0.94L14.4,2.81c-0.04-0.24-0.24-0.41-0.48-0.41h-3.84c-0.24,0-0.43,0.17-0.47,0.41L9.25,5.35C8.66,5.59,8.12,5.92,7.63,6.29L5.24,5.33c-0.22-0.08-0.47,0-0.59,0.22L2.74,8.87C2.62,9.08,2.66,9.34,2.86,9.48l2.03,1.58C4.84,11.36,4.8,11.69,4.8,12s0.02,0.64,0.07,0.94l-2.03,1.58c-0.18,0.14-0.23,0.41-0.12,0.61l1.92,3.32c0.12,0.22,0.37,0.29,0.59,0.22l2.39-0.96c0.5,0.38,1.03,0.7,1.62,0.94l0.36,2.54c0.05,0.24,0.24,0.41,0.48,0.41h3.84c0.24,0,0.44-0.17,0.47-0.41l0.36-2.54c0.59-0.24,1.13-0.56,1.62-0.94l2.39,0.96c0.22,0.08,0.47,0,0.59-0.22l1.92-3.32c0.12-0.22,0.07-0.47-0.12-0.61L19.14,12.94z M12,15.6c-1.98,0-3.6-1.62-3.6-3.6s1.62-3.6,3.6-3.6s3.6,1.62,3.6,3.6S13.98,15.6,12,15.6z" /></svg>
+                    Settings
+                </a>
+                <form method="post" asp-area="Identity" asp-page="/Account/Logout" asp-route-returnUrl="/">
+                    <button type="submit" class="nav-item" style="width:100%;border:none;background:none;text-align:left;cursor:pointer">
+                        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M17 7l-1.41 1.41L18.17 11H8v2h10.17l-2.58 2.58L17 17l5-5zM4 5h8V3H4c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h8v-2H4V5z" /></svg>
+                        Sign out
+                    </button>
+                </form>
+            </nav>
+            <div class="sidebar-user">
+                <div class="user-avatar">@User.Identity?.Name?.Substring(0, 1).ToUpper()</div>
+                <div>
+                    <div class="user-name">@User.Identity?.Name</div>
+                    <div class="user-sub">Connected to Spotify</div>
+                </div>
+            </div>
+        </aside>
+
+        <main class="main">
+            <div class="topbar">
+                <div class="page-title">Dashboard</div>
+                <div class="time-filter">
+                    <button class="tf-btn" onclick="setFilter(this,'7d')">7D</button>
+                    <button class="tf-btn active" onclick="setFilter(this,'30d')">30D</button>
+                    <button class="tf-btn" onclick="setFilter(this,'6m')">6M</button>
+                    <button class="tf-btn" onclick="setFilter(this,'all')">All</button>
+                </div>
+            </div>
+
+            <div class="stats-grid">
+                <div class="stat-card" style="animation-delay:0s">
+                    <div class="stat-card-label">Tracks played</div>
+                    <div class="stat-card-val">@Model.Data.TotalTracks.ToString("N0")</div>
+                    <div class="stat-card-sub">All time</div>
+                </div>
+                <div class="stat-card" style="animation-delay:0.05s">
+                    <div class="stat-card-label">Unique artists</div>
+                    <div class="stat-card-val">@Model.Data.UniqueArtists</div>
+                    <div class="stat-card-sub">All time</div>
+                </div>
+                <div class="stat-card" style="animation-delay:0.1s">
+                    <div class="stat-card-label">Unique albums</div>
+                    <div class="stat-card-val">@Model.Data.UniqueAlbums</div>
+                    <div class="stat-card-sub">All time</div>
+                </div>
+                <div class="stat-card" style="animation-delay:0.15s">
+                    <div class="stat-card-label">Countries</div>
+                    <div class="stat-card-val">@Model.Data.UniqueCountries</div>
+                    <div class="stat-card-sub">Artist origins</div>
+                </div>
+            </div>
+
+            <div class="charts-row">
+                <div class="card" style="animation-delay:0.2s">
+                    <div class="card-header"><span class="card-title">Listening activity</span></div>
+                    <canvas id="activityChart" height="100"></canvas>
+                </div>
+                <div class="card" style="animation-delay:0.25s">
+                    <div class="card-header"><span class="card-title">Time of day</span></div>
+                    <div class="tod-bars" id="todBars"></div>
+                    <div style="display:flex;justify-content:space-between;margin-top:8px">
+                        <span style="font-size:10px;color:var(--muted)">12am</span>
+                        <span style="font-size:10px;color:var(--muted)">6am</span>
+                        <span style="font-size:10px;color:var(--muted)">12pm</span>
+                        <span style="font-size:10px;color:var(--muted)">6pm</span>
+                        <span style="font-size:10px;color:var(--muted)">11pm</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card" style="animation-delay:0.3s">
+                <div class="card-header">
+                    <span class="card-title">Listening world map</span>
+                    <span style="font-size:12px;color:var(--muted2)">By artist origin</span>
+                </div>
+                <div class="map-container">
+                    <svg id="world-map" viewBox="0 0 1000 500" preserveAspectRatio="xMidYMid meet"></svg>
+                    <div class="country-tooltip" id="tooltip"></div>
+                </div>
+                <div style="display:flex;align-items:center;gap:8px;margin-top:12px">
+                    <div style="width:80px;height:6px;border-radius:3px;background:linear-gradient(90deg,var(--green-glow),var(--green))"></div>
+                    <span style="font-size:11px;color:var(--muted2)">Artist density</span>
+                </div>
+            </div>
+
+            <div class="bottom-grid">
+                <div class="card" style="animation-delay:0.35s">
+                    <div class="card-header"><span class="card-title">Top tracks</span></div>
+                    <div class="top-list">
+                        @{
+                            int i = 1;
+                        }
+                        @foreach (var item in Model.Data.TopTracks)
+                        {
+                            var rankClass = i == 1 ? "gold" : i == 2 ? "silver" : i == 3 ? "bronze" : "";
+                            <div class="top-item">
+                                <span class="top-rank @rankClass">@i</span>
+                                <div class="top-img">🎵</div>
+                                <div class="top-info">
+                                    <div class="top-name">@item.Name</div>
+                                    <div class="top-sub">@item.Sub</div>
+                                </div>
+                                <span class="top-count">@item.Count plays</span>
+                            </div>
+                            i++;
+                        }
+                    </div>
+                </div>
+
+                <div class="card" style="animation-delay:0.4s">
+                    <div class="card-header"><span class="card-title">Top artists</span></div>
+                    <div class="top-list">
+                        @{
+                            int j = 1;
+                        }
+                        @foreach (var item in Model.Data.TopArtists)
+                        {
+                            var rankClass = j == 1 ? "gold" : j == 2 ? "silver" : j == 3 ? "bronze" : "";
+                            <div class="top-item">
+                                <span class="top-rank @rankClass">@j</span>
+                                <div class="top-img circle">👤</div>
+                                <div class="top-info">
+                                    <div class="top-name">@item.Name</div>
+                                    <div class="top-sub">@item.Sub</div>
+                                </div>
+                                <span class="top-count">@item.Count plays</span>
+                            </div>
+                            j++;
+                        }
+                    </div>
+                </div>
+
+                <div class="card" style="animation-delay:0.45s">
+                    <div class="card-header"><span class="card-title">Top albums</span></div>
+                    <div class="top-list">
+                        @{
+                            int k = 1;
+                        }
+                        @foreach (var item in Model.Data.TopAlbums)
+                        {
+                            var rankClass = k == 1 ? "gold" : k == 2 ? "silver" : k == 3 ? "bronze" : "";
+                            <div class="top-item">
+                                <span class="top-rank @rankClass">@k</span>
+                                <div class="top-img">💿</div>
+                                <div class="top-info">
+                                    <div class="top-name">@item.Name</div>
+                                    <div class="top-sub">@item.Sub</div>
+                                </div>
+                                <span class="top-count">@item.Count plays</span>
+                            </div>
+                            k++;
+                        }
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        // Real data from DB
+        const actLabels = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Data.ActivityByMonth.Select(m => m.Month).ToList()));
+        const actData = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Data.ActivityByMonth.Select(m => m.Count).ToList()));
+        const todData = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Data.ListeningByHour));
+        const countryData = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(
+                        Model.Data.CountryCounts.ToDictionary(c => c.Country ?? "unknown", c => new { name = c.Country, plays = c.Count })
+                ));
+
+        // Time filter
+        function setFilter(btn, range) {
+          document.querySelectorAll('.tf-btn').forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+        }
+
+        // Activity chart
+        const actCtx = document.getElementById('activityChart').getContext('2d');
+        new Chart(actCtx, {
+          type: 'line',
+          data: {
+            labels: actLabels,
+            datasets: [{
+              data: actData,
+              borderColor: '#1DB954',
+              backgroundColor: 'rgba(29,185,84,0.08)',
+              borderWidth: 2,
+              pointRadius: 3,
+              pointBackgroundColor: '#1DB954',
+              tension: 0.4,
+              fill: true
+            }]
+          },
+          options: {
+            responsive: true,
+            plugins: { legend: { display: false } },
+            scales: {
+              x: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: '#555', font: { size: 11 } } },
+              y: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: '#555', font: { size: 11 } } }
+            }
+          }
+        });
+
+        // Time of day
+        const todContainer = document.getElementById('todBars');
+        const maxTod = Math.max(...todData, 1);
+        todData.forEach((val, i) => {
+          const wrap = document.createElement('div');
+          wrap.className = 'tod-bar-wrap';
+          const bar = document.createElement('div');
+          bar.className = 'tod-bar';
+          bar.style.height = `${Math.max((val/maxTod)*70, 4)}px`;
+          bar.title = `${i}:00 — ${val} plays`;
+          wrap.appendChild(bar);
+          todContainer.appendChild(wrap);
+        });
+
+        // World map
+        const maxPlays = Math.max(...Object.values(countryData).map(d => d.plays), 1);
+        const svg = document.getElementById('world-map');
+        const tooltip = document.getElementById('tooltip');
+
+        const ocean = document.createElementNS('http://www.w3.org/2000/svg','rect');
+        ocean.setAttribute('width','1000'); ocean.setAttribute('height','500');
+        ocean.setAttribute('fill','#0e1621'); svg.appendChild(ocean);
+
+        for(let lon=-180;lon<=180;lon+=30){
+          const line=document.createElementNS('http://www.w3.org/2000/svg','line');
+          const x=(lon+180)*(1000/360);
+          line.setAttribute('x1',x);line.setAttribute('y1',0);line.setAttribute('x2',x);line.setAttribute('y2',500);
+          line.setAttribute('stroke','rgba(255,255,255,0.04)');line.setAttribute('stroke-width','0.5');
+          svg.appendChild(line);
+        }
+        for(let lat=-90;lat<=90;lat+=30){
+          const line=document.createElementNS('http://www.w3.org/2000/svg','line');
+          const y=(90-lat)*(500/180);
+          line.setAttribute('x1',0);line.setAttribute('y1',y);line.setAttribute('x2',1000);line.setAttribute('y2',y);
+          line.setAttribute('stroke','rgba(255,255,255,0.04)');line.setAttribute('stroke-width','0.5');
+          svg.appendChild(line);
+        }
+
+        const countryBoxes = {
+          'US':{x:50,y:120,w:220,h:130},'CA':{x:50,y:60,w:220,h:80},
+          'MX':{x:80,y:230,w:120,h:70},'BR':{x:200,y:260,w:140,h:130},
+          'GB':{x:430,y:95,w:30,h:40},'FR':{x:445,y:125,w:40,h:40},
+          'DE':{x:475,y:105,w:40,h:40},'SE':{x:490,y:65,w:30,h:60},
+          'NG':{x:455,y:255,w:50,h:50},'AU':{x:720,y:310,w:160,h:120},
+          'JP':{x:790,y:140,w:40,h:60},'KR':{x:765,y:145,w:30,h:35},
+          'RU':{x:520,y:60,w:200,h:100},'IN':{x:600,y:180,w:80,h:90},
+          'CN':{x:660,y:120,w:120,h:100},'ZA':{x:460,y:330,w:60,h:70},
+          'EG':{x:480,y:210,w:50,h:50},'AR':{x:180,y:340,w:80,h:120},
+        };
+
+        Object.entries(countryBoxes).forEach(([code, box]) => {
+          const data = countryData[code];
+          const intensity = data ? data.plays / maxPlays : 0;
+          const alpha = data ? 0.2 + intensity * 0.8 : 0.04;
+
+          const rect = document.createElementNS('http://www.w3.org/2000/svg','rect');
+          rect.setAttribute('x',box.x); rect.setAttribute('y',box.y);
+          rect.setAttribute('width',box.w); rect.setAttribute('height',box.h);
+          rect.setAttribute('rx','4');
+          rect.setAttribute('fill', data ? `rgba(29,185,84,${alpha})` : 'rgba(255,255,255,0.04)');
+          rect.setAttribute('stroke', data ? '#1DB954' : 'rgba(255,255,255,0.08)');
+          rect.setAttribute('stroke-width','0.5');
+          rect.style.cursor = data ? 'pointer' : 'default';
+
+          if (data) {
+            rect.addEventListener('mouseenter', () => {
+              rect.setAttribute('stroke-width','1.5');
+              tooltip.style.display = 'block';
+              tooltip.innerHTML = `<strong>${data.name}</strong>${data.plays} plays`;
+              const mapRect = svg.parentElement.getBoundingClientRect();
+              const scale = mapRect.width / 1000;
+              tooltip.style.left = (box.x * scale + box.w * scale / 2) + 'px';
+              tooltip.style.top = (box.y * scale - 50) + 'px';
+              tooltip.style.transform = 'translateX(-50%)';
+            });
+            rect.addEventListener('mouseleave', () => {
+              rect.setAttribute('stroke-width','0.5');
+              tooltip.style.display = 'none';
+            });
+          }
+          svg.appendChild(rect);
+
+          if (box.w > 40 && data) {
+            const text = document.createElementNS('http://www.w3.org/2000/svg','text');
+            text.setAttribute('x', box.x + box.w/2);
+            text.setAttribute('y', box.y + box.h/2 + 4);
+            text.setAttribute('text-anchor','middle');
+            text.setAttribute('fill', intensity > 0.4 ? '#000' : 'rgba(255,255,255,0.6)');
+            text.setAttribute('font-size','10');
+            text.setAttribute('font-family','DM Sans, sans-serif');
+            text.setAttribute('pointer-events','none');
+            text.textContent = code;
+            svg.appendChild(text);
+          }
+        });
+    </script>
+</body>
+</html>
