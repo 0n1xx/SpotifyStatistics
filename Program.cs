@@ -28,6 +28,7 @@ builder.Services.AddAuthentication()
     {
         options.ClientId = builder.Configuration["GitHub:ClientId"];
         options.ClientSecret = builder.Configuration["GitHub:ClientSecret"];
+        options.CallbackPath = "/signin-github";
     });
 
 builder.Services.AddRazorPages();
@@ -45,6 +46,11 @@ builder.Services.Configure<SpotifySettings>(
 
 var app = builder.Build();
 
+app.UseForwardedHeaders(new ForwardedHeadersOptions
+{
+    ForwardedHeaders = ForwardedHeaders.XForwardedProto
+});
+
 if (app.Environment.IsDevelopment())
 {
     app.UseMigrationsEndPoint();
@@ -54,11 +60,6 @@ else
     app.UseExceptionHandler("/Error");
     app.UseHsts();
 }
-
-app.UseForwardedHeaders(new ForwardedHeadersOptions
-{
-    ForwardedHeaders = ForwardedHeaders.XForwardedProto
-});
 
 app.UseHttpsRedirection();
 app.UseRouting();
