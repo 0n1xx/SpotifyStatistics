@@ -6,6 +6,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace SpotifyStatisticsWebApp.Data.Migrations
 {
     /// <inheritdoc />
+    //test
     public partial class AddSpotifyTokens : Migration
     {
         /// <inheritdoc />
