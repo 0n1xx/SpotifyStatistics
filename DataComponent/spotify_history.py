@@ -211,14 +211,13 @@ def spotify_history():
             # Extracting relevant information from each track
             for item in results.get("items", []):
                 track = item["track"]
-                played_at = pd.to_datetime(item["played_at"]).tz_convert("America/Toronto")
 
                 data.append({
-                    "played_at": played_at.isoformat(),
+                    "played_at": item["played_at"],
                     "song": track["name"],
                     "artist": track["artists"][0]["name"],
                     "album": track["album"]["name"],
-                    "date": played_at.date().isoformat(),
+                    "date": item["played_at"],
                     "user_id": user_id
                 })
 
@@ -270,10 +269,15 @@ def spotify_history():
             pd.to_datetime(df['played_at'], utc=True)
             .dt.tz_convert('America/Toronto')
             .dt.tz_localize(None)
+            .dt.floor('s')  # remove milliseconds to avoid dedup issues
         )
         df['date'] = pd.to_datetime(df['date']).dt.date
 
-        # Changing the order of the columns, so it follows the order in the databse
+        # Normalize text fields to lowercase to avoid case-sensitive duplicates
+        for col in ['song', 'artist', 'album']:
+            df[col] = df[col].astype(str).str.strip().str.lower()
+
+        # Changing the order of the columns, so it follows the order in the database
         df = df[['played_at', 'song', 'artist', 'album', 'date', 'country', 'begin_area', 'user_id']]
 
         # There should not be any duplicates, but just in case
@@ -291,53 +295,55 @@ def spotify_history():
             DEDUPLICATE BY song, album, artist, played_at, user_id
         """)
 
-    """
-    Load Spotify history into MSSQL.
-
-    Steps:
-    1. Pull enriched track data.
-    2. Convert timestamps and prepare DataFrame.
-    3. Truncate staging table (dbo.staging_music).
-    4. Bulk insert data into staging.
-    """
-
     @task
     def load_mssql(records):
         if not records:
             print("No data to load to MSSQL")
             return
 
-        df = pd.DataFrame(records)
+        # Read full history from ClickHouse — source of truth
+        rows, columns = client.execute("SELECT * FROM music_history", with_column_types=True)
+        col_names = [col[0] for col in columns]
+        df_ch = pd.DataFrame(rows, columns=col_names)
 
-        df['played_at'] = (
-            pd.to_datetime(df['played_at'], utc=True)
-            .dt.tz_convert('America/Toronto')
-            .dt.tz_localize(None)
-        )
-        df['date'] = pd.to_datetime(df['date']).dt.date
+        df_ch['played_at'] = pd.to_datetime(df_ch['played_at']).dt.floor('s')
+        df_ch['date'] = pd.to_datetime(df_ch['date']).dt.date
 
-        df = df[['played_at', 'song', 'artist', 'album', 'date', 'country', 'begin_area', 'user_id']]
+        # Read what's already in MSSQL
+        df_ms = pd.read_sql("SELECT played_at, song, artist, album, user_id FROM dbo.music_history",
+                            master_engine.raw_connection())
+        df_ms['played_at'] = pd.to_datetime(df_ms['played_at']).dt.floor('s')
 
-        # There should not be any duplicates, but just in case
-        df = df.drop_duplicates(
-            subset=['played_at', 'song', 'artist', 'album', 'user_id']
-        )
+        # Find rows in CH but not in MSSQL
+        key_cols = ['played_at', 'song', 'artist', 'album', 'user_id']
+        ch_keys = df_ch[key_cols].astype(str).agg('|'.join, axis=1)
+        ms_keys = df_ms[key_cols].astype(str).agg('|'.join, axis=1)
+
+        only_in_ch = df_ch[~ch_keys.isin(set(ms_keys))]
+        print(f"New rows to insert: {len(only_in_ch)}")
+
+        if only_in_ch.empty:
+            print("MSSQL already in sync with ClickHouse")
+            return
 
         conn = master_engine.raw_connection()
         cursor = conn.cursor()
 
         try:
+            # Truncate and reload from ClickHouse
+            cursor.execute("TRUNCATE TABLE dbo.music_history")
             insert_query = """
-                INSERT INTO dbo.music_history (played_at, song, artist, album, date, country, begin_area, \
+                           INSERT INTO dbo.music_history (played_at, song, artist, album, date, country, begin_area, \
                                                           user_id)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?) \
-                """
-
-            data = [tuple(row) for row in df.itertuples(index=False)]
-
+                           VALUES (?, ?, ?, ?, ?, ?, ?, ?) \
+                           """
+            data = [tuple(row) for row in only_in_ch[
+                ['played_at', 'song', 'artist', 'album', 'date', 'country', 'begin_area', 'user_id']].itertuples(
+                index=False)]
             cursor.fast_executemany = True
             cursor.executemany(insert_query, data)
             conn.commit()
+            print(f"Inserted {len(only_in_ch)} rows into MSSQL")
 
         finally:
             cursor.close()
@@ -348,8 +354,9 @@ def spotify_history():
     combined = combine(user_data)
     enriched = enrich(combined)
 
-    load_clickhouse(enriched)
-    load_mssql(enriched)
+    ch = load_clickhouse(enriched)
+    ms = load_mssql(enriched)
+    ch >> ms
 
 
 spotify_dag = spotify_history()
