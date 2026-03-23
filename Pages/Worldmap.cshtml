@@ -1,0 +1,784 @@
+﻿@page
+@model SpotifyStatisticsWebApp.Pages.WorldMapModel
+@{
+    ViewData["Title"] = "World Map";
+    Layout = null;
+}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>World Map — Statify</title>
+    <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <style>
+        *, *::before, *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        :root {
+            --green: #1DB954;
+            --green-dim: #17a349;
+            --green-glow: rgba(29,185,84,0.15);
+            --black: #080808;
+            --card: #111111;
+            --card2: #161616;
+            --border: rgba(255,255,255,0.07);
+            --text: #f0f0f0;
+            --muted: #555;
+            --muted2: #888;
+            --sidebar: 240px;
+        }
+
+        html, body {
+            height: 100%;
+            background: var(--black);
+            color: var(--text);
+            font-family: 'DM Sans', sans-serif;
+            overflow: hidden;
+        }
+
+        .app {
+            display: grid;
+            grid-template-columns: var(--sidebar) 1fr;
+            height: 100vh;
+        }
+
+        .sidebar {
+            background: #0c0c0c;
+            border-right: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            padding: 28px 0;
+            overflow-y: auto;
+        }
+
+        .sidebar-logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 0 24px 28px;
+            border-bottom: 1px solid var(--border);
+            text-decoration: none;
+            color: var(--text);
+        }
+
+        .logo-icon {
+            width: 34px;
+            height: 34px;
+            background: var(--green);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+            .logo-icon svg {
+                width: 18px;
+                height: 18px;
+                fill: #000;
+            }
+
+        .logo-text {
+            font-family: 'Syne', sans-serif;
+            font-size: 18px;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+        }
+
+        .nav {
+            padding: 20px 12px;
+            flex: 1;
+        }
+
+        .nav-label {
+            font-size: 10px;
+            font-weight: 500;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            color: var(--muted);
+            padding: 0 12px;
+            margin-bottom: 8px;
+            margin-top: 20px;
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 12px;
+            border-radius: 8px;
+            font-size: 14px;
+            color: var(--muted2);
+            cursor: pointer;
+            transition: all 0.15s;
+            text-decoration: none;
+            margin-bottom: 2px;
+        }
+
+            .nav-item svg {
+                width: 16px;
+                height: 16px;
+                flex-shrink: 0;
+                opacity: 0.6;
+            }
+
+            .nav-item:hover {
+                background: var(--card);
+                color: var(--text);
+            }
+
+                .nav-item:hover svg {
+                    opacity: 1;
+                }
+
+            .nav-item.active {
+                background: var(--green-glow);
+                color: var(--green);
+                font-weight: 500;
+            }
+
+                .nav-item.active svg {
+                    opacity: 1;
+                }
+
+        .nav-connected {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 12px;
+            border-radius: 8px;
+            font-size: 14px;
+            color: var(--green);
+            margin-bottom: 2px;
+        }
+
+            .nav-connected svg {
+                width: 16px;
+                height: 16px;
+                flex-shrink: 0;
+            }
+
+        .pulse-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: var(--green);
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        .sidebar-user {
+            margin: 0 12px;
+            padding: 12px;
+            background: var(--card);
+            border-radius: 10px;
+            border: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            text-decoration: none;
+            cursor: pointer;
+            transition: border-color 0.15s;
+        }
+
+            .sidebar-user:hover {
+                border-color: rgba(255,255,255,0.15);
+            }
+
+        .user-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: var(--green);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 13px;
+            font-weight: 600;
+            color: #000;
+            flex-shrink: 0;
+        }
+
+        .user-name {
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--text);
+        }
+
+        .user-sub {
+            font-size: 11px;
+            color: var(--muted2);
+        }
+
+        /* Main */
+        .main {
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+
+        .page-header {
+            padding: 28px 40px 20px;
+            display: flex;
+            align-items: flex-end;
+            justify-content: space-between;
+            flex-shrink: 0;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .page-title {
+            font-family: 'Syne', sans-serif;
+            font-size: 26px;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+        }
+
+        .page-sub {
+            font-size: 14px;
+            color: var(--muted2);
+            margin-top: 4px;
+        }
+
+        .globe-area {
+            flex: 1;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .country-panel {
+            pointer-events: all;
+        }
+
+        #globe-canvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+            cursor: grab;
+            touch-action: none;
+        }
+
+        /* Country list panel */
+        .country-panel {
+            position: absolute;
+            right: 24px;
+            top: 24px;
+            width: 220px;
+            background: rgba(17,17,17,0.92);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            backdrop-filter: blur(12px);
+            overflow: hidden;
+        }
+
+        .country-panel-header {
+            padding: 14px 16px;
+            border-bottom: 1px solid var(--border);
+            font-family: 'Syne', sans-serif;
+            font-size: 13px;
+            font-weight: 700;
+        }
+
+        .country-list {
+            max-height: 320px;
+            overflow-y: auto;
+        }
+
+            .country-list::-webkit-scrollbar {
+                width: 3px;
+            }
+
+            .country-list::-webkit-scrollbar-thumb {
+                background: var(--border);
+            }
+
+        .country-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 9px 16px;
+            border-bottom: 1px solid rgba(255,255,255,0.03);
+            font-size: 12px;
+            transition: background 0.1s;
+        }
+
+            .country-row:last-child {
+                border-bottom: none;
+            }
+
+            .country-row:hover {
+                background: rgba(255,255,255,0.04);
+            }
+
+        .country-name {
+            color: var(--text);
+            font-weight: 500;
+        }
+
+        .country-plays {
+            color: var(--muted2);
+        }
+
+        .country-bar-wrap {
+            width: 40px;
+            height: 3px;
+            background: rgba(255,255,255,0.06);
+            border-radius: 2px;
+            margin: 0 10px;
+        }
+
+        .country-bar {
+            height: 100%;
+            background: var(--green);
+            border-radius: 2px;
+        }
+
+        /* Tooltip */
+        #globe-tooltip {
+            position: absolute;
+            background: rgba(17,17,17,0.95);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 10px 14px;
+            font-size: 12px;
+            pointer-events: none;
+            display: none;
+            z-index: 20;
+            backdrop-filter: blur(8px);
+            white-space: nowrap;
+        }
+
+            #globe-tooltip strong {
+                color: var(--green);
+                display: block;
+                font-size: 13px;
+                margin-bottom: 2px;
+            }
+
+        /* Legend */
+        .globe-legend {
+            position: absolute;
+            bottom: 20px;
+            left: 24px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 11px;
+            color: var(--muted2);
+        }
+
+        .legend-gradient {
+            width: 80px;
+            height: 5px;
+            border-radius: 3px;
+            background: linear-gradient(90deg, rgba(29,185,84,0.2), #1DB954);
+        }
+
+        /* Controls hint */
+        .globe-hint {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 11px;
+            color: var(--muted);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        @@keyframes pulse {
+            0%, 100% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.4;
+            }
+        }
+
+        @@keyframes fadeUp {
+            from {
+                opacity: 0;
+                transform: translateY(8px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="app">
+        <aside class="sidebar">
+            <a class="sidebar-logo" asp-page="/Index">
+                <div class="logo-icon">
+                    <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.65 14.4c-.2.3-.6.4-.9.2-2.5-1.53-5.63-1.87-9.33-1.03-.36.08-.72-.15-.8-.5-.08-.36.15-.72.5-.8 4.05-.92 7.52-.53 10.33 1.2.3.18.4.58.2.93zm1.24-2.75c-.25.38-.75.5-1.13.25-2.85-1.75-7.2-2.26-10.57-1.23-.43.13-.9-.1-1.03-.53-.13-.43.1-.9.53-1.03 3.85-1.17 8.63-.6 11.93 1.41.37.23.5.73.27 1.13zm.1-2.86C14.5 8.9 8.68 8.7 5.2 9.73c-.52.16-1.07-.14-1.23-.65-.16-.52.14-1.07.65-1.23 4-.22 10.35.43 14.43 2.85.46.27.62.86.35 1.32-.27.45-.87.6-1.32.34l-.09-.07z" /></svg>
+                </div>
+                <span class="logo-text">Statify</span>
+            </a>
+            <nav class="nav">
+                <div class="nav-label">Menu</div>
+                <a class="nav-item" asp-page="/Dashboard">
+                    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z" /></svg>
+                    Dashboard
+                </a>
+                <a class="nav-item" asp-page="/RecentlyPlayed">
+                    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M13 3a9 9 0 0 0-9 9H1l3.89 3.89.07.14L9 12H6c0-3.87 3.13-7 7-7s7 3.13 7 7-3.13 7-7 7c-1.93 0-3.68-.79-4.94-2.06l-1.42 1.42A8.954 8.954 0 0 0 13 21a9 9 0 0 0 0-18zm-1 5v5l4.28 2.54.72-1.21-3.5-2.08V8H12z" /></svg>
+                    Recently Played
+                </a>
+                <a class="nav-item" asp-page="/Dashboard" asp-fragment="section-tracks">
+                    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z" /></svg>
+                    Top Tracks
+                </a>
+                <a class="nav-item" asp-page="/Dashboard" asp-fragment="section-artists">
+                    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" /></svg>
+                    Top Artists
+                </a>
+                <a class="nav-item" asp-page="/Dashboard" asp-fragment="section-albums">
+                    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 14.5v-9l6 4.5-6 4.5z" /></svg>
+                    Top Albums
+                </a>
+                <a class="nav-item active" asp-page="/WorldMap">
+                    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z" /></svg>
+                    World Map
+                </a>
+                <div class="nav-label">Spotify</div>
+                @if (!Model.SpotifyConnected)
+                {
+                    <a class="nav-item" href="/SpotifyAuth/login" style="color:#1DB954;border:1px solid rgba(29,185,84,0.2);background:rgba(29,185,84,0.05)">
+                        <svg viewBox="0 0 24 24" fill="#1DB954" style="opacity:1"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.65 14.4c-.2.3-.6.4-.9.2-2.5-1.53-5.63-1.87-9.33-1.03-.36.08-.72-.15-.8-.5-.08-.36.15-.72.5-.8 4.05-.92 7.52-.53 10.33 1.2.3.18.4.58.2.93zm1.24-2.75c-.25.38-.75.5-1.13.25-2.85-1.75-7.2-2.26-10.57-1.23-.43.13-.9-.1-1.03-.53-.13-.43.1-.9.53-1.03 3.85-1.17 8.63-.6 11.93 1.41.37.23.5.73.27 1.13zm.1-2.86C14.5 8.9 8.68 8.7 5.2 9.73c-.52.16-1.07-.14-1.23-.65-.16-.52.14-1.07.65-1.23 4-.22 10.35.43 14.43 2.85.46.27.62.86.35 1.32-.27.45-.87.6-1.32.34l-.09-.07z" /></svg>
+                        Connect Spotify
+                    </a>
+                }
+                else
+                {
+                    <div class="nav-connected">
+                        <svg viewBox="0 0 24 24" fill="#1DB954" style="opacity:1"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.65 14.4c-.2.3-.6.4-.9.2-2.5-1.53-5.63-1.87-9.33-1.03-.36.08-.72-.15-.8-.5-.08-.36.15-.72.5-.8 4.05-.92 7.52-.53 10.33 1.2.3.18.4.58.2.93zm1.24-2.75c-.25.38-.75.5-1.13.25-2.85-1.75-7.2-2.26-10.57-1.23-.43.13-.9-.1-1.03-.53-.13-.43.1-.9.53-1.03 3.85-1.17 8.63-.6 11.93 1.41.37.23.5.73.27 1.13zm.1-2.86C14.5 8.9 8.68 8.7 5.2 9.73c-.52.16-1.07-.14-1.23-.65-.16-.52.14-1.07.65-1.23 4-.22 10.35.43 14.43 2.85.46.27.62.86.35 1.32-.27.45-.87.6-1.32.34l-.09-.07z" /></svg>
+                        <span style="font-size:13px">Spotify connected</span>
+                        <div class="pulse-dot" style="margin-left:auto"></div>
+                    </div>
+                }
+                <div class="nav-label">Account</div>
+                <a class="nav-item" asp-page="/Settings">
+                    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M19.14,12.94c0.04-0.3,0.06-0.61,0.06-0.94c0-0.32-0.02-0.64-0.07-0.94l2.03-1.58c0.18-0.14,0.23-0.41,0.12-0.61l-1.92-3.32c-0.12-0.22-0.37-0.29-0.59-0.22l-2.39,0.96c-0.5-0.38-1.03-0.7-1.62-0.94L14.4,2.81c-0.04-0.24-0.24-0.41-0.48-0.41h-3.84c-0.24,0-0.43,0.17-0.47,0.41L9.25,5.35C8.66,5.59,8.12,5.92,7.63,6.29L5.24,5.33c-0.22-0.08-0.47,0-0.59,0.22L2.74,8.87C2.62,9.08,2.66,9.34,2.86,9.48l2.03,1.58C4.84,11.36,4.8,11.69,4.8,12s0.02,0.64,0.07,0.94l-2.03,1.58c-0.18,0.14-0.23,0.41-0.12,0.61l1.92,3.32c0.12,0.22,0.37,0.29,0.59,0.22l2.39-0.96c0.5,0.38,1.03,0.7,1.62,0.94l0.36,2.54c0.05,0.24,0.24,0.41,0.48,0.41h3.84c0.24,0,0.44-0.17,0.47-0.41l0.36-2.54c0.59-0.24,1.13-0.56,1.62-0.94l2.39,0.96c0.22,0.08,0.47,0,0.59-0.22l1.92-3.32c0.12-0.22,0.07-0.47-0.12-0.61L19.14,12.94z M12,15.6c-1.98,0-3.6-1.62-3.6-3.6s1.62-3.6,3.6-3.6s3.6,1.62,3.6,3.6S13.98,15.6,12,15.6z" /></svg>
+                    Settings
+                </a>
+                <form method="post" asp-area="Identity" asp-page="/Account/Logout" asp-route-returnUrl="/">
+                    <button type="submit" class="nav-item" style="width:100%;border:none;background:none;text-align:left;cursor:pointer">
+                        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M17 7l-1.41 1.41L18.17 11H8v2h10.17l-2.58 2.58L17 17l5-5zM4 5h8V3H4c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h8v-2H4V5z" /></svg>
+                        Sign out
+                    </button>
+                </form>
+            </nav>
+            <a class="sidebar-user" asp-page="/Settings">
+                <div class="user-avatar">@User.Identity?.Name?.Substring(0, 1).ToUpper()</div>
+                <div>
+                    <div class="user-name">@User.Identity?.Name</div>
+                    <div class="user-sub">@(Model.SpotifyConnected ? "Spotify connected" : "Spotify not connected")</div>
+                </div>
+            </a>
+        </aside>
+
+        <main class="main">
+            <div class="page-header">
+                <div>
+                    <h1 class="page-title">World Map</h1>
+                    <p class="page-sub">Artist origins across your listening history</p>
+                </div>
+                <div style="font-size:13px;color:var(--muted2)">
+                    <strong style="color:var(--text)">@Model.CountryCounts.Count</strong> countries · <strong style="color:var(--text)">@Model.CountryCounts.Sum(c => c.Count).ToString("N0")</strong> plays
+                </div>
+            </div>
+
+            <div class="globe-area">
+                <canvas id="globe-canvas"></canvas>
+
+                <div class="country-panel">
+                    <div class="country-panel-header">Top Countries</div>
+                    <div class="country-list">
+                        @{
+                            int maxPlays = Model.CountryCounts.FirstOrDefault()?.Count ?? 1;
+                        }
+                        @foreach (var c in Model.CountryCounts.Take(15))
+                        {
+                            double pct = (double)c.Count / maxPlays * 100;
+                            <div class="country-row">
+                                <span class="country-name">@c.Country</span>
+                                <div class="country-bar-wrap">
+                                    <div class="country-bar" style="width:@pct.ToString("F0")%"></div>
+                                </div>
+                                <span class="country-plays">@c.Count</span>
+                            </div>
+                        }
+                    </div>
+                </div>
+
+                <div id="globe-tooltip"></div>
+
+                <div class="globe-legend">
+                    <div class="legend-gradient"></div>
+                    <span>Artist density</span>
+                </div>
+
+                <div class="globe-hint">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" style="opacity:0.4"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-1-13h2v6h-2zm0 8h2v2h-2z" /></svg>
+                    Drag to rotate · Scroll to zoom
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        const countryData = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(
+                        Model.CountryCounts.ToDictionary(c => c.Country ?? "unknown", c => c.Count)
+                ));
+
+        // Country codes are already ISO 2-letter in the DB
+        // Just map directly, with a fallback for full names
+        const nameToCode = {
+            "US": "US", "CA": "CA", "GB": "GB", "FR": "FR", "DE": "DE",
+            "AU": "AU", "JP": "JP", "BR": "BR", "NG": "NG", "ZA": "ZA",
+            "SE": "SE", "NO": "NO", "NL": "NL", "ES": "ES", "IT": "IT",
+            "MX": "MX", "AR": "AR", "CO": "CO", "IN": "IN", "CN": "CN",
+            "KR": "KR", "RU": "RU", "EG": "EG", "GH": "GH", "JM": "JM",
+            "IE": "IE", "NZ": "NZ", "DK": "DK", "CH": "CH", "BE": "BE",
+            "PT": "PT", "PL": "PL", "UA": "UA", "TR": "TR", "ID": "ID",
+            "PH": "PH", "MY": "MY", "SG": "SG", "TH": "TH", "VN": "VN",
+            "PK": "PK", "BD": "BD", "LK": "LK", "KE": "KE", "ET": "ET",
+            "TZ": "TZ", "UG": "UG", "CI": "CI", "SN": "SN", "CM": "CM",
+            "AO": "AO", "TT": "TT", "BB": "BB", "CU": "CU", "DO": "DO",
+            "HT": "HT", "PA": "PA", "CR": "CR", "GT": "GT", "HN": "HN",
+            "SV": "SV", "NI": "NI", "BO": "BO", "PY": "PY", "UY": "UY",
+            "VE": "VE", "EC": "EC", "PE": "PE", "CL": "CL",
+            "unknown": null
+        };
+
+        // Lat/lon centers for countries
+        const countryCenters = {
+            "US": [38, -97], "CA": [56, -96], "GB": [54, -2], "FR": [46, 2],
+            "DE": [51, 10], "AU": [-25, 133], "JP": [36, 138], "BR": [-10, -55],
+            "NG": [9, 8], "ZA": [-29, 25], "SE": [62, 15], "NO": [64, 26],
+            "NL": [52, 5], "ES": [40, -4], "IT": [42, 12], "MX": [23, -102],
+            "AR": [-34, -64], "CO": [4, -72], "IN": [20, 77], "CN": [35, 105],
+            "KR": [37, 128], "RU": [60, 100], "EG": [27, 30], "GH": [8, -2],
+            "JM": [18, -77], "IE": [53, -8], "NZ": [-41, 174], "DK": [56, 10],
+            "CH": [47, 8], "BE": [51, 4], "PT": [39, -8], "PL": [52, 20],
+            "UA": [49, 32], "TR": [39, 35], "ID": [-5, 120], "PH": [13, 122],
+            "MY": [4, 110], "SG": [1, 104], "TH": [15, 101], "VN": [16, 108],
+            "PK": [30, 70], "BD": [24, 90], "LK": [8, 81], "KE": [-1, 38],
+            "ET": [9, 40], "TZ": [-6, 35], "UG": [1, 32], "CI": [7, -6],
+            "SN": [14, -14], "CM": [5, 12], "AO": [-12, 18], "TT": [11, -61],
+            "CU": [22, -80], "DO": [19, -71], "PA": [9, -80], "CR": [10, -84],
+            "CO": [4, -72], "VE": [8, -66], "EC": [-2, -78], "PE": [-10, -76],
+            "CL": [-30, -71], "BO": [-17, -65], "PY": [-23, -58], "UY": [-33, -56]
+        };
+
+        const maxCount = Math.max(...Object.values(countryData).filter(v => typeof v === 'number'), 1);
+
+        // --- Three.js Globe ---
+        const canvas = document.getElementById('globe-canvas');
+        const area = canvas.parentElement;
+
+        const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+        renderer.setPixelRatio(window.devicePixelRatio);
+
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(45, 1, 0.1, 1000);
+        camera.position.z = 2.5;
+
+        function resize() {
+            const w = area.clientWidth, h = area.clientHeight;
+            renderer.setSize(w, h);
+            camera.aspect = w / h;
+            camera.updateProjectionMatrix();
+        }
+        resize();
+        window.addEventListener('resize', resize);
+
+        // Starfield
+        const starGeo = new THREE.BufferGeometry();
+        const starVerts = [];
+        for (let i = 0; i < 2000; i++) {
+            const theta = Math.random() * Math.PI * 2;
+            const phi = Math.acos(2 * Math.random() - 1);
+            const r = 8 + Math.random() * 4;
+            starVerts.push(r * Math.sin(phi) * Math.cos(theta), r * Math.cos(phi), r * Math.sin(phi) * Math.sin(theta));
+        }
+        starGeo.setAttribute('position', new THREE.Float32BufferAttribute(starVerts, 3));
+        scene.add(new THREE.Points(starGeo, new THREE.PointsMaterial({ color: 0xffffff, size: 0.015, transparent: true, opacity: 0.5 })));
+
+        // Globe sphere
+        const globeGeo = new THREE.SphereGeometry(1, 64, 64);
+        const globeMat = new THREE.MeshPhongMaterial({
+            color: 0x0a1628,
+            emissive: 0x071020,
+            specular: 0x1a3a5c,
+            shininess: 15,
+            transparent: true,
+            opacity: 0.95
+        });
+        const globe = new THREE.Mesh(globeGeo, globeMat);
+        window._globe = globe;
+        scene.add(globe);
+
+        // Wireframe grid (lat/lon lines)
+        const gridMat = new THREE.LineBasicMaterial({ color: 0x1a3a5c, transparent: true, opacity: 0.3 });
+        for (let lat = -80; lat <= 80; lat += 20) {
+            const pts = [];
+            for (let lon = 0; lon <= 360; lon += 3) {
+                const phi = (90 - lat) * Math.PI / 180;
+                const theta = lon * Math.PI / 180;
+                pts.push(new THREE.Vector3(1.001 * Math.sin(phi) * Math.cos(theta), 1.001 * Math.cos(phi), 1.001 * Math.sin(phi) * Math.sin(theta)));
+            }
+            scene.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), gridMat));
+        }
+        for (let lon = 0; lon < 360; lon += 20) {
+            const pts = [];
+            for (let lat = -90; lat <= 90; lat += 3) {
+                const phi = (90 - lat) * Math.PI / 180;
+                const theta = lon * Math.PI / 180;
+                pts.push(new THREE.Vector3(1.001 * Math.sin(phi) * Math.cos(theta), 1.001 * Math.cos(phi), 1.001 * Math.sin(phi) * Math.sin(theta)));
+            }
+            scene.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), gridMat));
+        }
+
+        // Atmosphere glow
+        const atmGeo = new THREE.SphereGeometry(1.08, 32, 32);
+        const atmMat = new THREE.MeshPhongMaterial({
+            color: 0x1a4a8a,
+            transparent: true,
+            opacity: 0.08,
+            side: THREE.FrontSide
+        });
+        scene.add(new THREE.Mesh(atmGeo, atmMat));
+
+        // Lighting
+        scene.add(new THREE.AmbientLight(0x223344, 0.8));
+        const sun = new THREE.DirectionalLight(0x6699cc, 1.2);
+        sun.position.set(3, 2, 3);
+        scene.add(sun);
+        const fill = new THREE.DirectionalLight(0x112233, 0.4);
+        fill.position.set(-2, -1, -2);
+        scene.add(fill);
+
+        // Helper: lat/lon to 3D point on sphere surface
+        function latLonToVec3(lat, lon, r) {
+            const phi = (90 - lat) * Math.PI / 180;
+            const theta = (lon + 180) * Math.PI / 180;
+            return new THREE.Vector3(
+                -r * Math.sin(phi) * Math.cos(theta),
+                r * Math.cos(phi),
+                r * Math.sin(phi) * Math.sin(theta)
+            );
+        }
+
+        // Place country markers
+        const markers = [];
+        const raycaster = new THREE.Raycaster();
+        const markerInfo = {};
+
+        Object.entries(countryData).forEach(([country, plays]) => {
+            // country is already an ISO code from the DB
+            const code = nameToCode[country] ?? country;
+            const center = countryCenters[code];
+            if (!center) return;
+
+            const intensity = plays / maxCount;
+            const color = new THREE.Color(0x1DB954).lerp(new THREE.Color(0x0a5a28), 1 - intensity);
+            const size = 0.025 + intensity * 0.06;
+            const height = 0.04 + intensity * 0.18;
+
+            const pos = latLonToVec3(center[0], center[1], 1.0);
+
+            // Spike / bar
+            const spikeGeo = new THREE.CylinderGeometry(size * 0.4, size, height, 8);
+            const spikeMat = new THREE.MeshPhongMaterial({ color, emissive: color, emissiveIntensity: 0.4, transparent: true, opacity: 0.9 });
+            const spike = new THREE.Mesh(spikeGeo, spikeMat);
+
+            spike.position.copy(pos.clone().normalize().multiplyScalar(1.0 + height / 2));
+            spike.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), pos.clone().normalize());
+
+            scene.add(spike);
+            markers.push(spike);
+            markerInfo[spike.uuid] = { country, plays };
+
+            // Glow ring
+            const ringGeo = new THREE.RingGeometry(size * 1.2, size * 2.0, 16);
+            const ringMat = new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.2, side: THREE.DoubleSide });
+            const ring = new THREE.Mesh(ringGeo, ringMat);
+            ring.position.copy(pos.clone().normalize().multiplyScalar(1.002));
+            ring.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), pos.clone().normalize());
+            scene.add(ring);
+        });
+
+        let isDragging = false;
+        let rotVel = { x: 0, y: 0 };
+
+        window.addEventListener('mousedown', e => {
+            isDragging = true;
+            rotVel = { x: 0, y: 0 };
+            canvas.style.cursor = 'grabbing';
+        });
+
+        window.addEventListener('mousemove', e => {
+            if (!isDragging) return;
+            globe.rotation.x += e.movementY * 0.008;
+            globe.rotation.y += e.movementX * 0.008;
+            rotVel.x = e.movementY * 0.008;
+            rotVel.y = e.movementX * 0.008;
+        });
+
+        window.addEventListener('mouseup', () => {
+            isDragging = false;
+            canvas.style.cursor = 'grab';
+        });
+
+        canvas.addEventListener('wheel', e => {
+            e.preventDefault();
+            camera.position.z = Math.max(1.4, Math.min(5, camera.position.z + e.deltaY * 0.003));
+        }, { passive: false });
+
+        const tooltip = document.getElementById('globe-tooltip');
+        canvas.addEventListener('mousemove', e => {
+            if (isDragging) { tooltip.style.display = 'none'; return; }
+            const rect = canvas.getBoundingClientRect();
+            const mouse = new THREE.Vector2(
+                ((e.clientX - rect.left) / rect.width) * 2 - 1,
+                -((e.clientY - rect.top) / rect.height) * 2 + 1
+            );
+            raycaster.setFromCamera(mouse, camera);
+            const hits = raycaster.intersectObjects(markers);
+            if (hits.length > 0) {
+                const info = markerInfo[hits[0].object.uuid];
+                if (info) {
+                    tooltip.style.display = 'block';
+                    tooltip.style.left = (e.clientX - rect.left + 14) + 'px';
+                    tooltip.style.top = (e.clientY - rect.top - 10) + 'px';
+                    tooltip.innerHTML = `<strong>${info.country}</strong>${info.plays} plays`;
+                    return;
+                }
+            }
+            tooltip.style.display = 'none';
+        });
+
+        function animate() {
+            requestAnimationFrame(animate);
+            if (!isDragging) {
+                rotVel.x *= 0.95;
+                rotVel.y *= 0.95;
+                globe.rotation.x += rotVel.x;
+                globe.rotation.y += rotVel.y + 0.0015;
+            }
+            renderer.render(scene, camera);
+        }
+        animate();
+    </script>
+</body>
+</html>
