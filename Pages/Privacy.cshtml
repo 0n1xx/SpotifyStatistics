@@ -1,8 +1,451 @@
 ﻿@page
-@model PrivacyModel
+@model SpotifyStatisticsWebApp.Pages.PrivacyModel
 @{
-    ViewData["Title"] = "Privacy Policy";
+    ViewData["Title"] = "Privacy";
+    Layout = null;
 }
-<h1>@ViewData["Title"]</h1>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Privacy — Statify</title>
+    <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+    <style>
+        *, *::before, *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
 
-<p>Use this page to detail your site's privacy policy.</p>
+        :root {
+            --green: #1DB954;
+            --black: #080808;
+            --card: #111111;
+            --border: rgba(255,255,255,0.07);
+            --text: #f0f0f0;
+            --muted: #666;
+            --muted2: #888;
+        }
+
+        html, body {
+            background: var(--black);
+            color: var(--text);
+            font-family: 'DM Sans', sans-serif;
+            min-height: 100%;
+        }
+
+        .bg {
+            position: fixed;
+            inset: 0;
+            z-index: 0;
+            overflow: hidden;
+            pointer-events: none;
+        }
+
+        .bg-orb {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(80px);
+            opacity: 0.1;
+            animation: drift 12s ease-in-out infinite alternate;
+        }
+
+            .bg-orb:nth-child(1) {
+                width: 500px;
+                height: 500px;
+                background: #1DB954;
+                top: -200px;
+                right: -100px;
+            }
+
+            .bg-orb:nth-child(2) {
+                width: 400px;
+                height: 400px;
+                background: #0d7a38;
+                bottom: -100px;
+                left: -100px;
+                animation-delay: -6s;
+            }
+
+        @@keyframes drift {
+            from {
+                transform: translate(0,0);
+            }
+
+            to {
+                transform: translate(30px,20px);
+            }
+        }
+
+        .grid-overlay {
+            position: fixed;
+            inset: 0;
+            z-index: 0;
+            background-image: linear-gradient(rgba(255,255,255,0.015) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.015) 1px, transparent 1px);
+            background-size: 60px 60px;
+            pointer-events: none;
+        }
+
+        nav {
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 24px 48px;
+            background: rgba(8,8,8,0.8);
+            backdrop-filter: blur(12px);
+            border-bottom: 1px solid var(--border);
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            text-decoration: none;
+        }
+
+        .logo-icon {
+            width: 32px;
+            height: 32px;
+            background: var(--green);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+            .logo-icon svg {
+                width: 18px;
+                height: 18px;
+                fill: #000;
+            }
+
+        .logo-text {
+            font-family: 'Syne', sans-serif;
+            font-size: 18px;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+            color: var(--text);
+        }
+
+        .nav-back {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 13px;
+            color: var(--muted2);
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+
+            .nav-back:hover {
+                color: var(--green);
+            }
+
+            .nav-back svg {
+                width: 16px;
+                height: 16px;
+            }
+
+        .page {
+            position: relative;
+            z-index: 1;
+            max-width: 760px;
+            margin: 0 auto;
+            padding: 64px 24px 100px;
+        }
+
+        .hero-label {
+            font-size: 11px;
+            font-weight: 500;
+            letter-spacing: 0.15em;
+            text-transform: uppercase;
+            color: var(--green);
+            margin-bottom: 16px;
+        }
+
+        .page-title {
+            font-family: 'Syne', sans-serif;
+            font-size: 48px;
+            font-weight: 800;
+            letter-spacing: -2px;
+            line-height: 1;
+            margin-bottom: 16px;
+            animation: fadeUp 0.5s ease both;
+        }
+
+        .page-date {
+            font-size: 13px;
+            color: var(--muted);
+            margin-bottom: 56px;
+            animation: fadeUp 0.5s 0.05s ease both;
+        }
+
+        .section {
+            margin-bottom: 48px;
+            animation: fadeUp 0.5s ease both;
+        }
+
+        .section-num {
+            font-size: 11px;
+            font-weight: 500;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            color: var(--green);
+            margin-bottom: 10px;
+        }
+
+        .section-title {
+            font-family: 'Syne', sans-serif;
+            font-size: 20px;
+            font-weight: 700;
+            margin-bottom: 16px;
+        }
+
+        .section-body {
+            font-size: 15px;
+            color: var(--muted2);
+            line-height: 1.8;
+        }
+
+            .section-body p {
+                margin-bottom: 12px;
+            }
+
+                .section-body p:last-child {
+                    margin-bottom: 0;
+                }
+
+            .section-body a {
+                color: var(--green);
+                text-decoration: none;
+            }
+
+                .section-body a:hover {
+                    text-decoration: underline;
+                }
+
+        .highlight-box {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 20px 24px;
+            margin: 16px 0;
+        }
+
+            .highlight-box ul {
+                list-style: none;
+                display: flex;
+                flex-direction: column;
+                gap: 10px;
+            }
+
+                .highlight-box ul li {
+                    display: flex;
+                    align-items: flex-start;
+                    gap: 10px;
+                    font-size: 14px;
+                    color: var(--muted2);
+                    line-height: 1.6;
+                }
+
+                    .highlight-box ul li::before {
+                        content: '';
+                        width: 6px;
+                        height: 6px;
+                        border-radius: 50%;
+                        background: var(--green);
+                        flex-shrink: 0;
+                        margin-top: 8px;
+                    }
+
+        .divider {
+            height: 1px;
+            background: var(--border);
+            margin: 48px 0;
+        }
+
+        .contact-card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            padding: 28px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 20px;
+        }
+
+        .contact-card-text {
+            font-size: 15px;
+            color: var(--muted2);
+            line-height: 1.6;
+        }
+
+            .contact-card-text strong {
+                color: var(--text);
+                display: block;
+                font-size: 16px;
+                margin-bottom: 4px;
+            }
+
+        .btn-green {
+            padding: 11px 24px;
+            background: var(--green);
+            border: none;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 600;
+            color: #000;
+            text-decoration: none;
+            white-space: nowrap;
+            font-family: 'DM Sans', sans-serif;
+        }
+
+        @@keyframes fadeUp {
+            from {
+                opacity: 0;
+                transform: translateY(16px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="bg">
+        <div class="bg-orb"></div>
+        <div class="bg-orb"></div>
+    </div>
+    <div class="grid-overlay"></div>
+
+    <nav>
+        <a class="logo" href="/">
+            <div class="logo-icon">
+                <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.65 14.4c-.2.3-.6.4-.9.2-2.5-1.53-5.63-1.87-9.33-1.03-.36.08-.72-.15-.8-.5-.08-.36.15-.72.5-.8 4.05-.92 7.52-.53 10.33 1.2.3.18.4.58.2.93zm1.24-2.75c-.25.38-.75.5-1.13.25-2.85-1.75-7.2-2.26-10.57-1.23-.43.13-.9-.1-1.03-.53-.13-.43.1-.9.53-1.03 3.85-1.17 8.63-.6 11.93 1.41.37.23.5.73.27 1.13zm.1-2.86C14.5 8.9 8.68 8.7 5.2 9.73c-.52.16-1.07-.14-1.23-.65-.16-.52.14-1.07.65-1.23 4-.22 10.35.43 14.43 2.85.46.27.62.86.35 1.32-.27.45-.87.6-1.32.34l-.09-.07z" /></svg>
+            </div>
+            <span class="logo-text">Statify</span>
+        </a>
+        <a class="nav-back" href="/">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z" /></svg>
+            Back to home
+        </a>
+    </nav>
+
+    <div class="page">
+        <div class="hero-label">Legal</div>
+        <h1 class="page-title">Privacy Policy</h1>
+        <div class="page-date">Last updated: March 22, 2026</div>
+
+        <div class="section" style="animation-delay:0.1s">
+            <div class="section-num">01</div>
+            <div class="section-title">Overview</div>
+            <div class="section-body">
+                <p>Statify is a personal music statistics app that connects to your Spotify account to track and display your listening history over time. We take your privacy seriously and are committed to being transparent about what data we collect and why.</p>
+                <p>This policy applies to all users of the Statify web application at <a href="https://spotifystatistics-production.up.railway.app">spotifystatistics-production.up.railway.app</a>.</p>
+            </div>
+        </div>
+
+        <div class="section" style="animation-delay:0.15s">
+            <div class="section-num">02</div>
+            <div class="section-title">What we collect</div>
+            <div class="section-body">
+                <p>We collect only what's needed to provide the service:</p>
+                <div class="highlight-box">
+                    <ul>
+                        <li>Your email address and account credentials when you register</li>
+                        <li>Your Spotify access token and refresh token to make API calls on your behalf</li>
+                        <li>Your listening history data pulled from Spotify — including track names, artists, albums, and play timestamps</li>
+                        <li>Artist origin country and region data from MusicBrainz to power the world map</li>
+                        <li>Login provider information if you sign in via Google or GitHub</li>
+                    </ul>
+                </div>
+                <p>We do not collect payment information, precise location data, or any data beyond what's listed above.</p>
+            </div>
+        </div>
+
+        <div class="section" style="animation-delay:0.2s">
+            <div class="section-num">03</div>
+            <div class="section-title">How we use your data</div>
+            <div class="section-body">
+                <p>Your data is used exclusively to power your personal dashboard. Specifically:</p>
+                <div class="highlight-box">
+                    <ul>
+                        <li>Displaying your top tracks, artists, and albums over different time ranges</li>
+                        <li>Showing your listening activity over time on charts and graphs</li>
+                        <li>Rendering the world map of your listening history by artist origin</li>
+                        <li>Maintaining your session so you stay logged in</li>
+                    </ul>
+                </div>
+                <p>We do not sell your data, use it for advertising, or share it with any third parties outside of what's required to operate the service.</p>
+            </div>
+        </div>
+
+        <div class="section" style="animation-delay:0.25s">
+            <div class="section-num">04</div>
+            <div class="section-title">Spotify data access</div>
+            <div class="section-body">
+                <p>When you connect your Spotify account, we request the following permission scopes:</p>
+                <div class="highlight-box">
+                    <ul>
+                        <li><strong style="color:var(--text)">user-read-recently-played</strong> — to fetch your recently played tracks</li>
+                        <li><strong style="color:var(--text)">user-top-read</strong> — to fetch your top artists and tracks over different time ranges</li>
+                        <li><strong style="color:var(--text)">user-read-playback-state</strong> — to read your current playback state</li>
+                    </ul>
+                </div>
+                <p>You can revoke Statify's access to your Spotify account at any time via your <a href="https://www.spotify.com/account/apps/" target="_blank">Spotify account settings</a>. Revoking access will prevent new data from being fetched but will not delete data already stored.</p>
+            </div>
+        </div>
+
+        <div class="section" style="animation-delay:0.3s">
+            <div class="section-num">05</div>
+            <div class="section-title">Data storage & security</div>
+            <div class="section-body">
+                <p>Your data is stored in a Microsoft SQL Server database hosted on a private server. Access tokens are stored in the database and are used only to make authenticated requests to the Spotify API on your behalf.</p>
+                <p>We use HTTPS for all data in transit. We do not store your Spotify password — authentication is handled entirely by Spotify's OAuth flow.</p>
+            </div>
+        </div>
+
+        <div class="section" style="animation-delay:0.35s">
+            <div class="section-num">06</div>
+            <div class="section-title">Third party services</div>
+            <div class="section-body">
+                <p>Statify integrates with the following third-party services:</p>
+                <div class="highlight-box">
+                    <ul>
+                        <li><a href="https://developer.spotify.com/documentation/web-api">Spotify Web API</a> — for fetching your listening data</li>
+                        <li><a href="https://accounts.google.com">Google OAuth</a> — optional sign-in method</li>
+                        <li><a href="https://github.com">GitHub OAuth</a> — optional sign-in method</li>
+                        <li><a href="https://railway.app">Railway</a> — application hosting</li>
+                    </ul>
+                </div>
+                <p>Each of these services has their own privacy policy which governs how they handle your data.</p>
+            </div>
+        </div>
+
+        <div class="section" style="animation-delay:0.4s">
+            <div class="section-num">07</div>
+            <div class="section-title">Your rights</div>
+            <div class="section-body">
+                <p>You have the right to request deletion of your account and all associated data at any time. You can also request a copy of the data we hold about you. To exercise either right, contact us using the details below.</p>
+            </div>
+        </div>
+
+        <div class="divider"></div>
+
+        <div class="contact-card">
+            <div class="contact-card-text">
+                <strong>Questions about this policy?</strong>
+                If you have any questions or concerns about how we handle your data, get in touch.
+            </div>
+            <a class="btn-green" href="mailto:temiloluwashokubi@gmail.com">Contact us</a>
+        </div>
+    </div>
+</body>
+</html>

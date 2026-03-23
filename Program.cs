@@ -1,3 +1,5 @@
+using Microsoft.AspNetCore.DataProtection;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using SpotifyStatisticsWebApp.Data;
@@ -12,6 +14,10 @@ builder.Services.AddDatabaseDeveloperPageExceptionFilter();
 builder.Services.AddDefaultIdentity<IdentityUser>(options => options.SignIn.RequireConfirmedAccount = false)
     .AddEntityFrameworkStores<ApplicationDbContext>();
 
+builder.Services.AddDataProtection()
+    .PersistKeysToFileSystem(new DirectoryInfo("/tmp/dataprotection-keys"))
+    .SetApplicationName("SpotifyStatisticsWebApp");
+
 builder.Services.AddAuthentication()
     .AddGoogle(options =>
     {
@@ -22,6 +28,7 @@ builder.Services.AddAuthentication()
     {
         options.ClientId = builder.Configuration["GitHub:ClientId"];
         options.ClientSecret = builder.Configuration["GitHub:ClientSecret"];
+        options.CallbackPath = "/signin-github";
     });
 
 builder.Services.AddRazorPages();
@@ -38,6 +45,11 @@ builder.Services.Configure<SpotifySettings>(
     builder.Configuration.GetSection("Spotify"));
 
 var app = builder.Build();
+
+app.UseForwardedHeaders(new ForwardedHeadersOptions
+{
+    ForwardedHeaders = ForwardedHeaders.XForwardedProto
+});
 
 if (app.Environment.IsDevelopment())
 {

@@ -263,10 +263,6 @@
             color: var(--muted2);
         }
 
-            .stat-card-sub span {
-                color: var(--green);
-            }
-
         .charts-row {
             display: grid;
             grid-template-columns: 1fr 340px;
@@ -292,13 +288,6 @@
             font-family: 'Syne', sans-serif;
             font-size: 15px;
             font-weight: 700;
-        }
-
-        .card-action {
-            font-size: 12px;
-            color: var(--green);
-            cursor: pointer;
-            text-decoration: none;
         }
 
         .bottom-grid {
@@ -464,6 +453,104 @@
             border-radius: 2px;
         }
 
+        .spotify-banner {
+            background: linear-gradient(135deg, rgba(29,185,84,0.12), rgba(29,185,84,0.04));
+            border: 1px solid rgba(29,185,84,0.25);
+            border-radius: 14px;
+            padding: 20px 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 20px;
+            animation: fadeUp 0.4s ease both;
+        }
+
+        .spotify-banner-icon {
+            width: 44px;
+            height: 44px;
+            background: rgba(29,185,84,0.15);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            animation: iconPulse 2s ease-in-out infinite;
+        }
+
+        .spotify-connected-bar {
+            background: rgba(29,185,84,0.06);
+            border: 1px solid rgba(29,185,84,0.15);
+            border-radius: 14px;
+            padding: 14px 20px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            animation: fadeUp 0.4s ease both;
+        }
+
+        .pulse-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--green);
+            flex-shrink: 0;
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        .connect-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: var(--green);
+            color: #000;
+            border: none;
+            border-radius: 10px;
+            padding: 11px 20px;
+            font-size: 14px;
+            font-weight: 600;
+            font-family: 'DM Sans', sans-serif;
+            text-decoration: none;
+            transition: background 0.2s;
+            white-space: nowrap;
+            cursor: pointer;
+        }
+
+            .connect-btn:hover {
+                background: var(--green-dim);
+            }
+
+        .dismiss-btn {
+            background: none;
+            border: none;
+            color: var(--muted);
+            font-size: 13px;
+            cursor: pointer;
+            font-family: 'DM Sans', sans-serif;
+            padding: 8px;
+            transition: color 0.2s;
+        }
+
+            .dismiss-btn:hover {
+                color: var(--muted2);
+            }
+
+        .nav-connected {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 12px;
+            border-radius: 8px;
+            font-size: 14px;
+            color: var(--green);
+            margin-bottom: 2px;
+        }
+
+            .nav-connected svg {
+                width: 16px;
+                height: 16px;
+                flex-shrink: 0;
+            }
+
         @@keyframes fadeUp {
             from {
                 opacity: 0;
@@ -473,6 +560,28 @@
             to {
                 opacity: 1;
                 transform: translateY(0);
+            }
+        }
+
+        @@keyframes pulse {
+            0%, 100% {
+                opacity: 1;
+                transform: scale(1);
+            }
+
+            50% {
+                opacity: 0.5;
+                transform: scale(0.85);
+            }
+        }
+
+        @@keyframes iconPulse {
+            0%, 100% {
+                transform: scale(1);
+            }
+
+            50% {
+                transform: scale(0.92);
             }
         }
     </style>
@@ -492,22 +601,38 @@
                     <svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z" /></svg>
                     Dashboard
                 </a>
-                <a class="nav-item" href="#">
+                <a class="nav-item" asp-page="/TopTracks">
                     <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z" /></svg>
                     Top Tracks
                 </a>
-                <a class="nav-item" href="#">
+                <a class="nav-item" asp-page="/TopArtists">
                     <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" /></svg>
                     Top Artists
                 </a>
-                <a class="nav-item" href="#">
+                <a class="nav-item" asp-page="/TopAlbums">
                     <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 14.5v-9l6 4.5-6 4.5z" /></svg>
                     Top Albums
                 </a>
-                <a class="nav-item" href="#">
+                <a class="nav-item" asp-page="/WorldMap">
                     <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z" /></svg>
                     World Map
                 </a>
+                <div class="nav-label">Spotify</div>
+                @if (!Model.SpotifyConnected)
+                {
+                    <a class="nav-item" href="/SpotifyAuth/login" style="color:#1DB954;border:1px solid rgba(29,185,84,0.2);background:rgba(29,185,84,0.05)">
+                        <svg viewBox="0 0 24 24" fill="#1DB954" style="opacity:1"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.65 14.4c-.2.3-.6.4-.9.2-2.5-1.53-5.63-1.87-9.33-1.03-.36.08-.72-.15-.8-.5-.08-.36.15-.72.5-.8 4.05-.92 7.52-.53 10.33 1.2.3.18.4.58.2.93zm1.24-2.75c-.25.38-.75.5-1.13.25-2.85-1.75-7.2-2.26-10.57-1.23-.43.13-.9-.1-1.03-.53-.13-.43.1-.9.53-1.03 3.85-1.17 8.63-.6 11.93 1.41.37.23.5.73.27 1.13zm.1-2.86C14.5 8.9 8.68 8.7 5.2 9.73c-.52.16-1.07-.14-1.23-.65-.16-.52.14-1.07.65-1.23 4-.22 10.35.43 14.43 2.85.46.27.62.86.35 1.32-.27.45-.87.6-1.32.34l-.09-.07z" /></svg>
+                        Connect Spotify
+                    </a>
+                }
+                else
+                {
+                    <div class="nav-connected">
+                        <svg viewBox="0 0 24 24" fill="#1DB954" style="opacity:1"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.65 14.4c-.2.3-.6.4-.9.2-2.5-1.53-5.63-1.87-9.33-1.03-.36.08-.72-.15-.8-.5-.08-.36.15-.72.5-.8 4.05-.92 7.52-.53 10.33 1.2.3.18.4.58.2.93zm1.24-2.75c-.25.38-.75.5-1.13.25-2.85-1.75-7.2-2.26-10.57-1.23-.43.13-.9-.1-1.03-.53-.13-.43.1-.9.53-1.03 3.85-1.17 8.63-.6 11.93 1.41.37.23.5.73.27 1.13zm.1-2.86C14.5 8.9 8.68 8.7 5.2 9.73c-.52.16-1.07-.14-1.23-.65-.16-.52.14-1.07.65-1.23 4-.22 10.35.43 14.43 2.85.46.27.62.86.35 1.32-.27.45-.87.6-1.32.34l-.09-.07z" /></svg>
+                        <span style="font-size:13px">Spotify connected</span>
+                        <div class="pulse-dot" style="margin-left:auto"></div>
+                    </div>
+                }
                 <div class="nav-label">Account</div>
                 <a class="nav-item" href="/Identity/Account/Manage">
                     <svg viewBox="0 0 24 24" fill="currentColor"><path d="M19.14,12.94c0.04-0.3,0.06-0.61,0.06-0.94c0-0.32-0.02-0.64-0.07-0.94l2.03-1.58c0.18-0.14,0.23-0.41,0.12-0.61l-1.92-3.32c-0.12-0.22-0.37-0.29-0.59-0.22l-2.39,0.96c-0.5-0.38-1.03-0.7-1.62-0.94L14.4,2.81c-0.04-0.24-0.24-0.41-0.48-0.41h-3.84c-0.24,0-0.43,0.17-0.47,0.41L9.25,5.35C8.66,5.59,8.12,5.92,7.63,6.29L5.24,5.33c-0.22-0.08-0.47,0-0.59,0.22L2.74,8.87C2.62,9.08,2.66,9.34,2.86,9.48l2.03,1.58C4.84,11.36,4.8,11.69,4.8,12s0.02,0.64,0.07,0.94l-2.03,1.58c-0.18,0.14-0.23,0.41-0.12,0.61l1.92,3.32c0.12,0.22,0.37,0.29,0.59,0.22l2.39-0.96c0.5,0.38,1.03,0.7,1.62,0.94l0.36,2.54c0.05,0.24,0.24,0.41,0.48,0.41h3.84c0.24,0,0.44-0.17,0.47-0.41l0.36-2.54c0.59-0.24,1.13-0.56,1.62-0.94l2.39,0.96c0.22,0.08,0.47,0,0.59-0.22l1.92-3.32c0.12-0.22,0.07-0.47-0.12-0.61L19.14,12.94z M12,15.6c-1.98,0-3.6-1.62-3.6-3.6s1.62-3.6,3.6-3.6s3.6,1.62,3.6,3.6S13.98,15.6,12,15.6z" /></svg>
@@ -524,7 +649,7 @@
                 <div class="user-avatar">@User.Identity?.Name?.Substring(0, 1).ToUpper()</div>
                 <div>
                     <div class="user-name">@User.Identity?.Name</div>
-                    <div class="user-sub">Connected to Spotify</div>
+                    <div class="user-sub">@(Model.SpotifyConnected ? "Spotify connected" : "Spotify not connected")</div>
                 </div>
             </div>
         </aside>
@@ -539,6 +664,35 @@
                     <button class="tf-btn" onclick="setFilter(this,'all')">All</button>
                 </div>
             </div>
+
+            @if (!Model.SpotifyConnected)
+            {
+                <div class="spotify-banner" id="spotify-banner">
+                    <div style="display:flex;align-items:center;gap:16px">
+                        <div class="spotify-banner-icon">
+                            <svg width="22" height="22" viewBox="0 0 24 24" fill="#1DB954"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.65 14.4c-.2.3-.6.4-.9.2-2.5-1.53-5.63-1.87-9.33-1.03-.36.08-.72-.15-.8-.5-.08-.36.15-.72.5-.8 4.05-.92 7.52-.53 10.33 1.2.3.18.4.58.2.93zm1.24-2.75c-.25.38-.75.5-1.13.25-2.85-1.75-7.2-2.26-10.57-1.23-.43.13-.9-.1-1.03-.53-.13-.43.1-.9.53-1.03 3.85-1.17 8.63-.6 11.93 1.41.37.23.5.73.27 1.13zm.1-2.86C14.5 8.9 8.68 8.7 5.2 9.73c-.52.16-1.07-.14-1.23-.65-.16-.52.14-1.07.65-1.23 4-.22 10.35.43 14.43 2.85.46.27.62.86.35 1.32-.27.45-.87.6-1.32.34l-.09-.07z" /></svg>
+                        </div>
+                        <div>
+                            <div style="font-family:'Syne',sans-serif;font-size:15px;font-weight:700;color:#f0f0f0;margin-bottom:4px">Connect your Spotify account</div>
+                            <div style="font-size:13px;color:#888;line-height:1.5">Link Spotify to start tracking your listening history and unlock your full dashboard.</div>
+                        </div>
+                    </div>
+                    <div style="display:flex;align-items:center;gap:10px;flex-shrink:0">
+                        <button class="dismiss-btn" onclick="document.getElementById('spotify-banner').style.display='none'">Dismiss</button>
+                        <a href="/SpotifyAuth/login" class="connect-btn">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="#000"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.65 14.4c-.2.3-.6.4-.9.2-2.5-1.53-5.63-1.87-9.33-1.03-.36.08-.72-.15-.8-.5-.08-.36.15-.72.5-.8 4.05-.92 7.52-.53 10.33 1.2.3.18.4.58.2.93zm1.24-2.75c-.25.38-.75.5-1.13.25-2.85-1.75-7.2-2.26-10.57-1.23-.43.13-.9-.1-1.03-.53-.13-.43.1-.9.53-1.03 3.85-1.17 8.63-.6 11.93 1.41.37.23.5.73.27 1.13zm.1-2.86C14.5 8.9 8.68 8.7 5.2 9.73c-.52.16-1.07-.14-1.23-.65-.16-.52.14-1.07.65-1.23 4-.22 10.35.43 14.43 2.85.46.27.62.86.35 1.32-.27.45-.87.6-1.32.34l-.09-.07z" /></svg>
+                            Connect Spotify
+                        </a>
+                    </div>
+                </div>
+            }
+            else
+            {
+                <div class="spotify-connected-bar">
+                    <div class="pulse-dot"></div>
+                    <span style="font-size:13px;color:#888">Spotify connected — your listening data is being tracked</span>
+                </div>
+            }
 
             <div class="stats-grid">
                 <div class="stat-card" style="animation-delay:0s">
@@ -619,7 +773,6 @@
                         }
                     </div>
                 </div>
-
                 <div class="card" style="animation-delay:0.4s">
                     <div class="card-header"><span class="card-title">Top artists</span></div>
                     <div class="top-list">
@@ -642,7 +795,6 @@
                         }
                     </div>
                 </div>
-
                 <div class="card" style="animation-delay:0.45s">
                     <div class="card-header"><span class="card-title">Top albums</span></div>
                     <div class="top-list">
@@ -670,7 +822,6 @@
     </div>
 
     <script>
-        // Real data from DB
         const actLabels = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Data.ActivityByMonth.Select(m => m.Month).ToList()));
         const actData = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Data.ActivityByMonth.Select(m => m.Count).ToList()));
         const todData = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Data.ListeningByHour));
@@ -678,54 +829,50 @@
                         Model.Data.CountryCounts.ToDictionary(c => c.Country ?? "unknown", c => new { name = c.Country, plays = c.Count })
                 ));
 
-        // Time filter
         function setFilter(btn, range) {
-          document.querySelectorAll('.tf-btn').forEach(b => b.classList.remove('active'));
-          btn.classList.add('active');
+            document.querySelectorAll('.tf-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
         }
 
-        // Activity chart
         const actCtx = document.getElementById('activityChart').getContext('2d');
         new Chart(actCtx, {
-          type: 'line',
-          data: {
-            labels: actLabels,
-            datasets: [{
-              data: actData,
-              borderColor: '#1DB954',
-              backgroundColor: 'rgba(29,185,84,0.08)',
-              borderWidth: 2,
-              pointRadius: 3,
-              pointBackgroundColor: '#1DB954',
-              tension: 0.4,
-              fill: true
-            }]
-          },
-          options: {
-            responsive: true,
-            plugins: { legend: { display: false } },
-            scales: {
-              x: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: '#555', font: { size: 11 } } },
-              y: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: '#555', font: { size: 11 } } }
+            type: 'line',
+            data: {
+                labels: actLabels,
+                datasets: [{
+                    data: actData,
+                    borderColor: '#1DB954',
+                    backgroundColor: 'rgba(29,185,84,0.08)',
+                    borderWidth: 2,
+                    pointRadius: 3,
+                    pointBackgroundColor: '#1DB954',
+                    tension: 0.4,
+                    fill: true
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: { legend: { display: false } },
+                scales: {
+                    x: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: '#555', font: { size: 11 } } },
+                    y: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: '#555', font: { size: 11 } } }
+                }
             }
-          }
         });
 
-        // Time of day
         const todContainer = document.getElementById('todBars');
         const maxTod = Math.max(...todData, 1);
         todData.forEach((val, i) => {
-          const wrap = document.createElement('div');
-          wrap.className = 'tod-bar-wrap';
-          const bar = document.createElement('div');
-          bar.className = 'tod-bar';
-          bar.style.height = `${Math.max((val/maxTod)*70, 4)}px`;
-          bar.title = `${i}:00 — ${val} plays`;
-          wrap.appendChild(bar);
-          todContainer.appendChild(wrap);
+            const wrap = document.createElement('div');
+            wrap.className = 'tod-bar-wrap';
+            const bar = document.createElement('div');
+            bar.className = 'tod-bar';
+            bar.style.height = `${Math.max((val/maxTod)*70, 4)}px`;
+            bar.title = `${i}:00 — ${val} plays`;
+            wrap.appendChild(bar);
+            todContainer.appendChild(wrap);
         });
 
-        // World map
         const maxPlays = Math.max(...Object.values(countryData).map(d => d.plays), 1);
         const svg = document.getElementById('world-map');
         const tooltip = document.getElementById('tooltip');
@@ -735,76 +882,73 @@
         ocean.setAttribute('fill','#0e1621'); svg.appendChild(ocean);
 
         for(let lon=-180;lon<=180;lon+=30){
-          const line=document.createElementNS('http://www.w3.org/2000/svg','line');
-          const x=(lon+180)*(1000/360);
-          line.setAttribute('x1',x);line.setAttribute('y1',0);line.setAttribute('x2',x);line.setAttribute('y2',500);
-          line.setAttribute('stroke','rgba(255,255,255,0.04)');line.setAttribute('stroke-width','0.5');
-          svg.appendChild(line);
+            const line=document.createElementNS('http://www.w3.org/2000/svg','line');
+            const x=(lon+180)*(1000/360);
+            line.setAttribute('x1',x);line.setAttribute('y1',0);line.setAttribute('x2',x);line.setAttribute('y2',500);
+            line.setAttribute('stroke','rgba(255,255,255,0.04)');line.setAttribute('stroke-width','0.5');
+            svg.appendChild(line);
         }
         for(let lat=-90;lat<=90;lat+=30){
-          const line=document.createElementNS('http://www.w3.org/2000/svg','line');
-          const y=(90-lat)*(500/180);
-          line.setAttribute('x1',0);line.setAttribute('y1',y);line.setAttribute('x2',1000);line.setAttribute('y2',y);
-          line.setAttribute('stroke','rgba(255,255,255,0.04)');line.setAttribute('stroke-width','0.5');
-          svg.appendChild(line);
+            const line=document.createElementNS('http://www.w3.org/2000/svg','line');
+            const y=(90-lat)*(500/180);
+            line.setAttribute('x1',0);line.setAttribute('y1',y);line.setAttribute('x2',1000);line.setAttribute('y2',y);
+            line.setAttribute('stroke','rgba(255,255,255,0.04)');line.setAttribute('stroke-width','0.5');
+            svg.appendChild(line);
         }
 
         const countryBoxes = {
-          'US':{x:50,y:120,w:220,h:130},'CA':{x:50,y:60,w:220,h:80},
-          'MX':{x:80,y:230,w:120,h:70},'BR':{x:200,y:260,w:140,h:130},
-          'GB':{x:430,y:95,w:30,h:40},'FR':{x:445,y:125,w:40,h:40},
-          'DE':{x:475,y:105,w:40,h:40},'SE':{x:490,y:65,w:30,h:60},
-          'NG':{x:455,y:255,w:50,h:50},'AU':{x:720,y:310,w:160,h:120},
-          'JP':{x:790,y:140,w:40,h:60},'KR':{x:765,y:145,w:30,h:35},
-          'RU':{x:520,y:60,w:200,h:100},'IN':{x:600,y:180,w:80,h:90},
-          'CN':{x:660,y:120,w:120,h:100},'ZA':{x:460,y:330,w:60,h:70},
-          'EG':{x:480,y:210,w:50,h:50},'AR':{x:180,y:340,w:80,h:120},
+            'US':{x:50,y:120,w:220,h:130},'CA':{x:50,y:60,w:220,h:80},
+            'MX':{x:80,y:230,w:120,h:70},'BR':{x:200,y:260,w:140,h:130},
+            'GB':{x:430,y:95,w:30,h:40},'FR':{x:445,y:125,w:40,h:40},
+            'DE':{x:475,y:105,w:40,h:40},'SE':{x:490,y:65,w:30,h:60},
+            'NG':{x:455,y:255,w:50,h:50},'AU':{x:720,y:310,w:160,h:120},
+            'JP':{x:790,y:140,w:40,h:60},'KR':{x:765,y:145,w:30,h:35},
+            'RU':{x:520,y:60,w:200,h:100},'IN':{x:600,y:180,w:80,h:90},
+            'CN':{x:660,y:120,w:120,h:100},'ZA':{x:460,y:330,w:60,h:70},
+            'EG':{x:480,y:210,w:50,h:50},'AR':{x:180,y:340,w:80,h:120},
         };
 
         Object.entries(countryBoxes).forEach(([code, box]) => {
-          const data = countryData[code];
-          const intensity = data ? data.plays / maxPlays : 0;
-          const alpha = data ? 0.2 + intensity * 0.8 : 0.04;
-
-          const rect = document.createElementNS('http://www.w3.org/2000/svg','rect');
-          rect.setAttribute('x',box.x); rect.setAttribute('y',box.y);
-          rect.setAttribute('width',box.w); rect.setAttribute('height',box.h);
-          rect.setAttribute('rx','4');
-          rect.setAttribute('fill', data ? `rgba(29,185,84,${alpha})` : 'rgba(255,255,255,0.04)');
-          rect.setAttribute('stroke', data ? '#1DB954' : 'rgba(255,255,255,0.08)');
-          rect.setAttribute('stroke-width','0.5');
-          rect.style.cursor = data ? 'pointer' : 'default';
-
-          if (data) {
-            rect.addEventListener('mouseenter', () => {
-              rect.setAttribute('stroke-width','1.5');
-              tooltip.style.display = 'block';
-              tooltip.innerHTML = `<strong>${data.name}</strong>${data.plays} plays`;
-              const mapRect = svg.parentElement.getBoundingClientRect();
-              const scale = mapRect.width / 1000;
-              tooltip.style.left = (box.x * scale + box.w * scale / 2) + 'px';
-              tooltip.style.top = (box.y * scale - 50) + 'px';
-              tooltip.style.transform = 'translateX(-50%)';
-            });
-            rect.addEventListener('mouseleave', () => {
-              rect.setAttribute('stroke-width','0.5');
-              tooltip.style.display = 'none';
-            });
-          }
-          svg.appendChild(rect);
-
-          if (box.w > 40 && data) {
-            const text = document.createElementNS('http://www.w3.org/2000/svg','text');
-            text.setAttribute('x', box.x + box.w/2);
-            text.setAttribute('y', box.y + box.h/2 + 4);
-            text.setAttribute('text-anchor','middle');
-            text.setAttribute('fill', intensity > 0.4 ? '#000' : 'rgba(255,255,255,0.6)');
-            text.setAttribute('font-size','10');
-            text.setAttribute('font-family','DM Sans, sans-serif');
-            text.setAttribute('pointer-events','none');
-            text.textContent = code;
-            svg.appendChild(text);
-          }
+            const data = countryData[code];
+            const intensity = data ? data.plays / maxPlays : 0;
+            const alpha = data ? 0.2 + intensity * 0.8 : 0.04;
+            const rect = document.createElementNS('http://www.w3.org/2000/svg','rect');
+            rect.setAttribute('x',box.x); rect.setAttribute('y',box.y);
+            rect.setAttribute('width',box.w); rect.setAttribute('height',box.h);
+            rect.setAttribute('rx','4');
+            rect.setAttribute('fill', data ? `rgba(29,185,84,${alpha})` : 'rgba(255,255,255,0.04)');
+            rect.setAttribute('stroke', data ? '#1DB954' : 'rgba(255,255,255,0.08)');
+            rect.setAttribute('stroke-width','0.5');
+            rect.style.cursor = data ? 'pointer' : 'default';
+            if (data) {
+                rect.addEventListener('mouseenter', () => {
+                    rect.setAttribute('stroke-width','1.5');
+                    tooltip.style.display = 'block';
+                    tooltip.innerHTML = `<strong>${data.name}</strong>${data.plays} plays`;
+                    const mapRect = svg.parentElement.getBoundingClientRect();
+                    const scale = mapRect.width / 1000;
+                    tooltip.style.left = (box.x * scale + box.w * scale / 2) + 'px';
+                    tooltip.style.top = (box.y * scale - 50) + 'px';
+                    tooltip.style.transform = 'translateX(-50%)';
+                });
+                rect.addEventListener('mouseleave', () => {
+                    rect.setAttribute('stroke-width','0.5');
+                    tooltip.style.display = 'none';
+                });
+            }
+            svg.appendChild(rect);
+            if (box.w > 40 && data) {
+                const text = document.createElementNS('http://www.w3.org/2000/svg','text');
+                text.setAttribute('x', box.x + box.w/2);
+                text.setAttribute('y', box.y + box.h/2 + 4);
+                text.setAttribute('text-anchor','middle');
+                text.setAttribute('fill', intensity > 0.4 ? '#000' : 'rgba(255,255,255,0.6)');
+                text.setAttribute('font-size','10');
+                text.setAttribute('font-family','DM Sans, sans-serif');
+                text.setAttribute('pointer-events','none');
+                text.textContent = code;
+                svg.appendChild(text);
+            }
         });
     </script>
 </body>
