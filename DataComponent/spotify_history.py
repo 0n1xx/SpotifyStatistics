@@ -266,11 +266,20 @@ def spotify_history():
         df = pd.DataFrame(records)
 
         # Converting columns to the proper date format
-        df['played_at'] = pd.to_datetime(df['played_at'])
+        df['played_at'] = (
+            pd.to_datetime(df['played_at'], utc=True)
+            .dt.tz_convert('America/Toronto')
+            .dt.tz_localize(None)
+        )
         df['date'] = pd.to_datetime(df['date']).dt.date
 
         # Changing the order of the columns, so it follows the order in the databse
         df = df[['played_at', 'song', 'artist', 'album', 'date', 'country', 'begin_area', 'user_id']]
+
+        # There should not be any duplicates, but just in case
+        df = df.drop_duplicates(
+            subset=['played_at', 'song', 'artist', 'album', 'user_id']
+        )
 
         client.execute(
             "INSERT INTO default.music_history VALUES",
@@ -290,10 +299,8 @@ def spotify_history():
     2. Convert timestamps and prepare DataFrame.
     3. Truncate staging table (dbo.staging_music).
     4. Bulk insert data into staging.
-    5. MERGE into dbo.music_history:
-       - insert only new records
-       - skip duplicates
     """
+
     @task
     def load_mssql(records):
         if not records:
@@ -302,44 +309,34 @@ def spotify_history():
 
         df = pd.DataFrame(records)
 
-        df['played_at'] = pd.to_datetime(df['played_at'], utc=True).dt.tz_convert(None)
+        df['played_at'] = (
+            pd.to_datetime(df['played_at'], utc=True)
+            .dt.tz_convert('America/Toronto')
+            .dt.tz_localize(None)
+        )
         df['date'] = pd.to_datetime(df['date']).dt.date
 
         df = df[['played_at', 'song', 'artist', 'album', 'date', 'country', 'begin_area', 'user_id']]
+
+        # There should not be any duplicates, but just in case
+        df = df.drop_duplicates(
+            subset=['played_at', 'song', 'artist', 'album', 'user_id']
+        )
 
         conn = master_engine.raw_connection()
         cursor = conn.cursor()
 
         try:
-            cursor.execute("TRUNCATE TABLE dbo.staging_music")
-            conn.commit()
-
             insert_query = """
-            INSERT INTO dbo.staging_music (
-                played_at, song, artist, album, date, country, begin_area, user_id
-            )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-            """
+                INSERT INTO dbo.music_history (played_at, song, artist, album, date, country, begin_area, \
+                                                          user_id)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?) \
+                """
 
             data = [tuple(row) for row in df.itertuples(index=False)]
 
             cursor.fast_executemany = True
             cursor.executemany(insert_query, data)
-            conn.commit()
-
-            cursor.execute("""
-            MERGE dbo.music_history AS target
-            USING dbo.staging_music AS source
-            ON 
-                target.played_at = source.played_at
-                AND target.song = source.song
-                AND target.artist = source.artist
-                AND target.album = source.album
-                AND target.user_id = source.user_id
-            WHEN NOT MATCHED THEN
-                INSERT (played_at, song, artist, album, date, country, begin_area, user_id)
-                VALUES (source.played_at, source.song, source.artist, source.album, source.date, source.country, source.begin_area, source.user_id);
-            """)
             conn.commit()
 
         finally:
