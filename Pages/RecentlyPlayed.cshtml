@@ -1,0 +1,728 @@
+﻿@page
+@model SpotifyStatisticsWebApp.Pages.RecentlyPlayedModel
+@{
+    ViewData["Title"] = "Recently Played";
+    Layout = null;
+}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Recently Played — Statify</title>
+    <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+    <style>
+        *, *::before, *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        :root {
+            --green: #1DB954;
+            --green-dim: #17a349;
+            --green-glow: rgba(29,185,84,0.15);
+            --black: #080808;
+            --card: #111111;
+            --card2: #161616;
+            --border: rgba(255,255,255,0.07);
+            --text: #f0f0f0;
+            --muted: #555;
+            --muted2: #888;
+            --sidebar: 240px;
+        }
+
+        html, body {
+            height: 100%;
+            background: var(--black);
+            color: var(--text);
+            font-family: 'DM Sans', sans-serif;
+            overflow: hidden;
+        }
+
+        .app {
+            display: grid;
+            grid-template-columns: var(--sidebar) 1fr;
+            height: 100vh;
+        }
+
+        /* ── Sidebar ── */
+        .sidebar {
+            background: #0c0c0c;
+            border-right: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            padding: 28px 0;
+            overflow-y: auto;
+        }
+
+        .sidebar-logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 0 24px 28px;
+            border-bottom: 1px solid var(--border);
+            text-decoration: none;
+            color: var(--text);
+        }
+
+        .logo-icon {
+            width: 34px;
+            height: 34px;
+            background: var(--green);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+            .logo-icon svg {
+                width: 18px;
+                height: 18px;
+                fill: #000;
+            }
+
+        .logo-text {
+            font-family: 'Syne', sans-serif;
+            font-size: 18px;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+        }
+
+        .nav {
+            padding: 20px 12px;
+            flex: 1;
+        }
+
+        .nav-label {
+            font-size: 10px;
+            font-weight: 500;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            color: var(--muted);
+            padding: 0 12px;
+            margin-bottom: 8px;
+            margin-top: 20px;
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 12px;
+            border-radius: 8px;
+            font-size: 14px;
+            color: var(--muted2);
+            cursor: pointer;
+            transition: all 0.15s;
+            text-decoration: none;
+            margin-bottom: 2px;
+        }
+
+            .nav-item svg {
+                width: 16px;
+                height: 16px;
+                flex-shrink: 0;
+                opacity: 0.6;
+            }
+
+            .nav-item:hover {
+                background: var(--card);
+                color: var(--text);
+            }
+
+                .nav-item:hover svg {
+                    opacity: 1;
+                }
+
+            .nav-item.active {
+                background: var(--green-glow);
+                color: var(--green);
+                font-weight: 500;
+            }
+
+                .nav-item.active svg {
+                    opacity: 1;
+                }
+
+        .nav-connected {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 12px;
+            border-radius: 8px;
+            font-size: 14px;
+            color: var(--green);
+            margin-bottom: 2px;
+        }
+
+            .nav-connected svg {
+                width: 16px;
+                height: 16px;
+                flex-shrink: 0;
+            }
+
+        .sidebar-user {
+            margin: 0 12px;
+            padding: 12px;
+            background: var(--card);
+            border-radius: 10px;
+            border: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            text-decoration: none;
+            cursor: pointer;
+            transition: border-color 0.15s;
+        }
+
+            .sidebar-user:hover {
+                border-color: rgba(255,255,255,0.15);
+            }
+
+        .user-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: var(--green);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 13px;
+            font-weight: 600;
+            color: #000;
+            flex-shrink: 0;
+        }
+
+        .user-name {
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--text);
+        }
+
+        .user-sub {
+            font-size: 11px;
+            color: var(--muted2);
+        }
+
+        .pulse-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: var(--green);
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        /* ── Main ── */
+        .main {
+            overflow-y: auto;
+            padding: 36px 48px;
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+        }
+
+            .main::-webkit-scrollbar {
+                width: 4px;
+            }
+
+            .main::-webkit-scrollbar-thumb {
+                background: var(--border);
+                border-radius: 2px;
+            }
+
+        .page-header {
+            display: flex;
+            align-items: flex-end;
+            justify-content: space-between;
+            padding-bottom: 24px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .page-title {
+            font-family: 'Syne', sans-serif;
+            font-size: 26px;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+        }
+
+        .page-sub {
+            font-size: 14px;
+            color: var(--muted2);
+            margin-top: 4px;
+        }
+
+        .header-meta {
+            font-size: 13px;
+            color: var(--muted2);
+            text-align: right;
+        }
+
+            .header-meta strong {
+                color: var(--text);
+                font-weight: 600;
+            }
+
+        /* Search bar */
+        .search-bar {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .search-wrap {
+            position: relative;
+            flex: 1;
+            max-width: 360px;
+        }
+
+            .search-wrap svg {
+                position: absolute;
+                left: 12px;
+                top: 50%;
+                transform: translateY(-50%);
+                width: 15px;
+                height: 15px;
+                color: var(--muted2);
+                pointer-events: none;
+            }
+
+        .search-input {
+            width: 100%;
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 10px 14px 10px 36px;
+            font-size: 13px;
+            font-family: 'DM Sans', sans-serif;
+            color: var(--text);
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+            .search-input:focus {
+                border-color: rgba(255,255,255,0.2);
+            }
+
+            .search-input::placeholder {
+                color: #444;
+            }
+
+        .filter-group {
+            display: flex;
+            gap: 8px;
+        }
+
+        .filter-btn {
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: 500;
+            font-family: 'DM Sans', sans-serif;
+            border: 1px solid var(--border);
+            background: transparent;
+            color: var(--muted2);
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+
+            .filter-btn:hover {
+                border-color: rgba(255,255,255,0.2);
+                color: var(--text);
+            }
+
+            .filter-btn.active {
+                background: var(--green);
+                border-color: var(--green);
+                color: #000;
+                font-weight: 600;
+            }
+
+        /* Table */
+        .track-table {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            overflow: hidden;
+        }
+
+        .table-head {
+            display: grid;
+            grid-template-columns: 48px 1fr 1fr 1fr 120px 100px;
+            padding: 12px 20px;
+            border-bottom: 1px solid var(--border);
+            font-size: 11px;
+            font-weight: 500;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: var(--muted);
+        }
+
+        .table-body {
+        }
+
+        .track-row {
+            display: grid;
+            grid-template-columns: 48px 1fr 1fr 1fr 120px 100px;
+            padding: 12px 20px;
+            align-items: center;
+            border-bottom: 1px solid rgba(255,255,255,0.03);
+            transition: background 0.12s;
+            animation: fadeUp 0.3s ease both;
+        }
+
+            .track-row:last-child {
+                border-bottom: none;
+            }
+
+            .track-row:hover {
+                background: rgba(255,255,255,0.025);
+            }
+
+        .track-num {
+            font-size: 13px;
+            color: var(--muted);
+            font-family: 'Syne', sans-serif;
+            font-weight: 600;
+        }
+
+        .track-song {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            min-width: 0;
+        }
+
+        .track-icon {
+            width: 36px;
+            height: 36px;
+            border-radius: 6px;
+            background: var(--card2);
+            border: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            flex-shrink: 0;
+        }
+
+        .track-name {
+            font-size: 13px;
+            font-weight: 500;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .track-artist, .track-album {
+            font-size: 13px;
+            color: var(--muted2);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            padding-right: 12px;
+        }
+
+        .track-country {
+            font-size: 12px;
+            color: var(--muted2);
+        }
+
+        .track-time {
+            font-size: 12px;
+            color: var(--muted);
+            text-align: right;
+        }
+
+        /* Pagination */
+        .pagination {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 4px 0;
+        }
+
+        .page-info {
+            font-size: 13px;
+            color: var(--muted2);
+        }
+
+            .page-info strong {
+                color: var(--text);
+            }
+
+        .page-btns {
+            display: flex;
+            gap: 6px;
+        }
+
+        .page-btn {
+            padding: 7px 14px;
+            border-radius: 8px;
+            font-size: 13px;
+            font-family: 'DM Sans', sans-serif;
+            border: 1px solid var(--border);
+            background: transparent;
+            color: var(--muted2);
+            cursor: pointer;
+            transition: all 0.15s;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+            .page-btn:hover {
+                border-color: rgba(255,255,255,0.2);
+                color: var(--text);
+            }
+
+            .page-btn.active {
+                background: var(--green);
+                border-color: var(--green);
+                color: #000;
+                font-weight: 600;
+            }
+
+            .page-btn:disabled, .page-btn.disabled {
+                opacity: 0.3;
+                pointer-events: none;
+            }
+
+        @@keyframes fadeUp {
+            from {
+                opacity: 0;
+                transform: translateY(8px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @@keyframes pulse {
+            0%, 100% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.4;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="app">
+        <aside class="sidebar">
+            <a class="sidebar-logo" asp-page="/Index">
+                <div class="logo-icon">
+                    <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.65 14.4c-.2.3-.6.4-.9.2-2.5-1.53-5.63-1.87-9.33-1.03-.36.08-.72-.15-.8-.5-.08-.36.15-.72.5-.8 4.05-.92 7.52-.53 10.33 1.2.3.18.4.58.2.93zm1.24-2.75c-.25.38-.75.5-1.13.25-2.85-1.75-7.2-2.26-10.57-1.23-.43.13-.9-.1-1.03-.53-.13-.43.1-.9.53-1.03 3.85-1.17 8.63-.6 11.93 1.41.37.23.5.73.27 1.13zm.1-2.86C14.5 8.9 8.68 8.7 5.2 9.73c-.52.16-1.07-.14-1.23-.65-.16-.52.14-1.07.65-1.23 4-.22 10.35.43 14.43 2.85.46.27.62.86.35 1.32-.27.45-.87.6-1.32.34l-.09-.07z" /></svg>
+                </div>
+                <span class="logo-text">Statify</span>
+            </a>
+            <nav class="nav">
+                <div class="nav-label">Menu</div>
+                <a class="nav-item" asp-page="/Dashboard">
+                    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z" /></svg>
+                    Dashboard
+                </a>
+                <a class="nav-item active" asp-page="/RecentlyPlayed">
+                    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M13 3a9 9 0 0 0-9 9H1l3.89 3.89.07.14L9 12H6c0-3.87 3.13-7 7-7s7 3.13 7 7-3.13 7-7 7c-1.93 0-3.68-.79-4.94-2.06l-1.42 1.42A8.954 8.954 0 0 0 13 21a9 9 0 0 0 0-18zm-1 5v5l4.28 2.54.72-1.21-3.5-2.08V8H12z" /></svg>
+                    Recently Played
+                </a>
+                <a class="nav-item" asp-page="/TopTracks">
+                    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z" /></svg>
+                    Top Tracks
+                </a>
+                <a class="nav-item" asp-page="/TopArtists">
+                    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" /></svg>
+                    Top Artists
+                </a>
+                <a class="nav-item" asp-page="/TopAlbums">
+                    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 14.5v-9l6 4.5-6 4.5z" /></svg>
+                    Top Albums
+                </a>
+                <a class="nav-item" asp-page="/WorldMap">
+                    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z" /></svg>
+                    World Map
+                </a>
+                <div class="nav-label">Spotify</div>
+                @if (!Model.SpotifyConnected)
+                {
+                    <a class="nav-item" href="/SpotifyAuth/login" style="color:#1DB954;border:1px solid rgba(29,185,84,0.2);background:rgba(29,185,84,0.05)">
+                        <svg viewBox="0 0 24 24" fill="#1DB954" style="opacity:1"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.65 14.4c-.2.3-.6.4-.9.2-2.5-1.53-5.63-1.87-9.33-1.03-.36.08-.72-.15-.8-.5-.08-.36.15-.72.5-.8 4.05-.92 7.52-.53 10.33 1.2.3.18.4.58.2.93zm1.24-2.75c-.25.38-.75.5-1.13.25-2.85-1.75-7.2-2.26-10.57-1.23-.43.13-.9-.1-1.03-.53-.13-.43.1-.9.53-1.03 3.85-1.17 8.63-.6 11.93 1.41.37.23.5.73.27 1.13zm.1-2.86C14.5 8.9 8.68 8.7 5.2 9.73c-.52.16-1.07-.14-1.23-.65-.16-.52.14-1.07.65-1.23 4-.22 10.35.43 14.43 2.85.46.27.62.86.35 1.32-.27.45-.87.6-1.32.34l-.09-.07z" /></svg>
+                        Connect Spotify
+                    </a>
+                }
+                else
+                {
+                    <div class="nav-connected">
+                        <svg viewBox="0 0 24 24" fill="#1DB954" style="opacity:1"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.65 14.4c-.2.3-.6.4-.9.2-2.5-1.53-5.63-1.87-9.33-1.03-.36.08-.72-.15-.8-.5-.08-.36.15-.72.5-.8 4.05-.92 7.52-.53 10.33 1.2.3.18.4.58.2.93zm1.24-2.75c-.25.38-.75.5-1.13.25-2.85-1.75-7.2-2.26-10.57-1.23-.43.13-.9-.1-1.03-.53-.13-.43.1-.9.53-1.03 3.85-1.17 8.63-.6 11.93 1.41.37.23.5.73.27 1.13zm.1-2.86C14.5 8.9 8.68 8.7 5.2 9.73c-.52.16-1.07-.14-1.23-.65-.16-.52.14-1.07.65-1.23 4-.22 10.35.43 14.43 2.85.46.27.62.86.35 1.32-.27.45-.87.6-1.32.34l-.09-.07z" /></svg>
+                        <span style="font-size:13px">Spotify connected</span>
+                        <div class="pulse-dot" style="margin-left:auto"></div>
+                    </div>
+                }
+                <div class="nav-label">Account</div>
+                <a class="nav-item" asp-page="/Settings">
+                    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M19.14,12.94c0.04-0.3,0.06-0.61,0.06-0.94c0-0.32-0.02-0.64-0.07-0.94l2.03-1.58c0.18-0.14,0.23-0.41,0.12-0.61l-1.92-3.32c-0.12-0.22-0.37-0.29-0.59-0.22l-2.39,0.96c-0.5-0.38-1.03-0.7-1.62-0.94L14.4,2.81c-0.04-0.24-0.24-0.41-0.48-0.41h-3.84c-0.24,0-0.43,0.17-0.47,0.41L9.25,5.35C8.66,5.59,8.12,5.92,7.63,6.29L5.24,5.33c-0.22-0.08-0.47,0-0.59,0.22L2.74,8.87C2.62,9.08,2.66,9.34,2.86,9.48l2.03,1.58C4.84,11.36,4.8,11.69,4.8,12s0.02,0.64,0.07,0.94l-2.03,1.58c-0.18,0.14-0.23,0.41-0.12,0.61l1.92,3.32c0.12,0.22,0.37,0.29,0.59,0.22l2.39-0.96c0.5,0.38,1.03,0.7,1.62,0.94l0.36,2.54c0.05,0.24,0.24,0.41,0.48,0.41h3.84c0.24,0,0.44-0.17,0.47-0.41l0.36-2.54c0.59-0.24,1.13-0.56,1.62-0.94l2.39,0.96c0.22,0.08,0.47,0,0.59-0.22l1.92-3.32c0.12-0.22,0.07-0.47-0.12-0.61L19.14,12.94z M12,15.6c-1.98,0-3.6-1.62-3.6-3.6s1.62-3.6,3.6-3.6s3.6,1.62,3.6,3.6S13.98,15.6,12,15.6z" /></svg>
+                    Settings
+                </a>
+                <form method="post" asp-area="Identity" asp-page="/Account/Logout" asp-route-returnUrl="/">
+                    <button type="submit" class="nav-item" style="width:100%;border:none;background:none;text-align:left;cursor:pointer">
+                        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M17 7l-1.41 1.41L18.17 11H8v2h10.17l-2.58 2.58L17 17l5-5zM4 5h8V3H4c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h8v-2H4V5z" /></svg>
+                        Sign out
+                    </button>
+                </form>
+            </nav>
+            <a class="sidebar-user" asp-page="/Settings">
+                <div class="user-avatar">@User.Identity?.Name?.Substring(0, 1).ToUpper()</div>
+                <div>
+                    <div class="user-name">@User.Identity?.Name</div>
+                    <div class="user-sub">@(Model.SpotifyConnected ? "Spotify connected" : "Spotify not connected")</div>
+                </div>
+            </a>
+        </aside>
+
+        <main class="main">
+            <div class="page-header">
+                <div>
+                    <h1 class="page-title">Recently Played</h1>
+                    <p class="page-sub">Your full listening history, most recent first</p>
+                </div>
+                <div class="header-meta">
+                    <strong>@Model.TotalCount.ToString("N0")</strong> total plays
+                </div>
+            </div>
+
+            <div class="search-bar">
+                <div class="search-wrap">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="11" cy="11" r="8" />
+                        <path d="m21 21-4.35-4.35" />
+                    </svg>
+                    <input class="search-input" type="text" id="search" placeholder="Search songs, artists, albums…" oninput="filterRows()">
+                </div>
+                <div class="filter-group">
+                    <button class="filter-btn active" onclick="setFilter(this,'all')">All time</button>
+                    <button class="filter-btn" onclick="setFilter(this,'7d')">7 days</button>
+                    <button class="filter-btn" onclick="setFilter(this,'30d')">30 days</button>
+                    <button class="filter-btn" onclick="setFilter(this,'6m')">6 months</button>
+                </div>
+            </div>
+
+            <div class="track-table">
+                <div class="table-head">
+                    <span>#</span>
+                    <span>Song</span>
+                    <span>Artist</span>
+                    <span>Album</span>
+                    <span>Country</span>
+                    <span style="text-align:right">Played at</span>
+                </div>
+                <div class="table-body" id="trackList">
+                    @{
+                        int idx = (Model.Page - 1) * Model.PageSize + 1;
+                    }
+                    @foreach (var t in Model.Tracks)
+                    {
+                        <div class="track-row"
+                             data-song="@t.Song.ToLower()"
+                             data-artist="@t.Artist.ToLower()"
+                             data-album="@t.Album.ToLower()"
+                             data-played="@t.PlayedAt.ToString("o")"
+                             style="animation-delay:@(((idx - 1) % Model.PageSize) * 0.012)s">
+                            <span class="track-num">@idx</span>
+                            <div class="track-song">
+                                <div class="track-icon">🎵</div>
+                                <span class="track-name" title="@t.Song">@t.Song</span>
+                            </div>
+                            <span class="track-artist" title="@t.Artist">@t.Artist</span>
+                            <span class="track-album" title="@t.Album">@t.Album</span>
+                            <span class="track-country">@(string.IsNullOrEmpty(t.Country) || t.Country == "unknown" ? "—" : t.Country)</span>
+                            <span class="track-time">@t.PlayedAt.ToString("MMM d, HH:mm")</span>
+                        </div>
+                        idx++;
+                    }
+                </div>
+            </div>
+
+            <div class="pagination">
+                <div class="page-info">
+                    Page <strong>@Model.Page</strong> of <strong>@Model.TotalPages</strong>
+                    &nbsp;·&nbsp; showing @((Model.Page - 1) * Model.PageSize + 1)–@(Math.Min(Model.Page * Model.PageSize, Model.TotalCount)) of <strong>@Model.TotalCount.ToString("N0")</strong>
+                </div>
+                <div class="page-btns">
+                    @if (Model.Page > 1)
+                    {
+                        <a class="page-btn" asp-page="/RecentlyPlayed" asp-route-page="1">«</a>
+                        <a class="page-btn" asp-page="/RecentlyPlayed" asp-route-page="@(Model.Page - 1)">‹ Prev</a>
+                    }
+                    else
+                    {
+                        <span class="page-btn disabled">«</span>
+                        <span class="page-btn disabled">‹ Prev</span>
+                    }
+
+                    @{
+                        int startPage = Math.Max(1, Model.Page - 2);
+                        int endPage = Math.Min(Model.TotalPages, Model.Page + 2);
+                    }
+                    @for (int p = startPage; p <= endPage; p++)
+                    {
+                        if (p == Model.Page)
+                        {
+                            <span class="page-btn active">@p</span>
+                        }
+                        else
+                        {
+                            <a class="page-btn" asp-page="/RecentlyPlayed" asp-route-page="@p">@p</a>
+                        }
+                    }
+
+                    @if (Model.Page < Model.TotalPages)
+                    {
+                        <a class="page-btn" asp-page="/RecentlyPlayed" asp-route-page="@(Model.Page + 1)">Next ›</a>
+                        <a class="page-btn" asp-page="/RecentlyPlayed" asp-route-page="@Model.TotalPages">»</a>
+                    }
+                    else
+                    {
+                        <span class="page-btn disabled">Next ›</span>
+                        <span class="page-btn disabled">»</span>
+                    }
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        function filterRows() {
+            const q = document.getElementById('search').value.toLowerCase();
+            document.querySelectorAll('.track-row').forEach(row => {
+                const match = row.dataset.song.includes(q)
+                    || row.dataset.artist.includes(q)
+                    || row.dataset.album.includes(q);
+                row.style.display = match ? '' : 'none';
+            });
+        }
+
+        function setFilter(btn, range) {
+            document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+
+            const now = new Date();
+            let cutoff = null;
+            if (range === '7d')  cutoff = new Date(now - 7  * 86400000);
+            if (range === '30d') cutoff = new Date(now - 30 * 86400000);
+            if (range === '6m')  cutoff = new Date(now - 182 * 86400000);
+
+            document.querySelectorAll('.track-row').forEach(row => {
+                if (!cutoff) { row.style.display = ''; return; }
+                const played = new Date(row.dataset.played);
+                row.style.display = played >= cutoff ? '' : 'none';
+            });
+        }
+    </script>
+</body>
+</html>
