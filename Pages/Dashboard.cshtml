@@ -229,7 +229,12 @@
             border: none;
             background: none;
             font-family: 'DM Sans', sans-serif;
+            text-decoration: none;
         }
+
+            .tf-btn:hover {
+                color: var(--text);
+            }
 
             .tf-btn.active {
                 background: var(--green);
@@ -680,10 +685,10 @@
             <div class="topbar">
                 <div class="page-title">Dashboard</div>
                 <div class="time-filter">
-                    <button class="tf-btn" onclick="setFilter(this,'7d')">7D</button>
-                    <button class="tf-btn active" onclick="setFilter(this,'30d')">30D</button>
-                    <button class="tf-btn" onclick="setFilter(this,'6m')">6M</button>
-                    <button class="tf-btn" onclick="setFilter(this,'all')">All</button>
+                    <a class="tf-btn @(Model.Range == "7d" ? "active" : "")" href="?range=7d">7D</a>
+                    <a class="tf-btn @(Model.Range == "30d" ? "active" : "")" href="?range=30d">30D</a>
+                    <a class="tf-btn @(Model.Range == "6m" ? "active" : "")" href="?range=6m">6M</a>
+                    <a class="tf-btn @(Model.Range is "all" or null ? "active" : "")" href="?range=all">All</a>
                 </div>
             </div>
 
@@ -716,26 +721,29 @@
                 </div>
             }
 
+            @{
+                var rangeLabel = Model.Range switch { "7d" => "Last 7 days", "30d" => "Last 30 days", "6m" => "Last 6 months", _ => "All time" };
+            }
             <div class="stats-grid">
                 <div class="stat-card" style="animation-delay:0s">
                     <div class="stat-card-label">Tracks played</div>
                     <div class="stat-card-val">@Model.Data.TotalTracks.ToString("N0")</div>
-                    <div class="stat-card-sub">All time</div>
+                    <div class="stat-card-sub">@rangeLabel</div>
                 </div>
                 <div class="stat-card" style="animation-delay:0.05s">
                     <div class="stat-card-label">Unique artists</div>
                     <div class="stat-card-val">@Model.Data.UniqueArtists</div>
-                    <div class="stat-card-sub">All time</div>
+                    <div class="stat-card-sub">@rangeLabel</div>
                 </div>
                 <div class="stat-card" style="animation-delay:0.1s">
                     <div class="stat-card-label">Unique albums</div>
                     <div class="stat-card-val">@Model.Data.UniqueAlbums</div>
-                    <div class="stat-card-sub">All time</div>
+                    <div class="stat-card-sub">@rangeLabel</div>
                 </div>
                 <div class="stat-card" style="animation-delay:0.15s">
                     <div class="stat-card-label">Countries</div>
                     <div class="stat-card-val">@Model.Data.UniqueCountries</div>
-                    <div class="stat-card-sub">Artist origins</div>
+                    <div class="stat-card-sub">Artist origins · @rangeLabel</div>
                 </div>
             </div>
 
@@ -876,11 +884,6 @@
                 n.classList.remove('active');
                 if (n.getAttribute('href') === href) n.classList.add('active');
             });
-        }
-
-        function setFilter(btn, range) {
-            document.querySelectorAll('.tf-btn').forEach(b => b.classList.remove('active'));
-            btn.classList.add('active');
         }
 
         const actCtx = document.getElementById('activityChart').getContext('2d');
