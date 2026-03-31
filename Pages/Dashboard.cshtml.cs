@@ -18,8 +18,20 @@ namespace SpotifyStatisticsWebApp.Pages
             _config = config;
         }
 
+        [Microsoft.AspNetCore.Mvc.BindProperty(SupportsGet = true)]
+        public string Range { get; set; } = "all";
+
+        private string DateFilter() => Range switch
+        {
+            "7d"  => "AND played_at >= DATEADD(day,   -7,  GETUTCDATE())",
+            "30d" => "AND played_at >= DATEADD(day,   -30, GETUTCDATE())",
+            "6m"  => "AND played_at >= DATEADD(month, -6,  GETUTCDATE())",
+            _     => ""
+        };
+
         public async Task OnGetAsync()
         {
+            if (Range is not ("7d" or "30d" or "6m" or "all")) Range = "all";
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
 
             // Check Spotify connection
@@ -36,36 +48,38 @@ namespace SpotifyStatisticsWebApp.Pages
             using var conn = new SqlConnection(connStr);
             await conn.OpenAsync();
 
+            var df = DateFilter();
+
             Data.TotalTracks = await ScalarAsync<int>(conn,
-                "SELECT COUNT(*) FROM music_history WHERE user_id = @uid", userId);
+                $"SELECT COUNT(*) FROM music_history WHERE user_id = @uid {df}", userId);
 
             Data.UniqueArtists = await ScalarAsync<int>(conn,
-                "SELECT COUNT(DISTINCT artist) FROM music_history WHERE user_id = @uid", userId);
+                $"SELECT COUNT(DISTINCT artist) FROM music_history WHERE user_id = @uid {df}", userId);
 
             Data.UniqueAlbums = await ScalarAsync<int>(conn,
-                "SELECT COUNT(DISTINCT album) FROM music_history WHERE user_id = @uid", userId);
+                $"SELECT COUNT(DISTINCT album) FROM music_history WHERE user_id = @uid {df}", userId);
 
             Data.UniqueCountries = await ScalarAsync<int>(conn,
-                "SELECT COUNT(DISTINCT country) FROM music_history WHERE user_id = @uid AND country != 'unknown'", userId);
+                $"SELECT COUNT(DISTINCT country) FROM music_history WHERE user_id = @uid AND country != 'unknown' {df}", userId);
 
             Data.TopTracks = await QueryListAsync(conn,
-                @"SELECT TOP 10 song as Name, artist as Sub, COUNT(*) as Count 
-                  FROM music_history WHERE user_id = @uid AND song IS NOT NULL 
+                $@"SELECT TOP 10 song as Name, artist as Sub, COUNT(*) as Count
+                  FROM music_history WHERE user_id = @uid AND song IS NOT NULL {df}
                   GROUP BY song, artist ORDER BY Count DESC", userId);
 
             Data.TopArtists = await QueryListAsync(conn,
-                @"SELECT TOP 10 artist as Name, country as Sub, COUNT(*) as Count 
-                  FROM music_history WHERE user_id = @uid AND artist IS NOT NULL 
+                $@"SELECT TOP 10 artist as Name, country as Sub, COUNT(*) as Count
+                  FROM music_history WHERE user_id = @uid AND artist IS NOT NULL {df}
                   GROUP BY artist, country ORDER BY Count DESC", userId);
 
             Data.TopAlbums = await QueryListAsync(conn,
-                @"SELECT TOP 10 album as Name, artist as Sub, COUNT(*) as Count 
-                  FROM music_history WHERE user_id = @uid AND album IS NOT NULL 
+                $@"SELECT TOP 10 album as Name, artist as Sub, COUNT(*) as Count
+                  FROM music_history WHERE user_id = @uid AND album IS NOT NULL {df}
                   GROUP BY album, artist ORDER BY Count DESC", userId);
 
             using (var cmd = new SqlCommand(
-                @"SELECT country, COUNT(*) as cnt FROM music_history 
-                  WHERE user_id = @uid AND country != 'unknown'
+                $@"SELECT country, COUNT(*) as cnt FROM music_history
+                  WHERE user_id = @uid AND country != 'unknown' {df}
                   GROUP BY country ORDER BY cnt DESC", conn))
             {
                 cmd.Parameters.AddWithValue("@uid", userId);
@@ -79,8 +93,8 @@ namespace SpotifyStatisticsWebApp.Pages
             }
 
             using (var cmd = new SqlCommand(
-                @"SELECT DATEPART(HOUR, played_at) as hr, COUNT(*) as cnt
-                  FROM music_history WHERE user_id = @uid
+                $@"SELECT DATEPART(HOUR, played_at) as hr, COUNT(*) as cnt
+                  FROM music_history WHERE user_id = @uid {df}
                   GROUP BY DATEPART(HOUR, played_at)", conn))
             {
                 cmd.Parameters.AddWithValue("@uid", userId);
@@ -94,8 +108,8 @@ namespace SpotifyStatisticsWebApp.Pages
             }
 
             using (var cmd = new SqlCommand(
-                @"SELECT FORMAT(played_at, 'MMM yyyy') as mo, COUNT(*) as cnt
-                  FROM music_history WHERE user_id = @uid
+                $@"SELECT FORMAT(played_at, 'MMM yyyy') as mo, COUNT(*) as cnt
+                  FROM music_history WHERE user_id = @uid {df}
                   GROUP BY FORMAT(played_at, 'MMM yyyy'), YEAR(played_at), MONTH(played_at)
                   ORDER BY YEAR(played_at), MONTH(played_at)", conn))
             {

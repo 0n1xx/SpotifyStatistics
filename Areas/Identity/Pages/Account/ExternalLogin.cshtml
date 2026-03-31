@@ -1,33 +1,94 @@
-﻿@page
+@page
 @model ExternalLoginModel
 @{
-    ViewData["Title"] = "Register";
+    ViewData["Title"] = "Complete sign in";
+    Layout = null;
 }
-
-<h1>@ViewData["Title"]</h1>
-<h2 id="external-login-title">Associate your @Model.ProviderDisplayName account.</h2>
-<hr />
-
-<p id="external-login-description" class="text-info">
-    You've successfully authenticated with <strong>@Model.ProviderDisplayName</strong>.
-    Please enter an email address for this site below and click the Register button to finish
-    logging in.
-</p>
-
-<div class="row">
-    <div class="col-md-4">
-        <form asp-page-handler="Confirmation" asp-route-returnUrl="@Model.ReturnUrl" method="post">
-            <div asp-validation-summary="ModelOnly" class="text-danger" role="alert"></div>
-            <div class="form-floating mb-3">
-                <input asp-for="Input.Email" class="form-control" autocomplete="email" placeholder="Please enter your email."/>
-                <label asp-for="Input.Email" class="form-label"></label>
-                <span asp-validation-for="Input.Email" class="text-danger"></span>
-            </div>
-            <button type="submit" class="w-100 btn btn-lg btn-primary">Register</button>
-        </form>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Complete sign in — Statify</title>
+    <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        :root {
+          --green: #1DB954; --green-dim: #17a349; --black: #080808;
+          --card: #111111; --border: rgba(255,255,255,0.07);
+          --text: #f0f0f0; --muted: #666; --input-bg: #1a1a1a;
+        }
+        html, body { height: 100%; background: var(--black); color: var(--text); font-family: 'DM Sans', sans-serif; }
+        .bg { position: fixed; inset: 0; z-index: 0; overflow: hidden; }
+        .bg-orb { position: absolute; border-radius: 50%; filter: blur(80px); opacity: 0.12; }
+        .bg-orb:nth-child(1) { width: 500px; height: 500px; background: #1DB954; top: -150px; left: -100px; }
+        .bg-orb:nth-child(2) { width: 350px; height: 350px; background: #0d7a38; bottom: -100px; right: -50px; }
+        .grid-overlay { position: fixed; inset: 0; z-index: 0; background-image: linear-gradient(rgba(255,255,255,0.015) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.015) 1px, transparent 1px); background-size: 60px 60px; }
+        .page { position: relative; z-index: 1; min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 32px; }
+        .card { width: 100%; max-width: 420px; }
+        .logo { display: flex; align-items: center; gap: 10px; margin-bottom: 40px; text-decoration: none; }
+        .logo-icon { width: 36px; height: 36px; background: var(--green); border-radius: 50%; display: flex; align-items: center; justify-content: center; }
+        .logo-icon svg { width: 20px; height: 20px; fill: #000; }
+        .logo-text { font-family: 'Syne', sans-serif; font-size: 20px; font-weight: 800; letter-spacing: -0.5px; color: var(--text); }
+        .provider-badge { display: inline-flex; align-items: center; gap: 8px; background: rgba(29,185,84,0.1); border: 1px solid rgba(29,185,84,0.25); border-radius: 20px; padding: 6px 14px; font-size: 12px; font-weight: 500; color: var(--green); margin-bottom: 20px; }
+        .provider-badge svg { width: 14px; height: 14px; }
+        h1 { font-family: 'Syne', sans-serif; font-size: 26px; font-weight: 800; letter-spacing: -0.5px; margin-bottom: 8px; }
+        .subtitle { font-size: 14px; color: var(--muted); margin-bottom: 32px; line-height: 1.6; }
+        .form-group { display: flex; flex-direction: column; gap: 6px; margin-bottom: 16px; }
+        label { font-size: 11px; font-weight: 500; color: var(--muted); letter-spacing: 0.08em; text-transform: uppercase; }
+        input[type=email], input[type=text] { background: var(--input-bg); border: 1px solid var(--border); border-radius: 10px; padding: 13px 16px; font-size: 14px; font-family: 'DM Sans', sans-serif; color: var(--text); outline: none; transition: border-color 0.2s; width: 100%; }
+        input:focus { border-color: var(--green); }
+        input::placeholder { color: #444; }
+        .btn-primary { background: var(--green); color: #000; border: none; border-radius: 10px; padding: 14px; font-size: 15px; font-weight: 600; font-family: 'DM Sans', sans-serif; cursor: pointer; width: 100%; margin-top: 4px; transition: background 0.2s; }
+        .btn-primary:hover { background: var(--green-dim); }
+        .back-link { display: inline-flex; align-items: center; gap: 6px; color: var(--muted); font-size: 13px; text-decoration: none; margin-top: 20px; transition: color 0.2s; }
+        .back-link:hover { color: var(--text); }
+        .validation-summary { background: rgba(231,76,60,0.1); border: 1px solid rgba(231,76,60,0.3); border-radius: 10px; padding: 12px 16px; font-size: 13px; color: #e74c3c; margin-bottom: 16px; }
+        .field-error { font-size: 12px; color: #e74c3c; margin-top: 4px; }
+    </style>
+</head>
+<body>
+    <div class="bg">
+        <div class="bg-orb"></div>
+        <div class="bg-orb"></div>
     </div>
-</div>
+    <div class="grid-overlay"></div>
+    <div class="page">
+        <div class="card">
+            <a class="logo" asp-area="" asp-page="/Index">
+                <div class="logo-icon">
+                    <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.65 14.4c-.2.3-.6.4-.9.2-2.5-1.53-5.63-1.87-9.33-1.03-.36.08-.72-.15-.8-.5-.08-.36.15-.72.5-.8 4.05-.92 7.52-.53 10.33 1.2.3.18.4.58.2.93zm1.24-2.75c-.25.38-.75.5-1.13.25-2.85-1.75-7.2-2.26-10.57-1.23-.43.13-.9-.1-1.03-.53-.13-.43.1-.9.53-1.03 3.85-1.17 8.63-.6 11.93 1.41.37.23.5.73.27 1.13zm.1-2.86C14.5 8.9 8.68 8.7 5.2 9.73c-.52.16-1.07-.14-1.23-.65-.16-.52.14-1.07.65-1.23 4-.22 10.35.43 14.43 2.85.46.27.62.86.35 1.32-.27.45-.87.6-1.32.34l-.09-.07z"/></svg>
+                </div>
+                <span class="logo-text">Statify</span>
+            </a>
 
-@section Scripts {
-    <partial name="_ValidationScriptsPartial" />
-}
+            <div class="provider-badge">
+                <svg viewBox="0 0 24 24" fill="currentColor"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+                Authenticated with @Model.ProviderDisplayName
+            </div>
+
+            <h1>Almost there</h1>
+            <p class="subtitle">Confirm the email address for your Statify account to complete sign in.</p>
+
+            <form asp-page-handler="Confirmation" asp-route-returnUrl="@Model.ReturnUrl" method="post">
+                <div asp-validation-summary="ModelOnly" class="validation-summary"></div>
+                <div class="form-group">
+                    <label asp-for="Input.Email">Email address</label>
+                    <input asp-for="Input.Email" placeholder="you@example.com" autocomplete="email" />
+                    <span asp-validation-for="Input.Email" class="field-error"></span>
+                </div>
+                <button type="submit" class="btn-primary">Complete sign in</button>
+            </form>
+
+            <a class="back-link" asp-area="Identity" asp-page="/Account/Login">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>
+                Back to sign in
+            </a>
+        </div>
+    </div>
+
+    @section Scripts {
+        <partial name="_ValidationScriptsPartial" />
+    }
+</body>
+</html>
