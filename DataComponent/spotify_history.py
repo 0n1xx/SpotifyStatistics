@@ -52,7 +52,7 @@ default_args = {
     'on_failure_callback': notify_email,
     'retries': 2,
     'retry_delay': timedelta(minutes=3),
-    'start_date': datetime(2026, 1, 1, 15, 0),
+    'start_date': datetime(2026, 3, 25),
 }
 
 # Schedule: every 30 minutes
@@ -367,28 +367,88 @@ def spotify_history():
         """)
 
     @task
-    def load_mssql(records):
+    def fix_artist_country_conflicts():
         """
-        Sync ClickHouse -> MSSQL.
-        ClickHouse is the source of truth.
-        Only rows missing from MSSQL are inserted.
+        Fix artists that have multiple countries / begin_area.
+        Updates them using majority (most frequent value).
         """
-        if not records:
-            print("No data to load to MSSQL")
+
+        # --- STEP 1: find conflicted artists ---
+        query_conflicts = """
+                          SELECT artist
+                          FROM music_history
+                          WHERE country != 'unknown'
+                          GROUP BY artist
+                          HAVING countDistinct(country) \
+                               > 1
+                              OR countDistinct(begin_area) \
+                               > 1 \
+                          """
+
+        artists = [row[0] for row in client.execute(query_conflicts)]
+
+        if not artists:
             return
 
-        # Read full history from ClickHouse
+        print(f"Found {len(artists)} artists with conflicts")
+
+        artist_list = ", ".join([f"'{a}'" for a in artists])
+
+        # --- STEP 2: compute majority ---
+        query_majority = f"""
+            SELECT
+                artist,
+                argMax(country, cnt) AS country,
+                argMax(begin_area, cnt) AS begin_area
+            FROM
+            (
+                SELECT
+                    artist,
+                    country,
+                    begin_area,
+                    count() AS cnt
+                FROM music_history
+                WHERE artist IN ({artist_list})
+                  AND country != 'unknown'
+                GROUP BY artist, country, begin_area
+            )
+            GROUP BY artist
+        """
+
+        majority_rows = client.execute(query_majority)
+
+        print(f"Computed majority for {len(majority_rows)} artists")
+
+        for artist, country, begin_area in majority_rows:
+            update_query = f"""
+                ALTER TABLE music_history
+                UPDATE
+                    country = '{country}',
+                    begin_area = '{begin_area}'
+                WHERE artist = '{artist}'
+            """
+            client.execute(update_query)
+
+        print("Update queries executed")
+
+        # --- STEP 4: optimize (apply mutations) ---
+        client.execute("OPTIMIZE TABLE music_history FINAL")
+
+    @task
+    def load_mssql():
         rows, columns = client.execute("SELECT * FROM music_history", with_column_types=True)
+
         col_names = [col[0] for col in columns]
         df_ch = pd.DataFrame(rows, columns=col_names)
+
         df_ch['played_at'] = pd.to_datetime(df_ch['played_at']).dt.floor('s')
         df_ch['date'] = pd.to_datetime(df_ch['date']).dt.date
 
-        # Read existing MSSQL keys
         df_ms = pd.read_sql(
             "SELECT played_at, song, artist, album, user_id FROM dbo.music_history",
             master_engine.raw_connection()
         )
+
         df_ms['played_at'] = (
             pd.to_datetime(df_ms['played_at'], utc=True)
             .dt.tz_convert(TORONTO_TZ)
@@ -396,21 +456,19 @@ def spotify_history():
             .dt.floor('s')
         )
 
-        # Find rows in CH but not in MSSQL
         key_cols = ['played_at', 'song', 'artist', 'album', 'user_id']
+
         ch_keys = df_ch[key_cols].astype(str).agg('|'.join, axis=1)
         ms_keys = df_ms[key_cols].astype(str).agg('|'.join, axis=1)
+
         only_in_ch = df_ch[~ch_keys.isin(set(ms_keys))]
 
-        print(f"New rows to insert into MSSQL: {len(only_in_ch)}")
 
         if only_in_ch.empty:
-            print("MSSQL already in sync with ClickHouse")
+            print("MSSQL already in sync")
             return
-
         conn = master_engine.raw_connection()
         cursor = conn.cursor()
-
         try:
             cursor.execute("TRUNCATE TABLE dbo.music_history")
             insert_query = """
@@ -426,22 +484,21 @@ def spotify_history():
             cursor.fast_executemany = True
             cursor.executemany(insert_query, data)
             conn.commit()
-            print(f"Inserted {len(only_in_ch)} rows into MSSQL")
-
         finally:
             cursor.close()
             conn.close()
 
     # ── pipeline ──────────────────────────────────────────────────────────────
-
     users = get_users()
     fetched = fetch_user.expand(user=users)
     combined = combine(fetched)
     enriched = enrich(combined)
 
     ch = load_clickhouse(enriched)
-    ms = load_mssql(enriched)
-    ch >> ms
+    fix = fix_artist_country_conflicts()
+    ms = load_mssql()
+
+    ch >> fix >> ms
 
 
 spotify_dag = spotify_history()
