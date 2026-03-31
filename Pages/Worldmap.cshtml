@@ -12,6 +12,7 @@
     <title>World Map — Statify</title>
     <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/topojson-client@3/dist/topojson-client.min.js"></script>
     <style>
         *, *::before, *::after {
             box-sizing: border-box;
@@ -524,7 +525,7 @@
 
                 <div class="globe-legend">
                     <div class="legend-gradient"></div>
-                    <span>Artist density</span>
+                    <span>Listening intensity</span>
                 </div>
 
                 <div class="globe-hint">
@@ -540,47 +541,44 @@
                         Model.CountryCounts.ToDictionary(c => c.Country ?? "unknown", c => c.Count)
                 ));
 
-        // Country codes are already ISO 2-letter in the DB
-        // Just map directly, with a fallback for full names
-        const nameToCode = {
-            "US": "US", "CA": "CA", "GB": "GB", "FR": "FR", "DE": "DE",
-            "AU": "AU", "JP": "JP", "BR": "BR", "NG": "NG", "ZA": "ZA",
-            "SE": "SE", "NO": "NO", "NL": "NL", "ES": "ES", "IT": "IT",
-            "MX": "MX", "AR": "AR", "CO": "CO", "IN": "IN", "CN": "CN",
-            "KR": "KR", "RU": "RU", "EG": "EG", "GH": "GH", "JM": "JM",
-            "IE": "IE", "NZ": "NZ", "DK": "DK", "CH": "CH", "BE": "BE",
-            "PT": "PT", "PL": "PL", "UA": "UA", "TR": "TR", "ID": "ID",
-            "PH": "PH", "MY": "MY", "SG": "SG", "TH": "TH", "VN": "VN",
-            "PK": "PK", "BD": "BD", "LK": "LK", "KE": "KE", "ET": "ET",
-            "TZ": "TZ", "UG": "UG", "CI": "CI", "SN": "SN", "CM": "CM",
-            "AO": "AO", "TT": "TT", "BB": "BB", "CU": "CU", "DO": "DO",
-            "HT": "HT", "PA": "PA", "CR": "CR", "GT": "GT", "HN": "HN",
-            "SV": "SV", "NI": "NI", "BO": "BO", "PY": "PY", "UY": "UY",
-            "VE": "VE", "EC": "EC", "PE": "PE", "CL": "CL",
-            "unknown": null
+        // ISO-3166-1 numeric → alpha-2 mapping (world-atlas uses numeric IDs)
+        const numToAlpha2 = {
+            840:"US", 124:"CA", 826:"GB", 250:"FR", 276:"DE", 36:"AU", 392:"JP",
+            76:"BR", 566:"NG", 710:"ZA", 752:"SE", 578:"NO", 528:"NL", 724:"ES",
+            380:"IT", 484:"MX", 32:"AR", 170:"CO", 356:"IN", 156:"CN", 410:"KR",
+            643:"RU", 818:"EG", 288:"GH", 388:"JM", 372:"IE", 554:"NZ", 208:"DK",
+            756:"CH", 56:"BE", 620:"PT", 616:"PL", 804:"UA", 792:"TR", 360:"ID",
+            608:"PH", 458:"MY", 702:"SG", 764:"TH", 704:"VN", 586:"PK", 50:"BD",
+            144:"LK", 404:"KE", 231:"ET", 834:"TZ", 800:"UG", 384:"CI", 686:"SN",
+            120:"CM", 24:"AO", 780:"TT", 192:"CU", 214:"DO", 591:"PA", 188:"CR",
+            320:"GT", 340:"HN", 222:"SV", 558:"NI", 68:"BO", 600:"PY", 858:"UY",
+            862:"VE", 218:"EC", 604:"PE", 152:"CL", 300:"GR", 348:"HU", 203:"CZ",
+            703:"SK", 40:"AT", 616:"PL", 246:"FI", 233:"EE", 428:"LV", 440:"LT",
+            100:"BG", 642:"RO", 191:"HR", 688:"RS", 705:"SI", 807:"MK", 70:"BA",
+            499:"ME", 8:"AL", 438:"LI", 492:"MC", 336:"VA", 674:"SM", 20:"AD"
         };
 
-        // Lat/lon centers for countries
-        const countryCenters = {
-            "US": [38, -97], "CA": [56, -96], "GB": [54, -2], "FR": [46, 2],
-            "DE": [51, 10], "AU": [-25, 133], "JP": [36, 138], "BR": [-10, -55],
-            "NG": [9, 8], "ZA": [-29, 25], "SE": [62, 15], "NO": [64, 26],
-            "NL": [52, 5], "ES": [40, -4], "IT": [42, 12], "MX": [23, -102],
-            "AR": [-34, -64], "CO": [4, -72], "IN": [20, 77], "CN": [35, 105],
-            "KR": [37, 128], "RU": [60, 100], "EG": [27, 30], "GH": [8, -2],
-            "JM": [18, -77], "IE": [53, -8], "NZ": [-41, 174], "DK": [56, 10],
-            "CH": [47, 8], "BE": [51, 4], "PT": [39, -8], "PL": [52, 20],
-            "UA": [49, 32], "TR": [39, 35], "ID": [-5, 120], "PH": [13, 122],
-            "MY": [4, 110], "SG": [1, 104], "TH": [15, 101], "VN": [16, 108],
-            "PK": [30, 70], "BD": [24, 90], "LK": [8, 81], "KE": [-1, 38],
-            "ET": [9, 40], "TZ": [-6, 35], "UG": [1, 32], "CI": [7, -6],
-            "SN": [14, -14], "CM": [5, 12], "AO": [-12, 18], "TT": [11, -61],
-            "CU": [22, -80], "DO": [19, -71], "PA": [9, -80], "CR": [10, -84],
-            "CO": [4, -72], "VE": [8, -66], "EC": [-2, -78], "PE": [-10, -76],
-            "CL": [-30, -71], "BO": [-17, -65], "PY": [-23, -58], "UY": [-33, -56]
+        // Display names for tooltip (alpha-2 → full name)
+        const alpha2ToName = {
+            "US":"United States","CA":"Canada","GB":"United Kingdom","FR":"France",
+            "DE":"Germany","AU":"Australia","JP":"Japan","BR":"Brazil","NG":"Nigeria",
+            "ZA":"South Africa","SE":"Sweden","NO":"Norway","NL":"Netherlands",
+            "ES":"Spain","IT":"Italy","MX":"Mexico","AR":"Argentina","CO":"Colombia",
+            "IN":"India","CN":"China","KR":"South Korea","RU":"Russia","EG":"Egypt",
+            "GH":"Ghana","JM":"Jamaica","IE":"Ireland","NZ":"New Zealand","DK":"Denmark",
+            "CH":"Switzerland","BE":"Belgium","PT":"Portugal","PL":"Poland","UA":"Ukraine",
+            "TR":"Turkey","ID":"Indonesia","PH":"Philippines","MY":"Malaysia",
+            "SG":"Singapore","TH":"Thailand","VN":"Vietnam","PK":"Pakistan",
+            "BD":"Bangladesh","LK":"Sri Lanka","KE":"Kenya","ET":"Ethiopia",
+            "TZ":"Tanzania","UG":"Uganda","CI":"Ivory Coast","SN":"Senegal",
+            "CM":"Cameroon","AO":"Angola","TT":"Trinidad & Tobago","CU":"Cuba",
+            "DO":"Dominican Republic","PA":"Panama","CR":"Costa Rica","GT":"Guatemala",
+            "HN":"Honduras","SV":"El Salvador","NI":"Nicaragua","BO":"Bolivia",
+            "PY":"Paraguay","UY":"Uruguay","VE":"Venezuela","EC":"Ecuador",
+            "PE":"Peru","CL":"Chile","GR":"Greece"
         };
 
-        const maxCount = Math.max(...Object.values(countryData).filter(v => typeof v === 'number'), 1);
+        const maxCount = Object.values(countryData).reduce((a, b) => Math.max(a, b), 1);
 
         // --- Three.js Globe ---
         const canvas = document.getElementById('globe-canvas');
@@ -617,118 +615,131 @@
         // Globe sphere
         const globeGeo = new THREE.SphereGeometry(1, 64, 64);
         const globeMat = new THREE.MeshPhongMaterial({
-            color: 0x0a1628,
-            emissive: 0x071020,
+            color: 0x080e1a,
+            emissive: 0x030810,
             specular: 0x1a3a5c,
-            shininess: 15,
+            shininess: 20,
             transparent: true,
-            opacity: 0.95
+            opacity: 0.98
         });
         const globe = new THREE.Mesh(globeGeo, globeMat);
-        window._globe = globe;
         const globeGroup = new THREE.Group();
         globeGroup.add(globe);
         scene.add(globeGroup);
 
-        // Wireframe grid (lat/lon lines)
-        const gridMat = new THREE.LineBasicMaterial({ color: 0x1a3a5c, transparent: true, opacity: 0.3 });
-        for (let lat = -80; lat <= 80; lat += 20) {
-            const pts = [];
-            for (let lon = 0; lon <= 360; lon += 3) {
-                const phi = (90 - lat) * Math.PI / 180;
-                const theta = lon * Math.PI / 180;
-                pts.push(new THREE.Vector3(1.001 * Math.sin(phi) * Math.cos(theta), 1.001 * Math.cos(phi), 1.001 * Math.sin(phi) * Math.sin(theta)));
-            }
-            globeGroup.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), gridMat));
-        }
-        for (let lon = 0; lon < 360; lon += 20) {
-            const pts = [];
-            for (let lat = -90; lat <= 90; lat += 3) {
-                const phi = (90 - lat) * Math.PI / 180;
-                const theta = lon * Math.PI / 180;
-                pts.push(new THREE.Vector3(1.001 * Math.sin(phi) * Math.cos(theta), 1.001 * Math.cos(phi), 1.001 * Math.sin(phi) * Math.sin(theta)));
-            }
-            globeGroup.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), gridMat));
-        }
-
         // Atmosphere glow
         const atmGeo = new THREE.SphereGeometry(1.08, 32, 32);
-        const atmMat = new THREE.MeshPhongMaterial({
-            color: 0x1a4a8a,
-            transparent: true,
-            opacity: 0.08,
-            side: THREE.FrontSide
-        });
-        globeGroup.add(new THREE.Mesh(atmGeo, atmMat));
+        globeGroup.add(new THREE.Mesh(atmGeo, new THREE.MeshPhongMaterial({
+            color: 0x1a4a8a, transparent: true, opacity: 0.07, side: THREE.FrontSide
+        })));
 
         // Lighting
-        scene.add(new THREE.AmbientLight(0x223344, 0.8));
-        const sun = new THREE.DirectionalLight(0x6699cc, 1.2);
+        scene.add(new THREE.AmbientLight(0x223344, 0.9));
+        const sun = new THREE.DirectionalLight(0x7799cc, 1.3);
         sun.position.set(3, 2, 3);
         scene.add(sun);
-        const fill = new THREE.DirectionalLight(0x112233, 0.4);
-        fill.position.set(-2, -1, -2);
-        scene.add(fill);
+        scene.add(Object.assign(new THREE.DirectionalLight(0x112233, 0.3), { position: new THREE.Vector3(-2, -1, -2) }));
 
-        // Helper: lat/lon to 3D point on sphere surface
+        // Helper: lat/lon → 3D vector on sphere
         function latLonToVec3(lat, lon, r) {
-            const phi = (90 - lat) * Math.PI / 180;
+            const phi   = (90 - lat) * Math.PI / 180;
             const theta = (lon + 180) * Math.PI / 180;
             return new THREE.Vector3(
                 -r * Math.sin(phi) * Math.cos(theta),
-                r * Math.cos(phi),
-                r * Math.sin(phi) * Math.sin(theta)
+                 r * Math.cos(phi),
+                 r * Math.sin(phi) * Math.sin(theta)
             );
         }
 
-        // Place country markers
-        const markers = [];
+        // Country mesh registry for raycasting
+        let countryMeshes = [];
         const raycaster = new THREE.Raycaster();
-        const markerInfo = {};
 
-        Object.entries(countryData).forEach(([country, plays]) => {
-            // country is already an ISO code from the DB
-            const code = nameToCode[country] ?? country;
-            const center = countryCenters[code];
-            if (!center) return;
+        // Shared materials (reused across countries to reduce draw calls)
+        const outlineDimMat  = new THREE.LineBasicMaterial({ color: 0x1e3a5f, transparent: true, opacity: 0.55 });
+        const outlinePlayMat = new THREE.LineBasicMaterial({ color: 0x1DB954, transparent: true, opacity: 0.9 });
 
-            const intensity = plays / maxCount;
-            const color = new THREE.Color(0x1DB954).lerp(new THREE.Color(0x0a5a28), 1 - intensity);
-            const size = 0.025 + intensity * 0.06;
-            const height = 0.04 + intensity * 0.18;
+        async function loadCountries() {
+            const res   = await fetch('https://cdn.jsdelivr.net/npm/world-atlas@2/countries-50m.json');
+            const world = await res.json();
+            const geojson = topojson.feature(world, world.objects.countries);
 
-            const pos = latLonToVec3(center[0], center[1], 1.0);
+            const OUTLINE_R = 1.0025;
+            const FILL_R    = 1.001;
+            const meshes    = [];
 
-            // Spike / bar
-            const spikeGeo = new THREE.CylinderGeometry(size * 0.4, size, height, 8);
-            const spikeMat = new THREE.MeshPhongMaterial({ color, emissive: color, emissiveIntensity: 0.4, transparent: true, opacity: 0.9 });
-            const spike = new THREE.Mesh(spikeGeo, spikeMat);
+            geojson.features.forEach(feature => {
+                const numId   = parseInt(feature.id, 10);
+                const isoCode = numToAlpha2[numId] ?? null;
+                const plays   = (isoCode && countryData[isoCode]) ? countryData[isoCode] : 0;
 
-            spike.position.copy(pos.clone().normalize().multiplyScalar(1.0 + height / 2));
-            spike.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), pos.clone().normalize());
+                const polygons = feature.geometry.type === 'Polygon'
+                    ? [feature.geometry.coordinates]
+                    : feature.geometry.coordinates; // MultiPolygon
 
-            globeGroup.add(spike);
-            markers.push(spike);
-            markerInfo[spike.uuid] = { country, plays };
+                polygons.forEach(polygon => {
+                    // Only use outer ring (index 0) — skip holes
+                    const ring = polygon[0];
+                    if (!ring || ring.length < 3) return;
 
-            // Glow ring
-            const ringGeo = new THREE.RingGeometry(size * 1.2, size * 2.0, 16);
-            const ringMat = new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.2, side: THREE.DoubleSide });
-            const ring = new THREE.Mesh(ringGeo, ringMat);
-            ring.position.copy(pos.clone().normalize().multiplyScalar(1.002));
-            ring.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), pos.clone().normalize());
-            globeGroup.add(ring);
-        });
+                    // --- Outline ---
+                    const outlinePts = ring.map(([lon, lat]) => latLonToVec3(lat, lon, OUTLINE_R));
+                    globeGroup.add(new THREE.Line(
+                        new THREE.BufferGeometry().setFromPoints(outlinePts),
+                        plays > 0 ? outlinePlayMat : outlineDimMat
+                    ));
 
+                    // --- Filled polygon (fan triangulation from ring centroid) ---
+                    if (plays > 0) {
+                        let latSum = 0, lonSum = 0;
+                        ring.forEach(([lon, lat]) => { latSum += lat; lonSum += lon; });
+                        const centroid = latLonToVec3(latSum / ring.length, lonSum / ring.length, FILL_R);
+
+                        const verts = [];
+                        for (let i = 0; i < ring.length - 1; i++) {
+                            const p0 = latLonToVec3(ring[i][1],   ring[i][0],   FILL_R);
+                            const p1 = latLonToVec3(ring[i+1][1], ring[i+1][0], FILL_R);
+                            verts.push(
+                                centroid.x, centroid.y, centroid.z,
+                                p0.x, p0.y, p0.z,
+                                p1.x, p1.y, p1.z
+                            );
+                        }
+
+                        const intensity = plays / maxCount;
+                        const col = new THREE.Color(0x0a3d1a).lerp(new THREE.Color(0x1DB954), Math.pow(intensity, 0.5));
+
+                        const fillGeo = new THREE.BufferGeometry();
+                        fillGeo.setAttribute('position', new THREE.Float32BufferAttribute(verts, 3));
+                        const mesh = new THREE.Mesh(fillGeo, new THREE.MeshBasicMaterial({
+                            color: col,
+                            transparent: true,
+                            opacity: 0.2 + intensity * 0.6,
+                            side: THREE.DoubleSide,
+                            depthWrite: false
+                        }));
+                        globeGroup.add(mesh);
+                        meshes.push({ mesh, isoCode, plays });
+                    }
+                });
+            });
+
+            return meshes;
+        }
+
+        loadCountries()
+            .then(m => { countryMeshes = m; })
+            .catch(e => console.error('Globe data load failed:', e));
+
+        // --- Interaction ---
         let isDragging = false;
         let rotVel = { x: 0, y: 0 };
 
-        window.addEventListener('mousedown', e => {
+        window.addEventListener('mousedown', () => {
             isDragging = true;
             rotVel = { x: 0, y: 0 };
             canvas.style.cursor = 'grabbing';
         });
-
         window.addEventListener('mousemove', e => {
             if (!isDragging) return;
             globeGroup.rotation.x += e.movementY * 0.008;
@@ -736,40 +747,42 @@
             rotVel.x = e.movementY * 0.008;
             rotVel.y = e.movementX * 0.008;
         });
-
         window.addEventListener('mouseup', () => {
             isDragging = false;
             canvas.style.cursor = 'grab';
         });
-
         canvas.addEventListener('wheel', e => {
             e.preventDefault();
             camera.position.z = Math.max(1.4, Math.min(5, camera.position.z + e.deltaY * 0.003));
         }, { passive: false });
 
+        // --- Tooltip ---
         const tooltip = document.getElementById('globe-tooltip');
         canvas.addEventListener('mousemove', e => {
             if (isDragging) { tooltip.style.display = 'none'; return; }
             const rect = canvas.getBoundingClientRect();
             const mouse = new THREE.Vector2(
-                ((e.clientX - rect.left) / rect.width) * 2 - 1,
-                -((e.clientY - rect.top) / rect.height) * 2 + 1
+                ((e.clientX - rect.left) / rect.width)  * 2 - 1,
+                -((e.clientY - rect.top)  / rect.height) * 2 + 1
             );
             raycaster.setFromCamera(mouse, camera);
-            const hits = raycaster.intersectObjects(markers, false);
+            const targets = countryMeshes.map(c => c.mesh);
+            const hits    = raycaster.intersectObjects(targets, false);
             if (hits.length > 0) {
-                const info = markerInfo[hits[0].object.uuid];
-                if (info) {
+                const entry = countryMeshes.find(c => c.mesh === hits[0].object);
+                if (entry) {
+                    const name = alpha2ToName[entry.isoCode] ?? entry.isoCode;
                     tooltip.style.display = 'block';
                     tooltip.style.left = (e.clientX - rect.left + 14) + 'px';
-                    tooltip.style.top = (e.clientY - rect.top - 10) + 'px';
-                    tooltip.innerHTML = `<strong>${info.country}</strong>${info.plays} plays`;
+                    tooltip.style.top  = (e.clientY - rect.top  - 10) + 'px';
+                    tooltip.innerHTML  = `<strong>${name}</strong>${entry.plays.toLocaleString()} plays`;
                     return;
                 }
             }
             tooltip.style.display = 'none';
         });
 
+        // --- Render loop ---
         function animate() {
             requestAnimationFrame(animate);
             if (!isDragging) {
