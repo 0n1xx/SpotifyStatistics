@@ -15,7 +15,7 @@ builder.Services.AddDefaultIdentity<IdentityUser>(options => options.SignIn.Requ
     .AddEntityFrameworkStores<ApplicationDbContext>();
 
 builder.Services.AddDataProtection()
-    .PersistKeysToFileSystem(new DirectoryInfo("/tmp/dataprotection-keys"))
+    .PersistKeysToDbContext<ApplicationDbContext>()
     .SetApplicationName("SpotifyStatisticsWebApp");
 
 builder.Services.AddAuthentication()
