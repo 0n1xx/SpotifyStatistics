@@ -5,6 +5,7 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <UserSecretsId>aspnet-SpotifyStatisticsWebApp-2bc2efb7-6e7e-4ea9-8b73-779821f8d104</UserSecretsId>
+	<NoWarn>NU1901</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>
