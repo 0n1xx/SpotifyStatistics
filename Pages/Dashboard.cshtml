@@ -23,27 +23,28 @@
         _     => "All time"
     };
 }
+
 <main class="main">
     @* ── Top bar: page title + time range filter ── *@
-    <div class="topbar">
-        <div class="page-title">Dashboard</div>
+    <header class="topbar">
+        <h1 class="page-title">Dashboard</h1>
         @* Time range buttons — clicking reloads the page with ?range=X *@
-        <div class="time-filter">
+        <nav class="time-filter" aria-label="Time range">
             <a class="tf-btn @(Model.Range == "7d"  ? "active" : "")" href="?range=7d">7D</a>
             <a class="tf-btn @(Model.Range == "30d" ? "active" : "")" href="?range=30d">30D</a>
             <a class="tf-btn @(Model.Range == "6m"  ? "active" : "")" href="?range=6m">6M</a>
             <a class="tf-btn @(Model.Range is "all" or null ? "active" : "")" href="?range=all">All</a>
-        </div>
-    </div>
-    @* ── Spotify connection banner ── *@
+        </nav>
+    </header>
+    @* ── Spotify connection banner — two states ── *@
     @if (!Model.SpotifyConnected)
     {
         @* Shown when Spotify is NOT connected — prompts the user to link their account *@
-        <div class="spotify-banner" id="spotify-banner">
+        <aside class="spotify-banner" id="spotify-banner" aria-label="Connect Spotify">
             <div style="display:flex;align-items:center;gap:16px">
                 <div class="spotify-banner-icon">
                     @* Spotify logo SVG icon — inline to avoid extra HTTP request *@
-                    <svg width="22" height="22" viewBox="0 0 24 24" fill="#1DB954"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.65 14.4c-.2.3-.6.4-.9.2-2.5-1.53-5.63-1.87-9.33-1.03-.36.08-.72-.15-.8-.5-.08-.36.15-.72.5-.8 4.05-.92 7.52-.53 10.33 1.2.3.18.4.58.2.93zm1.24-2.75c-.25.38-.75.5-1.13.25-2.85-1.75-7.2-2.26-10.57-1.23-.43.13-.9-.1-1.03-.53-.13-.43.1-.9.53-1.03 3.85-1.17 8.63-.6 11.93 1.41.37.23.5.73.27 1.13zm.1-2.86C14.5 8.9 8.68 8.7 5.2 9.73c-.52.16-1.07-.14-1.23-.65-.16-.52.14-1.07.65-1.23 4-.22 10.35.43 14.43 2.85.46.27.62.86.35 1.32-.27.45-.87.6-1.32.34l-.09-.07z" /></svg>
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="#1DB954" aria-hidden="true"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.65 14.4c-.2.3-.6.4-.9.2-2.5-1.53-5.63-1.87-9.33-1.03-.36.08-.72-.15-.8-.5-.08-.36.15-.72.5-.8 4.05-.92 7.52-.53 10.33 1.2.3.18.4.58.2.93zm1.24-2.75c-.25.38-.75.5-1.13.25-2.85-1.75-7.2-2.26-10.57-1.23-.43.13-.9-.1-1.03-.53-.13-.43.1-.9.53-1.03 3.85-1.17 8.63-.6 11.93 1.41.37.23.5.73.27 1.13zm.1-2.86C14.5 8.9 8.68 8.7 5.2 9.73c-.52.16-1.07-.14-1.23-.65-.16-.52.14-1.07.65-1.23 4-.22 10.35.43 14.43 2.85.46.27.62.86.35 1.32-.27.45-.87.6-1.32.34l-.09-.07z" /></svg>
                 </div>
                 <div>
                     <div style="font-family:'Syne',sans-serif;font-size:15px;font-weight:700;color:#f0f0f0;margin-bottom:4px">Connect your Spotify account</div>
@@ -55,130 +56,135 @@
                 <button class="dismiss-btn" onclick="document.getElementById('spotify-banner').style.display='none'">Dismiss</button>
                 <a href="/SpotifyAuth/login" class="connect-btn">Connect Spotify</a>
             </div>
-        </div>
+        </aside>
     }
     else
     {
         @* Shown when Spotify IS connected — subtle status bar with a pulsing dot *@
-        <div class="spotify-connected-bar">
+        <div class="spotify-connected-bar" role="status">
             <div class="pulse-dot"></div>
             <span style="font-size:13px;color:#888">Spotify connected — your listening data is being tracked</span>
         </div>
     }
-
     @* ── Stats grid: 4 summary numbers ── *@
     @* animation-delay staggers each card's fadeUp so they appear one by one *@
-    <div class="stats-grid">
-        <div class="stat-card" style="animation-delay:0s">
-            <div class="stat-card-label">Tracks played</div>
-            <div class="stat-card-val">@Model.Data.TotalTracks.ToString("N0")</div>
-            <div class="stat-card-sub">@rangeLabel</div>
-        </div>
-        <div class="stat-card" style="animation-delay:0.05s">
-            <div class="stat-card-label">Unique artists</div>
-            <div class="stat-card-val">@Model.Data.UniqueArtists</div>
-            <div class="stat-card-sub">@rangeLabel</div>
-        </div>
-        <div class="stat-card" style="animation-delay:0.1s">
-            <div class="stat-card-label">Unique albums</div>
-            <div class="stat-card-val">@Model.Data.UniqueAlbums</div>
-            <div class="stat-card-sub">@rangeLabel</div>
-        </div>
-        <div class="stat-card" style="animation-delay:0.15s">
-            <div class="stat-card-label">Countries</div>
-            <div class="stat-card-val">@Model.Data.UniqueCountries</div>
-            <div class="stat-card-sub">Artist origins · @rangeLabel</div>
-        </div>
-    </div>
+    <section class="stats-grid" aria-label="Summary statistics">
+        <article class="stat-card" style="animation-delay:0s">
+            <p class="stat-card-label">Tracks played</p>
+            <strong class="stat-card-val">@Model.Data.TotalTracks.ToString("N0")</strong>
+            <p class="stat-card-sub">@rangeLabel</p>
+        </article>
+        <article class="stat-card" style="animation-delay:0.05s">
+            <p class="stat-card-label">Unique artists</p>
+            <strong class="stat-card-val">@Model.Data.UniqueArtists</strong>
+            <p class="stat-card-sub">@rangeLabel</p>
+        </article>
+        <article class="stat-card" style="animation-delay:0.1s">
+            <p class="stat-card-label">Unique albums</p>
+            <strong class="stat-card-val">@Model.Data.UniqueAlbums</strong>
+            <p class="stat-card-sub">@rangeLabel</p>
+        </article>
+        <article class="stat-card" style="animation-delay:0.15s">
+            <p class="stat-card-label">Countries</p>
+            <strong class="stat-card-val">@Model.Data.UniqueCountries</strong>
+            <p class="stat-card-sub">Artist origins · @rangeLabel</p>
+        </article>
+    </section>
     @* ── Charts row: activity line chart + time-of-day bars ── *@
-    <div class="charts-row">
+    <section class="charts-row" aria-label="Charts">
         @* Line chart — rendered by Chart.js, initialised in dashboard.js → initActivityChart() *@
-        <div class="card" style="animation-delay:0.2s">
-            <div class="card-header"><span class="card-title">Listening activity</span></div>
+        <article class="card" style="animation-delay:0.2s">
+            <header class="card-header">
+                <h2 class="card-title">Listening activity</h2>
+            </header>
             <canvas id="activityChart" height="100"></canvas>
-        </div>
+        </article>
         @* 24 vertical bars (one per hour) — built dynamically in dashboard.js → initTodBars() *@
-        <div class="card" style="animation-delay:0.25s">
-            <div class="card-header"><span class="card-title">Time of day</span></div>
-            <div class="tod-bars" id="todBars"></div>
+        <article class="card" style="animation-delay:0.25s">
+            <header class="card-header">
+                <h2 class="card-title">Time of day</h2>
+            </header>
+            <div class="tod-bars" id="todBars" aria-hidden="true"></div>
             @* Hour labels below the bars *@
-            <div style="display:flex;justify-content:space-between;margin-top:8px">
+            <div style="display:flex;justify-content:space-between;margin-top:8px" aria-hidden="true">
                 <span style="font-size:10px;color:var(--muted)">12am</span>
                 <span style="font-size:10px;color:var(--muted)">6am</span>
                 <span style="font-size:10px;color:var(--muted)">12pm</span>
                 <span style="font-size:10px;color:var(--muted)">6pm</span>
                 <span style="font-size:10px;color:var(--muted)">11pm</span>
             </div>
-        </div>
-    </div>
+        </article>
+    </section>
     @* ── Top Tracks list ── *@
     @* id="section-tracks" is targeted by the scroll-spy in dashboard.js → initScrollSpy() *@
-    <div class="card" id="section-tracks">
-        <div class="card-header"><span class="card-title">Top Tracks</span></div>
-        <div class="top-list">
+    <section class="card" id="section-tracks" aria-labelledby="tracks-heading">
+        <header class="card-header">
+            <h2 id="tracks-heading" class="card-title">Top Tracks</h2>
+        </header>
+        <ol class="top-list">
             @for (int ti = 0; ti < Model.Data.TopTracks.Count; ti++)
             {
                 var t = Model.Data.TopTracks[ti];
                 var n = ti + 1;
                 @* gold / silver / bronze CSS classes colour the rank number *@
-                <div class="top-item">
+                <li class="top-item">
                     <span class="top-rank @(n == 1 ? "gold" : n == 2 ? "silver" : n == 3 ? "bronze" : "")">@n</span>
-                    <div class="top-img">🎵</div>
+                    <div class="top-img" aria-hidden="true">🎵</div>
                     <div class="top-info">
-                        <div class="top-name">@t.Name</div>
-                        <div class="top-sub">@t.Sub</div>
+                        <span class="top-name">@t.Name</span>
+                        <span class="top-sub">@t.Sub</span>
                     </div>
                     <span class="top-count">@t.Count plays</span>
-                </div>
+                </li>
             }
-        </div>
-    </div>
-
+        </ol>
+    </section>
     @* ── Top Artists list ── *@
-    <div class="card" id="section-artists">
-        <div class="card-header"><span class="card-title">Top Artists</span></div>
-        <div class="top-list">
+    <section class="card" id="section-artists" aria-labelledby="artists-heading">
+        <header class="card-header">
+            <h2 id="artists-heading" class="card-title">Top Artists</h2>
+        </header>
+        <ol class="top-list">
             @for (int ai = 0; ai < Model.Data.TopArtists.Count; ai++)
             {
                 var a = Model.Data.TopArtists[ai];
                 var n = ai + 1;
                 @* .circle makes the thumbnail round (artist photo) instead of square (album art) *@
-                <div class="top-item">
+                <li class="top-item">
                     <span class="top-rank @(n == 1 ? "gold" : n == 2 ? "silver" : n == 3 ? "bronze" : "")">@n</span>
-                    <div class="top-img circle">👤</div>
+                    <div class="top-img circle" aria-hidden="true">👤</div>
                     <div class="top-info">
-                        <div class="top-name">@a.Name</div>
-                        <div class="top-sub">@a.Sub</div>
+                        <span class="top-name">@a.Name</span>
+                        <span class="top-sub">@a.Sub</span>
                     </div>
                     <span class="top-count">@a.Count plays</span>
-                </div>
+                </li>
             }
-        </div>
-    </div>
-
+        </ol>
+    </section> 
     @* ── Top Albums list ── *@
-    <div class="card" id="section-albums">
-        <div class="card-header"><span class="card-title">Top Albums</span></div>
-        <div class="top-list">
+    <section class="card" id="section-albums" aria-labelledby="albums-heading">
+        <header class="card-header">
+            <h2 id="albums-heading" class="card-title">Top Albums</h2>
+        </header>
+        <ol class="top-list">
             @for (int li = 0; li < Model.Data.TopAlbums.Count; li++)
             {
                 var l = Model.Data.TopAlbums[li];
                 var n = li + 1;
-                <div class="top-item">
+                <li class="top-item">
                     <span class="top-rank @(n == 1 ? "gold" : n == 2 ? "silver" : n == 3 ? "bronze" : "")">@n</span>
-                    <div class="top-img">💿</div>
+                    <div class="top-img" aria-hidden="true">💿</div>
                     <div class="top-info">
-                        <div class="top-name">@l.Name</div>
-                        <div class="top-sub">@l.Sub</div>
+                        <span class="top-name">@l.Name</span>
+                        <span class="top-sub">@l.Sub</span>
                     </div>
                     <span class="top-count">@l.Count plays</span>
-                </div>
+                </li>
             }
-        </div>
-    </div>
-
+        </ol>
+    </section>
 </main>
-
 @*
     Scripts section — rendered just before </body> by _AppLayout.cshtml.
     C# model data is serialised to JSON here so dashboard.js can consume it

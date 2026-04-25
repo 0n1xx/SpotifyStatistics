@@ -2,6 +2,7 @@
 @model SpotifyStatisticsWebApp.Pages.IndexModel
 @{
     ViewData["Title"] = "Statify";
+    // Landing page is self-contained — no shared layout needed
     Layout = null;
 }
 <!DOCTYPE html>
@@ -10,45 +11,55 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Statify — Know your sound</title>
+    @* Google Fonts — Syne for headings, DM Sans for body text *@
     <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+    @* Page-specific styles — background orbs, hero layout, stat strip *@
     <link rel="stylesheet" href="~/css/index.css" />
 </head>
 <body>
-
-    <%-- Ambient background --%>
+    @* ── Ambient background (decorative, hidden from assistive tech) ── *@
+    @* Two blurred colour orbs that slowly drift via CSS animation *@
     <div class="bg" aria-hidden="true">
         <div class="bg-orb"></div>
         <div class="bg-orb"></div>
     </div>
+    @* Subtle grid of faint lines layered on top of the orbs *@
     <div class="grid-overlay" aria-hidden="true"></div>
-
+    @* ── Page shell — flex column, header sits above main ── *@
     <div class="page">
-
+        @* ── Site header: logo + auth nav ── *@
         <header class="site-header">
+            @* Logo — always returns to the landing page *@
             <a class="logo" href="/">
                 <div class="logo-icon">
+                    @* Spotify-style waveform icon — inline SVG avoids an extra HTTP request *@
                     <svg viewBox="0 0 24 24" aria-hidden="true">
                         <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.65 14.4c-.2.3-.6.4-.9.2-2.5-1.53-5.63-1.87-9.33-1.03-.36.08-.72-.15-.8-.5-.08-.36.15-.72.5-.8 4.05-.92 7.52-.53 10.33 1.2.3.18.4.58.2.93zm1.24-2.75c-.25.38-.75.5-1.13.25-2.85-1.75-7.2-2.26-10.57-1.23-.43.13-.9-.1-1.03-.53-.13-.43.1-.9.53-1.03 3.85-1.17 8.63-.6 11.93 1.41.37.23.5.73.27 1.13zm.1-2.86C14.5 8.9 8.68 8.7 5.2 9.73c-.52.16-1.07-.14-1.23-.65-.16-.52.14-1.07.65-1.23 4-.22 10.35.43 14.43 2.85.46.27.62.86.35 1.32-.27.45-.87.6-1.32.34l-.09-.07z" />
                     </svg>
                 </div>
                 <span class="logo-text">Statify</span>
             </a>
+            @* Auth links — Sign in → login, Get started → register *@
             <nav class="nav-links" aria-label="Site navigation">
                 <a class="btn-outline" asp-page="/Account/Login" asp-area="Identity">Sign in</a>
                 <a class="btn-green" asp-page="/Account/Register" asp-area="Identity">Get started</a>
             </nav>
         </header>
-
         <main>
+            @* ── Hero — centred call-to-action block ── *@
+            @* aria-labelledby links the section to its h1 for screen readers *@
             <section class="hero" aria-labelledby="hero-heading">
+                @* Small uppercase eyebrow above the main heading *@
                 <p class="hero-label">Spotify statistics, reimagined</p>
                 <h1 id="hero-heading" class="hero-title">Know your<br><span>sound.</span></h1>
                 <p class="hero-desc">Track your listening history over time. See your top artists, tracks, and genres — any time, not just once a year.</p>
+                @* CTA buttons — primary (register) first, secondary (login) second *@
                 <div class="hero-actions">
                     <a class="btn-green" asp-page="/Account/Register" asp-area="Identity">Start for free</a>
                     <a class="btn-outline" asp-page="/Account/Login" asp-area="Identity">Sign in</a>
                 </div>
-
+                @* ── Social-proof stat strip ── *@
+                @* dl/dt/dd is semantically correct for a set of labelled values *@
                 <dl class="stats-strip">
                     <div class="stat-item">
                         <dt class="stat-label">Tracks tracked</dt>
@@ -65,8 +76,6 @@
                 </dl>
             </section>
         </main>
-
     </div>
-
 </body>
 </html>

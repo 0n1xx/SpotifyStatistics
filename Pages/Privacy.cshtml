@@ -2,6 +2,7 @@
 @model SpotifyStatisticsWebApp.Pages.PrivacyModel
 @{
     ViewData["Title"] = "Privacy";
+    // Privacy page is self-contained — no shared layout needed
     Layout = null;
 }
 <!DOCTYPE html>
@@ -10,27 +11,32 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Privacy — Statify</title>
+    @* Google Fonts — Syne for headings, DM Sans for body text *@
     <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+    @* Page-specific styles — sticky nav, policy sections, contact card *@
     <link rel="stylesheet" href="~/css/privacy.css" />
 </head>
 <body>
-
-    <%-- Ambient background --%>
+    @* ── Ambient background (decorative, hidden from assistive tech) ── *@
     <div class="bg" aria-hidden="true">
         <div class="bg-orb"></div>
         <div class="bg-orb"></div>
     </div>
+    @* Subtle grid of faint lines layered on top of the orbs *@
     <div class="grid-overlay" aria-hidden="true"></div>
-
+    @* ── Site header — sticky, blurs the content scrolling beneath it ── *@
     <header class="site-header">
+        @* Logo — clicking always returns to the landing page *@
         <a class="logo" href="/">
             <div class="logo-icon">
+                @* Spotify-style waveform icon — inline SVG avoids an extra HTTP request *@
                 <svg viewBox="0 0 24 24" aria-hidden="true">
                     <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.65 14.4c-.2.3-.6.4-.9.2-2.5-1.53-5.63-1.87-9.33-1.03-.36.08-.72-.15-.8-.5-.08-.36.15-.72.5-.8 4.05-.92 7.52-.53 10.33 1.2.3.18.4.58.2.93zm1.24-2.75c-.25.38-.75.5-1.13.25-2.85-1.75-7.2-2.26-10.57-1.23-.43.13-.9-.1-1.03-.53-.13-.43.1-.9.53-1.03 3.85-1.17 8.63-.6 11.93 1.41.37.23.5.73.27 1.13zm.1-2.86C14.5 8.9 8.68 8.7 5.2 9.73c-.52.16-1.07-.14-1.23-.65-.16-.52.14-1.07.65-1.23 4-.22 10.35.43 14.43 2.85.46.27.62.86.35 1.32-.27.45-.87.6-1.32.34l-.09-.07z" />
                 </svg>
             </div>
             <span class="logo-text">Statify</span>
         </a>
+        @* Back link — takes the user back to the landing page *@
         <a class="nav-back" href="/">
             <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
                 <path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z" />
@@ -38,17 +44,18 @@
             Back to home
         </a>
     </header>
-
     <main class="page-content">
-
+        @* ── Page header: eyebrow label, title, last-updated date ── *@
         <header class="page-header">
             <p class="page-eyebrow">Legal</p>
             <h1 class="page-title">Privacy Policy</h1>
+            @* datetime attribute makes the date machine-readable *@
             <time class="page-date" datetime="2026-03-22">Last updated: March 22, 2026</time>
         </header>
-
+        @* ── Policy body — seven numbered sections ── *@
+        @* animation-delay staggers each section's fadeUp on load *@
         <article aria-label="Privacy policy">
-
+            @* 01 — What the app is and who this policy applies to *@
             <section class="policy-section" style="animation-delay:0.1s" aria-labelledby="section-overview">
                 <p class="section-num">01</p>
                 <h2 id="section-overview" class="section-title">Overview</h2>
@@ -57,7 +64,7 @@
                     <p>This policy applies to all users of the Statify web application at <a href="https://spotifystatistics-production.up.railway.app">spotifystatistics-production.up.railway.app</a>.</p>
                 </div>
             </section>
-
+            @* 02 — Exhaustive list of data points we store *@
             <section class="policy-section" style="animation-delay:0.15s" aria-labelledby="section-collect">
                 <p class="section-num">02</p>
                 <h2 id="section-collect" class="section-title">What we collect</h2>
@@ -75,7 +82,7 @@
                     <p>We do not collect payment information, precise location data, or any data beyond what's listed above.</p>
                 </div>
             </section>
-
+            @* 03 — How the collected data is actually used *@
             <section class="policy-section" style="animation-delay:0.2s" aria-labelledby="section-use">
                 <p class="section-num">03</p>
                 <h2 id="section-use" class="section-title">How we use your data</h2>
@@ -92,7 +99,7 @@
                     <p>We do not sell your data, use it for advertising, or share it with any third parties outside of what's required to operate the service.</p>
                 </div>
             </section>
-
+            @* 04 — Specific OAuth scopes requested from Spotify *@
             <section class="policy-section" style="animation-delay:0.25s" aria-labelledby="section-spotify">
                 <p class="section-num">04</p>
                 <h2 id="section-spotify" class="section-title">Spotify data access</h2>
@@ -108,7 +115,7 @@
                     <p>You can revoke Statify's access to your Spotify account at any time via your <a href="https://www.spotify.com/account/apps/" target="_blank" rel="noopener noreferrer">Spotify account settings</a>. Revoking access will prevent new data from being fetched but will not delete data already stored.</p>
                 </div>
             </section>
-
+            @* 05 — Where data lives and how it is protected in transit *@
             <section class="policy-section" style="animation-delay:0.3s" aria-labelledby="section-storage">
                 <p class="section-num">05</p>
                 <h2 id="section-storage" class="section-title">Data storage &amp; security</h2>
@@ -117,7 +124,7 @@
                     <p>We use HTTPS for all data in transit. We do not store your Spotify password — authentication is handled entirely by Spotify's OAuth flow.</p>
                 </div>
             </section>
-
+            @* 06 — External services the app integrates with *@
             <section class="policy-section" style="animation-delay:0.35s" aria-labelledby="section-third-party">
                 <p class="section-num">06</p>
                 <h2 id="section-third-party" class="section-title">Third party services</h2>
@@ -134,7 +141,7 @@
                     <p>Each of these services has their own privacy policy which governs how they handle your data.</p>
                 </div>
             </section>
-
+            @* 07 — User rights: deletion and data export *@
             <section class="policy-section" style="animation-delay:0.4s" aria-labelledby="section-rights">
                 <p class="section-num">07</p>
                 <h2 id="section-rights" class="section-title">Your rights</h2>
@@ -142,11 +149,10 @@
                     <p>You have the right to request deletion of your account and all associated data at any time. You can also request a copy of the data we hold about you. To exercise either right, contact us using the details below.</p>
                 </div>
             </section>
-
         </article>
-
+        @* Visual separator between policy content and contact card *@
         <hr class="section-divider">
-
+        @* ── Contact card — shown below the policy sections ── *@
         <aside class="contact-card" aria-label="Contact information">
             <div class="contact-card-text">
                 <strong>Questions about this policy?</strong>
@@ -154,8 +160,6 @@
             </div>
             <a class="btn-green" href="mailto:temiloluwashokubi@gmail.com">Contact us</a>
         </aside>
-
     </main>
-
 </body>
 </html>
