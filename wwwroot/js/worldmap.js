@@ -1,6 +1,11 @@
 // worldmap.js — World Map page logic
-// countryData is injected from the Razor page as a global var
+// Depends on: D3.js v7 and TopoJSON (both loaded via ViewData["ExtraHead"] in Worldmap.cshtml)
+// Data global injected by the @section Scripts block in Worldmap.cshtml:
+//   countryData — object mapping ISO alpha-2 codes to play counts { "US": 142, "GB": 87, ... }
 
+// ── Lookup tables ──
+
+// Maps numeric ISO 3166-1 country codes (used by TopoJSON) → alpha-2 codes (used in countryData)
 const numToAlpha2 = {
     840:"US",124:"CA",826:"GB",250:"FR",276:"DE",36:"AU",392:"JP",
     76:"BR",566:"NG",710:"ZA",752:"SE",578:"NO",528:"NL",724:"ES",
@@ -21,6 +26,7 @@ const numToAlpha2 = {
     716:"ZW",508:"MZ",72:"BW",516:"NA",748:"SZ",426:"LS"
 };
 
+// Maps alpha-2 codes → display names for the tooltip
 const alpha2ToName = {
     "US":"United States","CA":"Canada","GB":"United Kingdom","FR":"France",
     "DE":"Germany","AU":"Australia","JP":"Japan","BR":"Brazil","NG":"Nigeria",
@@ -50,10 +56,14 @@ const alpha2ToName = {
     "BW":"Botswana","NA":"Namibia","SZ":"Eswatini","LS":"Lesotho","SO":"Somalia"
 };
 
+// The highest play count among all countries — used to normalise colour intensity
 const maxCount = Object.values(countryData).reduce((a, b) => Math.max(a, b), 1);
 
+// ── Colour scale ──
+// Maps play count → RGB colour between dark teal (few plays) and Spotify green (many plays).
+// Uses a power curve (^0.4) so mid-range countries aren't all washed out.
 function getColor(plays) {
-    if (!plays) return null;
+    if (!plays) return null; // no data — use CSS default fill
     const t = Math.pow(plays / maxCount, 0.4);
     const r = Math.round(13  + t * (29  - 13));
     const g = Math.round(42  + t * (185 - 42));
@@ -61,6 +71,9 @@ function getColor(plays) {
     return `rgb(${r},${g},${b})`;
 }
 
+// ── Main map initialiser ──
+// Called on DOMContentLoaded. Sets up the D3 projection, zoom behaviour,
+// loads TopoJSON from CDN, draws countries, and wires up tooltip + zoom buttons.
 function initMap() {
     const mapArea = document.querySelector('.map-area');
     const svg = d3.select('#world-map-svg');
@@ -68,26 +81,33 @@ function initMap() {
     function getDims() { return { w: mapArea.clientWidth, h: mapArea.clientHeight }; }
     let { w, h } = getDims();
 
+    // Natural Earth projection — looks good at world scale
     const projection = d3.geoNaturalEarth1().scale(w / 6.2).translate([w / 2, h / 2]);
     const path = d3.geoPath().projection(projection);
 
+    // D3 zoom — allows drag-pan and scroll-to-zoom, clamped to 0.7×–14×
     const zoom = d3.zoom().scaleExtent([0.7, 14]).on('zoom', e => mapGroup.attr('transform', e.transform));
-    svg.call(zoom).on('dblclick.zoom', null);
+    svg.call(zoom).on('dblclick.zoom', null); // disable double-click zoom (conflicts with UX)
 
+    // Dark ocean background
     svg.append('rect').attr('width', '100%').attr('height', '100%').attr('fill', '#080c12');
 
-    const mapGroup = svg.append('g');
+    const mapGroup = svg.append('g'); // all map paths go inside this group so zoom transforms them together
+
+    // Graticule lines (latitude / longitude grid)
     mapGroup.append('path').datum(d3.geoGraticule()()).attr('class', 'graticule').attr('d', path);
 
     const tooltip  = document.getElementById('map-tooltip');
     const ttName   = tooltip.querySelector('.tt-name');
     const ttPlays  = tooltip.querySelector('.tt-plays');
 
+    // ── Load country geometry from CDN ──
     async function loadMap() {
         const res   = await fetch('https://cdn.jsdelivr.net/npm/world-atlas@2/countries-50m.json');
         const world = await res.json();
         const geojson = topojson.feature(world, world.objects.countries);
 
+        // Draw one <path> per country
         mapGroup.selectAll('.country')
             .data(geojson.features)
             .enter().append('path')
@@ -96,15 +116,18 @@ function initMap() {
             .attr('fill', d => {
                 const iso   = numToAlpha2[parseInt(d.id, 10)];
                 const plays = iso ? (countryData[iso] || 0) : 0;
-                return getColor(plays) || '#111e2e';
+                return getColor(plays) || '#111e2e'; // fallback for countries with no data
             })
             .on('mousemove', function(event, d) {
                 const iso   = numToAlpha2[parseInt(d.id, 10)];
                 const plays = iso ? (countryData[iso] || 0) : 0;
-                if (!plays) { tooltip.style.display = 'none'; return; }
-                const name  = (iso && alpha2ToName[iso]) ? alpha2ToName[iso] : (iso || 'Unknown');
+                if (!plays) { tooltip.style.display = 'none'; return; } // no data — hide tooltip
+
+                const name = (iso && alpha2ToName[iso]) ? alpha2ToName[iso] : (iso || 'Unknown');
                 ttName.textContent  = name;
                 ttPlays.textContent = plays.toLocaleString() + ' plays';
+
+                // Position tooltip near the cursor but keep it inside the map area
                 const rect = mapArea.getBoundingClientRect();
                 let tx = event.clientX - rect.left + 16;
                 let ty = event.clientY - rect.top  - 12;
@@ -116,6 +139,7 @@ function initMap() {
             })
             .on('mouseleave', () => { tooltip.style.display = 'none'; });
 
+        // Country border mesh — drawn on top of fill paths so borders are always visible
         mapGroup.append('path')
             .datum(topojson.mesh(world, world.objects.countries, (a, b) => a !== b))
             .attr('class', 'country-border')
@@ -124,10 +148,16 @@ function initMap() {
 
     loadMap().catch(e => console.error('Map load error:', e));
 
-    document.getElementById('zoom-in').addEventListener('click',    () => svg.transition().duration(300).call(zoom.scaleBy, 1.5));
-    document.getElementById('zoom-out').addEventListener('click',   () => svg.transition().duration(300).call(zoom.scaleBy, 0.67));
-    document.getElementById('zoom-reset').addEventListener('click', () => svg.transition().duration(400).call(zoom.transform, d3.zoomIdentity));
+    // ── Zoom buttons ──
+    document.getElementById('zoom-in').addEventListener('click',
+        () => svg.transition().duration(300).call(zoom.scaleBy, 1.5));
+    document.getElementById('zoom-out').addEventListener('click',
+        () => svg.transition().duration(300).call(zoom.scaleBy, 0.67));
+    document.getElementById('zoom-reset').addEventListener('click',
+        () => svg.transition().duration(400).call(zoom.transform, d3.zoomIdentity));
 
+    // ── Resize handler ──
+    // Recalculates projection when the window is resized so the map stays centred
     window.addEventListener('resize', () => {
         const { w: nw, h: nh } = getDims();
         projection.scale(nw / 6.2).translate([nw / 2, nh / 2]);
@@ -135,4 +165,5 @@ function initMap() {
     });
 }
 
+// ── Entry point ──
 document.addEventListener('DOMContentLoaded', initMap);

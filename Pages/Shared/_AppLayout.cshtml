@@ -1,9 +1,21 @@
-@* _AppLayout.cshtml — Main application layout *@
+@* _AppLayout.cshtml — Shared layout for all authenticated app pages
+   Every page that sets Layout = "~/Pages/Shared/_AppLayout.cshtml" goes through here.
+   Responsibilities:
+     - <head> with fonts, global CSS, and optional per-page CSS/scripts
+     - Two-column app shell: sidebar (partial) + page content (@RenderBody)
+     - Optional per-page JS injected before </body>
+*@
 @{
     var pageTitle = ViewData["Title"]?.ToString() ?? "Statify";
-    var extraCss  = ViewData["ExtraCss"]?.ToString() ?? "";
-    var extraJs   = ViewData["ExtraJs"]?.ToString()  ?? "";
-    var extraHead = ViewData["ExtraHead"]?.ToString() ?? "";
+
+    // Set in each page's @{ } block — path to a page-specific stylesheet
+    var extraCss  = ViewData["ExtraCss"]?.ToString()  ?? "";
+
+    // Set in each page's @{ } block — path to a page-specific script file
+    var extraJs   = ViewData["ExtraJs"]?.ToString()   ?? "";
+
+    // Set in each page's @{ } block — raw HTML injected into <head> (e.g. CDN libraries)
+    var extraHead = ViewData["ExtraHead"]?.ToString()  ?? "";
 }
 <!DOCTYPE html>
 <html lang="en">
@@ -11,27 +23,44 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>@pageTitle — Statify</title>
+
+    @* Google Fonts — Syne for headings, DM Sans for body text *@
     <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+
+    @* Global styles — layout, sidebar, shared components, animations *@
     <link rel="stylesheet" href="~/css/app.css" asp-append-version="true" />
+
+    @* Page-specific styles (e.g. ~/css/dashboard.css) — only loaded when set by the page *@
     @if (!string.IsNullOrEmpty(extraCss))
     {
         <link rel="stylesheet" href="@extraCss" asp-append-version="true" />
     }
+
+    @* Extra <head> content — CDN libraries like Chart.js, D3, etc. *@
     @if (!string.IsNullOrEmpty(extraHead))
     {
         @Html.Raw(extraHead)
     }
 </head>
 <body>
+    @* Two-column shell: sidebar on the left, page content on the right *@
     <div class="app">
+
+        @* Sidebar partial — navigation, logo, user card *@
+        @* Receives SpotifyConnected and current username via ViewData / User identity *@
         <partial name="Partials/_Sidebar" />
+
+        @* Page content — each .cshtml renders its <main class="main"> here *@
         @RenderBody()
     </div>
 
+    @* Page-specific JS (e.g. ~/js/dashboard.js) — loaded after the DOM is ready *@
     @if (!string.IsNullOrEmpty(extraJs))
     {
         <script src="@extraJs" asp-append-version="true"></script>
     }
+
+    @* Inline scripts injected by individual pages (e.g. JSON data for charts) *@
     @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>

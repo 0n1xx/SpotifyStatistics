@@ -1,18 +1,33 @@
 @page
 @model SpotifyStatisticsWebApp.Pages.DashboardModel
 @{
-    ViewData["Title"]    = "Dashboard";
+    // Page metadata — sets the browser tab title
+    ViewData["Title"] = "Dashboard";
+    // Page-specific CSS — injected into <head> by _AppLayout.cshtml
     ViewData["ExtraCss"] = "~/css/dashboard.css";
-    ViewData["ExtraJs"]  = "~/js/dashboard.js";
+    // Page-specific JS — injected before </body> by _AppLayout.cshtml
+    ViewData["ExtraJs"] = "~/js/dashboard.js";
+    // Extra <head> tags — Chart.js is only needed on this page, so we inject it here
+    // rather than loading it globally in _AppLayout.cshtml
     ViewData["ExtraHead"] = "<script src=\"https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js\"></script>";
+    // Pass Spotify connection status down to the sidebar partial (_Sidebar.cshtml)
     ViewData["SpotifyConnected"] = Model.SpotifyConnected;
+    // Use the shared app layout (sidebar + head + fonts)
     Layout = "~/Pages/Shared/_AppLayout.cshtml";
-    var rangeLabel = Model.Range switch { "7d" => "Last 7 days", "30d" => "Last 30 days", "6m" => "Last 6 months", _ => "All time" };
+    // Human-readable label for the currently selected time range
+    var rangeLabel = Model.Range switch
+    {
+        "7d"  => "Last 7 days",
+        "30d" => "Last 30 days",
+        "6m"  => "Last 6 months",
+        _     => "All time"
+    };
 }
-
 <main class="main">
+    @* ── Top bar: page title + time range filter ── *@
     <div class="topbar">
         <div class="page-title">Dashboard</div>
+        @* Time range buttons — clicking reloads the page with ?range=X *@
         <div class="time-filter">
             <a class="tf-btn @(Model.Range == "7d"  ? "active" : "")" href="?range=7d">7D</a>
             <a class="tf-btn @(Model.Range == "30d" ? "active" : "")" href="?range=30d">30D</a>
@@ -20,12 +35,14 @@
             <a class="tf-btn @(Model.Range is "all" or null ? "active" : "")" href="?range=all">All</a>
         </div>
     </div>
-
+    @* ── Spotify connection banner ── *@
     @if (!Model.SpotifyConnected)
     {
+        @* Shown when Spotify is NOT connected — prompts the user to link their account *@
         <div class="spotify-banner" id="spotify-banner">
             <div style="display:flex;align-items:center;gap:16px">
                 <div class="spotify-banner-icon">
+                    @* Spotify logo SVG icon — inline to avoid extra HTTP request *@
                     <svg width="22" height="22" viewBox="0 0 24 24" fill="#1DB954"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.65 14.4c-.2.3-.6.4-.9.2-2.5-1.53-5.63-1.87-9.33-1.03-.36.08-.72-.15-.8-.5-.08-.36.15-.72.5-.8 4.05-.92 7.52-.53 10.33 1.2.3.18.4.58.2.93zm1.24-2.75c-.25.38-.75.5-1.13.25-2.85-1.75-7.2-2.26-10.57-1.23-.43.13-.9-.1-1.03-.53-.13-.43.1-.9.53-1.03 3.85-1.17 8.63-.6 11.93 1.41.37.23.5.73.27 1.13zm.1-2.86C14.5 8.9 8.68 8.7 5.2 9.73c-.52.16-1.07-.14-1.23-.65-.16-.52.14-1.07.65-1.23 4-.22 10.35.43 14.43 2.85.46.27.62.86.35 1.32-.27.45-.87.6-1.32.34l-.09-.07z" /></svg>
                 </div>
                 <div>
@@ -34,6 +51,7 @@
                 </div>
             </div>
             <div style="display:flex;align-items:center;gap:10px;flex-shrink:0">
+                @* Dismiss hides the banner for the current session without a page reload *@
                 <button class="dismiss-btn" onclick="document.getElementById('spotify-banner').style.display='none'">Dismiss</button>
                 <a href="/SpotifyAuth/login" class="connect-btn">Connect Spotify</a>
             </div>
@@ -41,12 +59,15 @@
     }
     else
     {
+        @* Shown when Spotify IS connected — subtle status bar with a pulsing dot *@
         <div class="spotify-connected-bar">
             <div class="pulse-dot"></div>
             <span style="font-size:13px;color:#888">Spotify connected — your listening data is being tracked</span>
         </div>
     }
 
+    @* ── Stats grid: 4 summary numbers ── *@
+    @* animation-delay staggers each card's fadeUp so they appear one by one *@
     <div class="stats-grid">
         <div class="stat-card" style="animation-delay:0s">
             <div class="stat-card-label">Tracks played</div>
@@ -69,15 +90,18 @@
             <div class="stat-card-sub">Artist origins · @rangeLabel</div>
         </div>
     </div>
-
+    @* ── Charts row: activity line chart + time-of-day bars ── *@
     <div class="charts-row">
+        @* Line chart — rendered by Chart.js, initialised in dashboard.js → initActivityChart() *@
         <div class="card" style="animation-delay:0.2s">
             <div class="card-header"><span class="card-title">Listening activity</span></div>
             <canvas id="activityChart" height="100"></canvas>
         </div>
+        @* 24 vertical bars (one per hour) — built dynamically in dashboard.js → initTodBars() *@
         <div class="card" style="animation-delay:0.25s">
             <div class="card-header"><span class="card-title">Time of day</span></div>
             <div class="tod-bars" id="todBars"></div>
+            @* Hour labels below the bars *@
             <div style="display:flex;justify-content:space-between;margin-top:8px">
                 <span style="font-size:10px;color:var(--muted)">12am</span>
                 <span style="font-size:10px;color:var(--muted)">6am</span>
@@ -87,7 +111,8 @@
             </div>
         </div>
     </div>
-
+    @* ── Top Tracks list ── *@
+    @* id="section-tracks" is targeted by the scroll-spy in dashboard.js → initScrollSpy() *@
     <div class="card" id="section-tracks">
         <div class="card-header"><span class="card-title">Top Tracks</span></div>
         <div class="top-list">
@@ -95,6 +120,7 @@
             {
                 var t = Model.Data.TopTracks[ti];
                 var n = ti + 1;
+                @* gold / silver / bronze CSS classes colour the rank number *@
                 <div class="top-item">
                     <span class="top-rank @(n == 1 ? "gold" : n == 2 ? "silver" : n == 3 ? "bronze" : "")">@n</span>
                     <div class="top-img">🎵</div>
@@ -108,6 +134,7 @@
         </div>
     </div>
 
+    @* ── Top Artists list ── *@
     <div class="card" id="section-artists">
         <div class="card-header"><span class="card-title">Top Artists</span></div>
         <div class="top-list">
@@ -115,6 +142,7 @@
             {
                 var a = Model.Data.TopArtists[ai];
                 var n = ai + 1;
+                @* .circle makes the thumbnail round (artist photo) instead of square (album art) *@
                 <div class="top-item">
                     <span class="top-rank @(n == 1 ? "gold" : n == 2 ? "silver" : n == 3 ? "bronze" : "")">@n</span>
                     <div class="top-img circle">👤</div>
@@ -128,6 +156,7 @@
         </div>
     </div>
 
+    @* ── Top Albums list ── *@
     <div class="card" id="section-albums">
         <div class="card-header"><span class="card-title">Top Albums</span></div>
         <div class="top-list">
@@ -147,12 +176,21 @@
             }
         </div>
     </div>
+
 </main>
 
+@*
+    Scripts section — rendered just before </body> by _AppLayout.cshtml.
+    C# model data is serialised to JSON here so dashboard.js can consume it
+    as plain JS globals (actLabels, actData, todData) without an extra API call.
+*@
 @section Scripts {
     <script>
+        // Monthly play counts — passed to initActivityChart() in dashboard.js
         const actLabels = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Data.ActivityByMonth.Select(m => m.Month).ToList()));
         const actData   = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Data.ActivityByMonth.Select(m => m.Count).ToList()));
-        const todData   = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Data.ListeningByHour));
+
+        // Hourly play counts, array[0..23] — passed to initTodBars() in dashboard.js
+        const todData = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Data.ListeningByHour));
     </script>
 }

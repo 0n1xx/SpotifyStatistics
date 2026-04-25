@@ -1,15 +1,21 @@
 @page
 @model SpotifyStatisticsWebApp.Pages.WorldMapModel
 @{
-    ViewData["Title"]    = "World Map";
+    // Page metadata
+    ViewData["Title"] = "World Map";
+    // Page-specific CSS
     ViewData["ExtraCss"] = "~/css/worldmap.css";
-    ViewData["ExtraJs"]  = "~/js/worldmap.js";
-    ViewData["ExtraHead"] = "<script src=\"https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js\"></script><script src=\"https://cdn.jsdelivr.net/npm/topojson-client@3/dist/topojson-client.min.js\"></script>";
+    // Page-specific JS — map logic lives in worldmap.js
+    ViewData["ExtraJs"] = "~/js/worldmap.js";
+    // D3.js (map rendering) and TopoJSON (country geometry) are only needed here
+    ViewData["ExtraHead"] = "<script src=\"https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js\"></script>"
+                          + "<script src=\"https://cdn.jsdelivr.net/npm/topojson-client@3/dist/topojson-client.min.js\"></script>";
     ViewData["SpotifyConnected"] = Model.SpotifyConnected;
     Layout = "~/Pages/Shared/_AppLayout.cshtml";
 }
 
 <main class="main">
+    @* ── Page header: title + summary counts ── *@
     <div class="page-header">
         <div>
             <h1 class="page-title">World Map</h1>
@@ -21,13 +27,14 @@
             <strong style="color:var(--text)">@Model.CountryCounts.Sum(c => c.Count).ToString("N0")</strong> plays
         </div>
     </div>
-
+    @* ── Map area — SVG is populated by D3 in worldmap.js → initMap() ── *@
     <div class="map-area">
         <svg id="world-map-svg"></svg>
-
+        @* ── Top countries panel (right side overlay) ── *@
         <div class="country-panel">
             <div class="country-panel-header">Top Countries</div>
             <div class="country-list">
+                @* Bar width is proportional to the top country's play count *@
                 @{ int maxPlays = Model.CountryCounts.FirstOrDefault()?.Count ?? 1; }
                 @foreach (var c in Model.CountryCounts.Take(15))
                 {
@@ -42,25 +49,30 @@
                 }
             </div>
         </div>
-
+        @* ── Hover tooltip — shown/hidden by D3 mousemove in worldmap.js ── *@
         <div id="map-tooltip">
             <div class="tt-name"></div>
             <div class="tt-plays"></div>
         </div>
-
+        @* ── Legend: colour scale explanation ── *@
         <div class="map-legend">
             <div class="legend-gradient"></div>
             <span>Listening intensity</span>
         </div>
-
+        @* ── Zoom controls — wired up in worldmap.js ── *@
         <div class="zoom-controls">
             <div class="zoom-btn" id="zoom-in">+</div>
             <div class="zoom-btn" id="zoom-out">&minus;</div>
+            @* Home button resets to default zoom/pan *@
             <div class="zoom-btn" id="zoom-reset" style="font-size:12px;font-weight:700">&#8962;</div>
         </div>
     </div>
 </main>
-
+@*
+    Scripts section — countryData is serialised from C# to a JS object so
+    worldmap.js can colour each country without an extra API call.
+    Format: { "US": 142, "GB": 87, ... }
+*@
 @section Scripts {
     <script>
         const countryData = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(

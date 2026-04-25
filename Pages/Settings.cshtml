@@ -1,29 +1,35 @@
 @page
 @model SpotifyStatisticsWebApp.Pages.SettingsModel
 @{
-    ViewData["Title"]    = "Settings";
+    // Page metadata
+    ViewData["Title"] = "Settings";
+    // Page-specific CSS — injected into <head> by _AppLayout.cshtml
     ViewData["ExtraCss"] = "~/css/settings.css";
-    ViewData["ExtraJs"]  = "~/js/settings.js";
+    // Page-specific JS — injected before </body> by _AppLayout.cshtml
+    ViewData["ExtraJs"] = "~/js/settings.js";
+    // Pass Spotify connection status to the sidebar partial
     ViewData["SpotifyConnected"] = Model.SpotifyConnected;
     Layout = "~/Pages/Shared/_AppLayout.cshtml";
 }
 
 <main class="main">
+    @* ── Page header ── *@
     <div class="page-header">
         <h1 class="page-title">Settings</h1>
         <p class="page-sub">Manage your account, connections and preferences</p>
     </div>
-
-    <!-- Profile -->
+    @* ── Section: Profile ── *@
     <div class="settings-section" style="animation-delay:0s">
         <div class="section-title">Profile</div>
         <div class="setting-card">
             <div class="avatar-section">
+                @* First letter of username as fallback avatar *@
                 <div class="avatar-large">@User.Identity?.Name?.Substring(0, 1).ToUpper()</div>
                 <div>
                     <div class="avatar-name">@User.Identity?.Name</div>
                     <div class="avatar-email">@User.Identity?.Name</div>
                     <div class="avatar-actions">
+                        @* Hidden file input — triggered by the button click *@
                         <button class="btn btn-outline" onclick="document.getElementById('avatar-input').click()">Upload photo</button>
                         <input id="avatar-input" type="file" accept="image/*" style="display:none">
                     </div>
@@ -31,8 +37,7 @@
             </div>
         </div>
     </div>
-
-    <!-- Account -->
+    @* ── Section: Account ── *@
     <div class="settings-section" style="animation-delay:0.05s">
         <div class="section-title">Account</div>
         <div class="setting-card">
@@ -42,7 +47,9 @@
                     <div class="setting-desc">Your login email and where we send notifications</div>
                 </div>
                 <div style="display:flex;align-items:center;gap:10px">
-                    <input class="input-field" type="email" id="email-input" value="@User.Identity?.Name" style="max-width:220px">
+                    <input class="input-field" type="email" id="email-input"
+                           value="@User.Identity?.Name" style="max-width:220px">
+                    @* saveEmail() is defined in settings.js *@
                     <button class="btn btn-green" onclick="saveEmail()">Save</button>
                 </div>
             </div>
@@ -51,15 +58,17 @@
                     <div class="setting-label">Password</div>
                     <div class="setting-desc">Change your account password</div>
                 </div>
+                @* Links to the ASP.NET Identity built-in password change page *@
                 <a class="btn btn-outline" asp-area="Identity" asp-page="/Account/Manage/ChangePassword">Change password</a>
             </div>
         </div>
     </div>
-
-    <!-- Connected accounts -->
+    @* ── Section: Connected accounts ── *@
     <div class="settings-section" style="animation-delay:0.1s">
         <div class="section-title">Connected accounts</div>
         <div class="setting-card">
+
+            @* Spotify row — shows Connect or Disconnect depending on Model.SpotifyConnected *@
             <div class="setting-row">
                 <div class="setting-info">
                     <div class="setting-label" style="display:flex;align-items:center;gap:8px">
@@ -75,7 +84,10 @@
                             <div class="pulse-dot"></div>
                             Connected
                         </span>
-                        <button class="btn btn-outline" onclick="if(confirm('Disconnect Spotify?')) window.location='/SpotifyAuth/disconnect'">Disconnect</button>
+                        <button class="btn btn-outline"
+                                onclick="if(confirm('Disconnect Spotify?')) window.location='/SpotifyAuth/disconnect'">
+                            Disconnect
+                        </button>
                     }
                     else
                     {
@@ -84,6 +96,7 @@
                     }
                 </div>
             </div>
+            @* Google row — read-only status badge, no connect/disconnect action yet *@
             <div class="setting-row">
                 <div class="setting-info">
                     <div class="setting-label">Google</div>
@@ -93,6 +106,7 @@
                     @(Model.GoogleConnected ? "Connected" : "Not connected")
                 </span>
             </div>
+            @* GitHub row — read-only status badge *@
             <div class="setting-row">
                 <div class="setting-info">
                     <div class="setting-label">GitHub</div>
@@ -104,8 +118,8 @@
             </div>
         </div>
     </div>
-
-    <!-- Danger zone -->
+    @* ── Section: Danger zone ── *@
+    @* Styled red to make it visually distinct from the other sections *@
     <div class="settings-section" style="animation-delay:0.15s">
         <div class="section-title">Danger zone</div>
         <div class="danger-zone">
@@ -115,22 +129,30 @@
             <div class="setting-row">
                 <div class="setting-info">
                     <div class="setting-label">Delete account</div>
-                    <div class="setting-desc">Permanently delete your account and all associated data. This cannot be undone.</div>
+                    <div class="setting-desc">Permanently delete your account and all data. This cannot be undone.</div>
                 </div>
+                @* Opens the confirmation modal defined below — confirmDelete() is in settings.js *@
                 <button class="btn btn-red" onclick="confirmDelete()">Delete account</button>
             </div>
         </div>
     </div>
-
-    <!-- Delete confirm modal -->
-    <div id="delete-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:100;align-items:center;justify-content:center">
+    @* ── Delete confirmation modal ── *@
+    @* Hidden by default; shown by confirmDelete() in settings.js *@
+    <div id="delete-modal"
+         style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:100;align-items:center;justify-content:center">
         <div style="background:#111;border:1px solid rgba(231,76,60,0.3);border-radius:16px;padding:32px;max-width:400px;width:90%;text-align:center">
             <div style="font-family:'Syne',sans-serif;font-size:18px;font-weight:700;margin-bottom:12px">Delete your account?</div>
-            <div style="font-size:14px;color:#888;line-height:1.6;margin-bottom:24px">This will permanently delete your account and all your listening history. There is no way to recover this data.</div>
+            <div style="font-size:14px;color:#888;line-height:1.6;margin-bottom:24px">
+                This will permanently delete your account and all your listening history.
+                There is no way to recover this data.
+            </div>
             <div style="display:flex;gap:10px;justify-content:center">
-                <button class="btn btn-outline" onclick="document.getElementById('delete-modal').style.display='none'">Cancel</button>
+                <button class="btn btn-outline"
+                        onclick="document.getElementById('delete-modal').style.display='none'">Cancel</button>
+                @* POST to DeleteAccount handler in Settings.cshtml.cs *@
                 <form method="post" asp-page-handler="DeleteAccount" style="margin:0">
-                    <button type="submit" class="btn" style="background:var(--red);color:#fff;font-weight:600">Yes, delete everything</button>
+                    <button type="submit" class="btn"
+                            style="background:var(--red);color:#fff;font-weight:600">Yes, delete everything</button>
                 </form>
             </div>
         </div>

@@ -1,26 +1,27 @@
-/* =============================================
-   app.css — Global styles for Statify
-   ============================================= */
+/* app.css — Global styles shared across all pages
+   Loaded by every page via _AppLayout.cshtml */
 
+/* ── Reset ── */
 *, *::before, *::after {
     box-sizing: border-box;
     margin: 0;
     padding: 0;
 }
-
+/* ── Design tokens (CSS variables) ──
+   Change a value here and it updates everywhere */
 :root {
-    --green: #1DB954;
-    --green-dim: #17a349;
-    --green-glow: rgba(29,185,84,0.15);
-    --black: #080808;
-    --card: #111111;
-    --card2: #161616;
-    --border: rgba(255,255,255,0.07);
-    --text: #f0f0f0;
-    --muted: #555;
-    --muted2: #888;
-    --sidebar: 240px;
-    --red: #e74c3c;
+    --green: #1DB954;           /* Spotify brand green */
+    --green-dim: #17a349;       /* Darker green for hover states */
+    --green-glow: rgba(29,185,84,0.15); /* Transparent green for backgrounds */
+    --black: #080808;           /* Page background */
+    --card: #111111;            /* Card / panel background */
+    --card2: #161616;           /* Slightly lighter card (hover states) */
+    --border: rgba(255,255,255,0.07); /* Subtle divider lines */
+    --text: #f0f0f0;            /* Primary text */
+    --muted: #555;              /* Disabled / placeholder text */
+    --muted2: #888;             /* Secondary text */
+    --sidebar: 240px;           /* Sidebar width — also used in .app grid */
+    --red: #e74c3c;             /* Danger / destructive actions */
     --red-glow: rgba(231,76,60,0.15);
 }
 
@@ -29,17 +30,18 @@ html, body {
     background: var(--black);
     color: var(--text);
     font-family: 'DM Sans', sans-serif;
-    overflow: hidden;
+    overflow: hidden; /* The inner .main div scrolls, not the page */
 }
 
-/* ── App layout ── */
+/* ── Two-column app shell: sidebar | content ── */
 .app {
     display: grid;
     grid-template-columns: var(--sidebar) 1fr;
     height: 100vh;
 }
 
-/* ── Sidebar ── */
+/* SideBar */
+
 .sidebar {
     background: #0c0c0c;
     border-right: 1px solid var(--border);
@@ -49,6 +51,7 @@ html, body {
     overflow-y: auto;
 }
 
+/* Logo link at the top of the sidebar */
 .sidebar-logo {
     display: flex;
     align-items: center;
@@ -83,11 +86,13 @@ html, body {
     letter-spacing: -0.5px;
 }
 
+/* Navigation list */
 .nav {
     padding: 20px 12px;
     flex: 1;
 }
 
+/* Small uppercase label above a group of nav items */
 .nav-label {
     font-size: 10px;
     font-weight: 500;
@@ -99,6 +104,7 @@ html, body {
     margin-top: 20px;
 }
 
+/* Individual nav link */
 .nav-item {
     display: flex;
     align-items: center;
@@ -125,20 +131,18 @@ html, body {
     color: var(--text);
 }
 
-.nav-item:hover svg {
-    opacity: 1;
-}
+.nav-item:hover svg { opacity: 1; }
 
+/* Active page highlight */
 .nav-item.active {
     background: var(--green-glow);
     color: var(--green);
     font-weight: 500;
 }
 
-.nav-item.active svg {
-    opacity: 1;
-}
+.nav-item.active svg { opacity: 1; }
 
+/* Read-only "connected" indicator — no hover state needed */
 .nav-connected {
     display: flex;
     align-items: center;
@@ -156,6 +160,7 @@ html, body {
     flex-shrink: 0;
 }
 
+/* User card at the bottom of the sidebar */
 .sidebar-user {
     margin: 0 12px;
     padding: 12px;
@@ -170,10 +175,9 @@ html, body {
     transition: border-color 0.15s;
 }
 
-.sidebar-user:hover {
-    border-color: rgba(255,255,255,0.15);
-}
+.sidebar-user:hover { border-color: rgba(255,255,255,0.15); }
 
+/* Circular avatar — shows initial letter or profile photo */
 .user-avatar {
     width: 32px;
     height: 32px;
@@ -201,12 +205,11 @@ html, body {
     color: var(--text);
 }
 
-.user-sub {
-    font-size: 11px;
-    color: var(--muted2);
-}
+.user-sub { font-size: 11px; color: var(--muted2); }
 
-/* ── Shared components ── */
+/* Shared components */
+
+/* Animated green dot — used in the sidebar and connected banners */
 .pulse-dot {
     width: 8px;
     height: 8px;
@@ -216,6 +219,7 @@ html, body {
     animation: pulse 2s ease-in-out infinite;
 }
 
+/* Generic content card */
 .card {
     background: var(--card);
     border-radius: 14px;
@@ -237,6 +241,7 @@ html, body {
     font-weight: 700;
 }
 
+/* Primary CTA button (green) — used on the Spotify connect banners */
 .connect-btn {
     display: inline-flex;
     align-items: center;
@@ -255,15 +260,11 @@ html, body {
     cursor: pointer;
 }
 
-.connect-btn:hover {
-    background: var(--green-dim);
-}
+.connect-btn:hover { background: var(--green-dim); }
 
-/* ── Scrollbar ── */
+/* Scrollbars */
 .main::-webkit-scrollbar,
-.sidebar::-webkit-scrollbar {
-    width: 4px;
-}
+.sidebar::-webkit-scrollbar { width: 4px; }
 
 .main::-webkit-scrollbar-thumb,
 .sidebar::-webkit-scrollbar-thumb {
@@ -271,17 +272,21 @@ html, body {
     border-radius: 2px;
 }
 
-/* ── Animations ── */
+/* Animations part */
+
+/* Cards slide up and fade in on page load */
 @keyframes fadeUp {
     from { opacity: 0; transform: translateY(12px); }
     to   { opacity: 1; transform: translateY(0); }
 }
 
+/* Pulsing dot for Spotify connected indicator */
 @keyframes pulse {
     0%, 100% { opacity: 1; transform: scale(1); }
     50%       { opacity: 0.5; transform: scale(0.85); }
 }
 
+/* Subtle breathing animation on icon elements */
 @keyframes iconPulse {
     0%, 100% { transform: scale(1); }
     50%       { transform: scale(0.92); }
