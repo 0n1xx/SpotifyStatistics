@@ -1,9 +1,0 @@
-{
-  "permissions": {
-    "allow": [
-      "Bash(dotnet build:*)",
-      "Bash(find C:UserstemilsourcereposSpotifyStatisticsWebAppobjDebugnet10.0RazorAreasIdentity -name *.cshtml)",
-      "Bash(find C:UserstemilsourcereposSpotifyStatisticsWebApp -path *obj* -name _ViewStart.cshtml)"
-    ]
-  }
-}

@@ -1,0 +1,37 @@
+@* _AppLayout.cshtml — Main application layout *@
+@{
+    var pageTitle = ViewData["Title"]?.ToString() ?? "Statify";
+    var extraCss  = ViewData["ExtraCss"]?.ToString() ?? "";
+    var extraJs   = ViewData["ExtraJs"]?.ToString()  ?? "";
+    var extraHead = ViewData["ExtraHead"]?.ToString() ?? "";
+}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>@pageTitle — Statify</title>
+    <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="~/css/app.css" asp-append-version="true" />
+    @if (!string.IsNullOrEmpty(extraCss))
+    {
+        <link rel="stylesheet" href="@extraCss" asp-append-version="true" />
+    }
+    @if (!string.IsNullOrEmpty(extraHead))
+    {
+        @Html.Raw(extraHead)
+    }
+</head>
+<body>
+    <div class="app">
+        <partial name="Partials/_Sidebar" />
+        @RenderBody()
+    </div>
+
+    @if (!string.IsNullOrEmpty(extraJs))
+    {
+        <script src="@extraJs" asp-append-version="true"></script>
+    }
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

@@ -1,346 +1,70 @@
 @page
 @model SpotifyStatisticsWebApp.Pages.WorldMapModel
 @{
-    ViewData["Title"] = "World Map";
-    Layout = null;
+    ViewData["Title"]    = "World Map";
+    ViewData["ExtraCss"] = "~/css/worldmap.css";
+    ViewData["ExtraJs"]  = "~/js/worldmap.js";
+    ViewData["ExtraHead"] = "<script src=\"https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js\"></script><script src=\"https://cdn.jsdelivr.net/npm/topojson-client@3/dist/topojson-client.min.js\"></script>";
+    ViewData["SpotifyConnected"] = Model.SpotifyConnected;
+    Layout = "~/Pages/Shared/_AppLayout.cshtml";
 }
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>World Map — Statify</title>
-    <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/topojson-client@3/dist/topojson-client.min.js"></script>
-    <style>
-        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-        :root {
-            --green: #1DB954; --green-dim: #17a349; --green-glow: rgba(29,185,84,0.15);
-            --black: #080808; --card: #111111; --card2: #161616;
-            --border: rgba(255,255,255,0.07); --text: #f0f0f0;
-            --muted: #555; --muted2: #888; --sidebar: 240px;
-        }
-        html, body { height: 100%; background: var(--black); color: var(--text); font-family: 'DM Sans', sans-serif; overflow: hidden; }
-        .app { display: grid; grid-template-columns: var(--sidebar) 1fr; height: 100vh; }
-        .sidebar { background: #0c0c0c; border-right: 1px solid var(--border); display: flex; flex-direction: column; padding: 28px 0; overflow-y: auto; }
-        .sidebar-logo { display: flex; align-items: center; gap: 10px; padding: 0 24px 28px; border-bottom: 1px solid var(--border); text-decoration: none; color: var(--text); }
-        .logo-icon { width: 34px; height: 34px; background: var(--green); border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
-        .logo-icon svg { width: 18px; height: 18px; fill: #000; }
-        .logo-text { font-family: 'Syne', sans-serif; font-size: 18px; font-weight: 800; letter-spacing: -0.5px; }
-        .nav { padding: 20px 12px; flex: 1; }
-        .nav-label { font-size: 10px; font-weight: 500; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); padding: 0 12px; margin-bottom: 8px; margin-top: 20px; }
-        .nav-item { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 8px; font-size: 14px; color: var(--muted2); cursor: pointer; transition: all 0.15s; text-decoration: none; margin-bottom: 2px; }
-        .nav-item svg { width: 16px; height: 16px; flex-shrink: 0; opacity: 0.6; }
-        .nav-item:hover { background: var(--card); color: var(--text); }
-        .nav-item:hover svg { opacity: 1; }
-        .nav-item.active { background: var(--green-glow); color: var(--green); font-weight: 500; }
-        .nav-item.active svg { opacity: 1; }
-        .nav-connected { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 8px; font-size: 14px; color: var(--green); margin-bottom: 2px; }
-        .nav-connected svg { width: 16px; height: 16px; flex-shrink: 0; }
-        .pulse-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--green); animation: pulse 2s ease-in-out infinite; }
-        .sidebar-user { margin: 0 12px; padding: 12px; background: var(--card); border-radius: 10px; border: 1px solid var(--border); display: flex; align-items: center; gap: 10px; text-decoration: none; cursor: pointer; transition: border-color 0.15s; }
-        .sidebar-user:hover { border-color: rgba(255,255,255,0.15); }
-        .user-avatar { width: 32px; height: 32px; border-radius: 50%; background: var(--green); display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 600; color: #000; flex-shrink: 0; }
-        .user-name { font-size: 13px; font-weight: 500; color: var(--text); }
-        .user-sub { font-size: 11px; color: var(--muted2); }
-        .main { overflow: hidden; display: flex; flex-direction: column; height: 100vh; }
-        .page-header { padding: 28px 40px 20px; display: flex; align-items: flex-end; justify-content: space-between; flex-shrink: 0; border-bottom: 1px solid var(--border); }
-        .page-title { font-family: 'Syne', sans-serif; font-size: 26px; font-weight: 800; letter-spacing: -0.5px; }
-        .page-sub { font-size: 14px; color: var(--muted2); margin-top: 4px; }
-        .map-area { flex: 1; position: relative; overflow: hidden; background: #080c12; }
-        #world-map-svg { width: 100%; height: 100%; display: block; cursor: grab; }
-        #world-map-svg:active { cursor: grabbing; }
-        .country { stroke: #1c2e42; stroke-width: 0.5px; transition: stroke 0.1s, stroke-width 0.1s; }
-        .country:hover { stroke: #1DB954; stroke-width: 1.2px; }
-        .country-border { fill: none; stroke: #0d1a28; stroke-width: 0.7px; pointer-events: none; }
-        .graticule { fill: none; stroke: rgba(255,255,255,0.03); stroke-width: 0.4px; }
-        .sphere-bg { fill: #0d1520; }
-        .country-panel { position: absolute; right: 24px; top: 24px; width: 220px; background: rgba(12,12,12,0.94); border: 1px solid var(--border); border-radius: 14px; backdrop-filter: blur(16px); overflow: hidden; pointer-events: all; z-index: 10; }
-        .country-panel-header { padding: 14px 16px; border-bottom: 1px solid var(--border); font-family: 'Syne', sans-serif; font-size: 13px; font-weight: 700; }
-        .country-list { max-height: 320px; overflow-y: auto; }
-        .country-list::-webkit-scrollbar { width: 3px; }
-        .country-list::-webkit-scrollbar-thumb { background: var(--border); }
-        .country-row { display: flex; align-items: center; justify-content: space-between; padding: 9px 16px; border-bottom: 1px solid rgba(255,255,255,0.03); font-size: 12px; transition: background 0.1s; }
-        .country-row:last-child { border-bottom: none; }
-        .country-row:hover { background: rgba(255,255,255,0.04); }
-        .country-name { color: var(--text); font-weight: 500; }
-        .country-plays { color: var(--muted2); }
-        .country-bar-wrap { width: 40px; height: 3px; background: rgba(255,255,255,0.06); border-radius: 2px; margin: 0 10px; }
-        .country-bar { height: 100%; background: var(--green); border-radius: 2px; }
-        #map-tooltip { position: absolute; background: rgba(10,10,10,0.97); border: 1px solid rgba(29,185,84,0.25); border-radius: 10px; padding: 10px 14px; font-size: 12px; pointer-events: none; display: none; z-index: 20; backdrop-filter: blur(8px); white-space: nowrap; box-shadow: 0 4px 24px rgba(0,0,0,0.6); }
-        #map-tooltip .tt-name { color: var(--green); font-size: 13px; font-weight: 600; margin-bottom: 3px; }
-        #map-tooltip .tt-plays { color: var(--muted2); }
-        .map-legend { position: absolute; bottom: 20px; left: 24px; display: flex; align-items: center; gap: 8px; font-size: 11px; color: var(--muted2); z-index: 10; }
-        .legend-gradient { width: 80px; height: 5px; border-radius: 3px; background: linear-gradient(90deg, rgba(29,185,84,0.12), #1DB954); }
-        .zoom-controls { position: absolute; bottom: 20px; right: 264px; display: flex; gap: 4px; z-index: 10; }
-        .zoom-btn { width: 32px; height: 32px; background: rgba(12,12,12,0.92); border: 1px solid var(--border); border-radius: 8px; color: var(--muted2); font-size: 18px; line-height: 1; display: flex; align-items: center; justify-content: center; cursor: pointer; backdrop-filter: blur(8px); transition: all 0.15s; user-select: none; }
-        .zoom-btn:hover { color: var(--text); border-color: rgba(255,255,255,0.18); }
-        @@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
-    </style>
-</head>
-<body>
-<div class="app">
-    <aside class="sidebar">
-        <a class="sidebar-logo" asp-page="/Index">
-            <div class="logo-icon">
-                <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.65 14.4c-.2.3-.6.4-.9.2-2.5-1.53-5.63-1.87-9.33-1.03-.36.08-.72-.15-.8-.5-.08-.36.15-.72.5-.8 4.05-.92 7.52-.53 10.33 1.2.3.18.4.58.2.93zm1.24-2.75c-.25.38-.75.5-1.13.25-2.85-1.75-7.2-2.26-10.57-1.23-.43.13-.9-.1-1.03-.53-.13-.43.1-.9.53-1.03 3.85-1.17 8.63-.6 11.93 1.41.37.23.5.73.27 1.13zm.1-2.86C14.5 8.9 8.68 8.7 5.2 9.73c-.52.16-1.07-.14-1.23-.65-.16-.52.14-1.07.65-1.23 4-.22 10.35.43 14.43 2.85.46.27.62.86.35 1.32-.27.45-.87.6-1.32.34l-.09-.07z"/></svg>
-            </div>
-            <span class="logo-text">Statify</span>
-        </a>
-        <nav class="nav">
-            <div class="nav-label">Menu</div>
-            <a class="nav-item" asp-page="/Dashboard">
-                <svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z"/></svg>
-                Dashboard
-            </a>
-            <a class="nav-item" asp-page="/RecentlyPlayed">
-                <svg viewBox="0 0 24 24" fill="currentColor"><path d="M13 3a9 9 0 0 0-9 9H1l3.89 3.89.07.14L9 12H6c0-3.87 3.13-7 7-7s7 3.13 7 7-3.13 7-7 7c-1.93 0-3.68-.79-4.94-2.06l-1.42 1.42A8.954 8.954 0 0 0 13 21a9 9 0 0 0 0-18zm-1 5v5l4.28 2.54.72-1.21-3.5-2.08V8H12z"/></svg>
-                Recently Played
-            </a>
-            <a class="nav-item" asp-page="/Dashboard" asp-fragment="section-tracks">
-                <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/></svg>
-                Top Tracks
-            </a>
-            <a class="nav-item" asp-page="/Dashboard" asp-fragment="section-artists">
-                <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
-                Top Artists
-            </a>
-            <a class="nav-item" asp-page="/Dashboard" asp-fragment="section-albums">
-                <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 14.5v-9l6 4.5-6 4.5z"/></svg>
-                Top Albums
-            </a>
-            <a class="nav-item active" asp-page="/WorldMap">
-                <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
-                World Map
-            </a>
-            <div class="nav-label">Spotify</div>
-            @if (!Model.SpotifyConnected)
-            {
-                <a class="nav-item" href="/SpotifyAuth/login" style="color:#1DB954;border:1px solid rgba(29,185,84,0.2);background:rgba(29,185,84,0.05)">
-                    <svg viewBox="0 0 24 24" fill="#1DB954" style="opacity:1"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.65 14.4c-.2.3-.6.4-.9.2-2.5-1.53-5.63-1.87-9.33-1.03-.36.08-.72-.15-.8-.5-.08-.36.15-.72.5-.8 4.05-.92 7.52-.53 10.33 1.2.3.18.4.58.2.93zm1.24-2.75c-.25.38-.75.5-1.13.25-2.85-1.75-7.2-2.26-10.57-1.23-.43.13-.9-.1-1.03-.53-.13-.43.1-.9.53-1.03 3.85-1.17 8.63-.6 11.93 1.41.37.23.5.73.27 1.13zm.1-2.86C14.5 8.9 8.68 8.7 5.2 9.73c-.52.16-1.07-.14-1.23-.65-.16-.52.14-1.07.65-1.23 4-.22 10.35.43 14.43 2.85.46.27.62.86.35 1.32-.27.45-.87.6-1.32.34l-.09-.07z"/></svg>
-                    Connect Spotify
-                </a>
-            }
-            else
-            {
-                <div class="nav-connected">
-                    <svg viewBox="0 0 24 24" fill="#1DB954" style="opacity:1"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.65 14.4c-.2.3-.6.4-.9.2-2.5-1.53-5.63-1.87-9.33-1.03-.36.08-.72-.15-.8-.5-.08-.36.15-.72.5-.8 4.05-.92 7.52-.53 10.33 1.2.3.18.4.58.2.93zm1.24-2.75c-.25.38-.75.5-1.13.25-2.85-1.75-7.2-2.26-10.57-1.23-.43.13-.9-.1-1.03-.53-.13-.43.1-.9.53-1.03 3.85-1.17 8.63-.6 11.93 1.41.37.23.5.73.27 1.13zm.1-2.86C14.5 8.9 8.68 8.7 5.2 9.73c-.52.16-1.07-.14-1.23-.65-.16-.52.14-1.07.65-1.23 4-.22 10.35.43 14.43 2.85.46.27.62.86.35 1.32-.27.45-.87.6-1.32.34l-.09-.07z"/></svg>
-                    <span style="font-size:13px">Spotify connected</span>
-                    <div class="pulse-dot" style="margin-left:auto"></div>
-                </div>
-            }
-            <div class="nav-label">Account</div>
-            <a class="nav-item" asp-page="/Settings">
-                <svg viewBox="0 0 24 24" fill="currentColor"><path d="M19.14,12.94c0.04-0.3,0.06-0.61,0.06-0.94c0-0.32-0.02-0.64-0.07-0.94l2.03-1.58c0.18-0.14,0.23-0.41,0.12-0.61l-1.92-3.32c-0.12-0.22-0.37-0.29-0.59-0.22l-2.39,0.96c-0.5-0.38-1.03-0.7-1.62-0.94L14.4,2.81c-0.04-0.24-0.24-0.41-0.48-0.41h-3.84c-0.24,0-0.43,0.17-0.47,0.41L9.25,5.35C8.66,5.59,8.12,5.92,7.63,6.29L5.24,5.33c-0.22-0.08-0.47,0-0.59,0.22L2.74,8.87C2.62,9.08,2.66,9.34,2.86,9.48l2.03,1.58C4.84,11.36,4.8,11.69,4.8,12s0.02,0.64,0.07,0.94l-2.03,1.58c-0.18,0.14-0.23,0.41-0.12,0.61l1.92,3.32c0.12,0.22,0.37,0.29,0.59,0.22l2.39-0.96c0.5,0.38,1.03,0.7,1.62,0.94l0.36,2.54c0.05,0.24,0.24,0.41,0.48,0.41h3.84c0.24,0,0.44-0.17,0.47-0.41l0.36-2.54c0.59-0.24,1.13-0.56,1.62-0.94l2.39,0.96c0.22,0.08,0.47,0,0.59-0.22l1.92-3.32c0.12-0.22,0.07-0.47-0.12-0.61L19.14,12.94z M12,15.6c-1.98,0-3.6-1.62-3.6-3.6s1.62-3.6,3.6-3.6s3.6,1.62,3.6,3.6S13.98,15.6,12,15.6z"/></svg>
-                Settings
-            </a>
-            <form method="post" asp-area="Identity" asp-page="/Account/Logout" asp-route-returnUrl="/">
-                <button type="submit" class="nav-item" style="width:100%;border:none;background:none;text-align:left;cursor:pointer">
-                    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M17 7l-1.41 1.41L18.17 11H8v2h10.17l-2.58 2.58L17 17l5-5zM4 5h8V3H4c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h8v-2H4V5z"/></svg>
-                    Sign out
-                </button>
-            </form>
-        </nav>
-        <a class="sidebar-user" asp-page="/Settings">
-            <div class="user-avatar">@User.Identity?.Name?.Substring(0, 1).ToUpper()</div>
-            <div>
-                <div class="user-name">@User.Identity?.Name</div>
-                <div class="user-sub">@(Model.SpotifyConnected ? "Spotify connected" : "Spotify not connected")</div>
-            </div>
-        </a>
-    </aside>
 
-    <main class="main">
-        <div class="page-header">
-            <div>
-                <h1 class="page-title">World Map</h1>
-                <p class="page-sub">Artist origins across your listening history</p>
-            </div>
-            <div style="font-size:13px;color:var(--muted2)">
-                <strong style="color:var(--text)">@Model.CountryCounts.Count</strong> countries &middot; <strong style="color:var(--text)">@Model.CountryCounts.Sum(c => c.Count).ToString("N0")</strong> plays
-            </div>
+<main class="main">
+    <div class="page-header">
+        <div>
+            <h1 class="page-title">World Map</h1>
+            <p class="page-sub">Artist origins across your listening history</p>
         </div>
+        <div style="font-size:13px;color:var(--muted2)">
+            <strong style="color:var(--text)">@Model.CountryCounts.Count</strong> countries
+            &middot;
+            <strong style="color:var(--text)">@Model.CountryCounts.Sum(c => c.Count).ToString("N0")</strong> plays
+        </div>
+    </div>
 
-        <div class="map-area">
-            <svg id="world-map-svg"></svg>
+    <div class="map-area">
+        <svg id="world-map-svg"></svg>
 
-            <div class="country-panel">
-                <div class="country-panel-header">Top Countries</div>
-                <div class="country-list">
-                    @{int maxPlays = Model.CountryCounts.FirstOrDefault()?.Count ?? 1;}
-                    @foreach (var c in Model.CountryCounts.Take(15))
-                    {
-                        double pct = (double)c.Count / maxPlays * 100;
-                        <div class="country-row">
-                            <span class="country-name">@c.Country</span>
-                            <div class="country-bar-wrap"><div class="country-bar" style="width:@pct.ToString("F0")%"></div></div>
-                            <span class="country-plays">@c.Count</span>
+        <div class="country-panel">
+            <div class="country-panel-header">Top Countries</div>
+            <div class="country-list">
+                @{ int maxPlays = Model.CountryCounts.FirstOrDefault()?.Count ?? 1; }
+                @foreach (var c in Model.CountryCounts.Take(15))
+                {
+                    double pct = (double)c.Count / maxPlays * 100;
+                    <div class="country-row">
+                        <span class="country-name">@c.Country</span>
+                        <div class="country-bar-wrap">
+                            <div class="country-bar" style="width:@pct.ToString("F0")%"></div>
                         </div>
-                    }
-                </div>
-            </div>
-
-            <div id="map-tooltip">
-                <div class="tt-name"></div>
-                <div class="tt-plays"></div>
-            </div>
-
-            <div class="map-legend">
-                <div class="legend-gradient"></div>
-                <span>Listening intensity</span>
-            </div>
-
-            <div class="zoom-controls">
-                <div class="zoom-btn" id="zoom-in">+</div>
-                <div class="zoom-btn" id="zoom-out">&minus;</div>
-                <div class="zoom-btn" id="zoom-reset" style="font-size:12px;font-weight:700">&#8962;</div>
+                        <span class="country-plays">@c.Count</span>
+                    </div>
+                }
             </div>
         </div>
-    </main>
-</div>
 
-<script>
-    const countryData = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(
-        Model.CountryCounts.ToDictionary(c => c.Country ?? "unknown", c => c.Count)
-    ));
+        <div id="map-tooltip">
+            <div class="tt-name"></div>
+            <div class="tt-plays"></div>
+        </div>
 
-    const numToAlpha2 = {
-        840:"US",124:"CA",826:"GB",250:"FR",276:"DE",36:"AU",392:"JP",
-        76:"BR",566:"NG",710:"ZA",752:"SE",578:"NO",528:"NL",724:"ES",
-        380:"IT",484:"MX",32:"AR",170:"CO",356:"IN",156:"CN",410:"KR",
-        643:"RU",818:"EG",288:"GH",388:"JM",372:"IE",554:"NZ",208:"DK",
-        756:"CH",56:"BE",620:"PT",616:"PL",804:"UA",792:"TR",360:"ID",
-        608:"PH",458:"MY",702:"SG",764:"TH",704:"VN",586:"PK",50:"BD",
-        144:"LK",404:"KE",231:"ET",834:"TZ",800:"UG",384:"CI",686:"SN",
-        120:"CM",24:"AO",780:"TT",192:"CU",214:"DO",591:"PA",188:"CR",
-        320:"GT",340:"HN",222:"SV",558:"NI",68:"BO",600:"PY",858:"UY",
-        862:"VE",218:"EC",604:"PE",152:"CL",300:"GR",348:"HU",203:"CZ",
-        703:"SK",40:"AT",246:"FI",233:"EE",428:"LV",440:"LT",100:"BG",
-        642:"RO",191:"HR",688:"RS",705:"SI",807:"MK",70:"BA",499:"ME",
-        8:"AL",112:"BY",398:"KZ",860:"UZ",634:"QA",784:"AE",682:"SA",
-        368:"IQ",364:"IR",376:"IL",400:"JO",422:"LB",760:"SY",504:"MA",
-        788:"TN",12:"DZ",434:"LY",466:"ML",854:"BF",562:"NE",706:"SO",
-        266:"GA",178:"CG",180:"CD",646:"RW",108:"BI",454:"MW",894:"ZM",
-        716:"ZW",508:"MZ",72:"BW",516:"NA",748:"SZ",426:"LS"
-    };
+        <div class="map-legend">
+            <div class="legend-gradient"></div>
+            <span>Listening intensity</span>
+        </div>
 
-    const alpha2ToName = {
-        "US":"United States","CA":"Canada","GB":"United Kingdom","FR":"France",
-        "DE":"Germany","AU":"Australia","JP":"Japan","BR":"Brazil","NG":"Nigeria",
-        "ZA":"South Africa","SE":"Sweden","NO":"Norway","NL":"Netherlands",
-        "ES":"Spain","IT":"Italy","MX":"Mexico","AR":"Argentina","CO":"Colombia",
-        "IN":"India","CN":"China","KR":"South Korea","RU":"Russia","EG":"Egypt",
-        "GH":"Ghana","JM":"Jamaica","IE":"Ireland","NZ":"New Zealand","DK":"Denmark",
-        "CH":"Switzerland","BE":"Belgium","PT":"Portugal","PL":"Poland","UA":"Ukraine",
-        "TR":"Turkey","ID":"Indonesia","PH":"Philippines","MY":"Malaysia",
-        "SG":"Singapore","TH":"Thailand","VN":"Vietnam","PK":"Pakistan",
-        "BD":"Bangladesh","LK":"Sri Lanka","KE":"Kenya","ET":"Ethiopia",
-        "TZ":"Tanzania","UG":"Uganda","CI":"Ivory Coast","SN":"Senegal",
-        "CM":"Cameroon","AO":"Angola","TT":"Trinidad & Tobago","CU":"Cuba",
-        "DO":"Dominican Republic","PA":"Panama","CR":"Costa Rica","GT":"Guatemala",
-        "HN":"Honduras","SV":"El Salvador","NI":"Nicaragua","BO":"Bolivia",
-        "PY":"Paraguay","UY":"Uruguay","VE":"Venezuela","EC":"Ecuador",
-        "PE":"Peru","CL":"Chile","GR":"Greece","HU":"Hungary","CZ":"Czech Republic",
-        "SK":"Slovakia","AT":"Austria","FI":"Finland","EE":"Estonia","LV":"Latvia",
-        "LT":"Lithuania","BG":"Bulgaria","RO":"Romania","HR":"Croatia","RS":"Serbia",
-        "SI":"Slovenia","MK":"N. Macedonia","BA":"Bosnia","ME":"Montenegro",
-        "AL":"Albania","BY":"Belarus","KZ":"Kazakhstan","UZ":"Uzbekistan",
-        "QA":"Qatar","AE":"UAE","SA":"Saudi Arabia","IQ":"Iraq","IR":"Iran",
-        "IL":"Israel","JO":"Jordan","LB":"Lebanon","SY":"Syria","MA":"Morocco",
-        "TN":"Tunisia","DZ":"Algeria","LY":"Libya","ML":"Mali","BF":"Burkina Faso",
-        "NE":"Niger","GA":"Gabon","CG":"Congo","CD":"DR Congo","RW":"Rwanda",
-        "BI":"Burundi","MW":"Malawi","ZM":"Zambia","ZW":"Zimbabwe","MZ":"Mozambique",
-        "BW":"Botswana","NA":"Namibia","SZ":"Eswatini","LS":"Lesotho","SO":"Somalia"
-    };
+        <div class="zoom-controls">
+            <div class="zoom-btn" id="zoom-in">+</div>
+            <div class="zoom-btn" id="zoom-out">&minus;</div>
+            <div class="zoom-btn" id="zoom-reset" style="font-size:12px;font-weight:700">&#8962;</div>
+        </div>
+    </div>
+</main>
 
-    const maxCount = Object.values(countryData).reduce((a, b) => Math.max(a, b), 1);
-
-    function getColor(plays) {
-        if (!plays) return null;
-        const t = Math.pow(plays / maxCount, 0.4);
-        const r = Math.round(13  + t * (29  - 13));
-        const g = Math.round(42  + t * (185 - 42));
-        const b = Math.round(20  + t * (84  - 20));
-        return `rgb(${r},${g},${b})`;
-    }
-
-    const mapArea = document.querySelector('.map-area');
-    const svg = d3.select('#world-map-svg');
-
-    function getDims() { return { w: mapArea.clientWidth, h: mapArea.clientHeight }; }
-    let { w, h } = getDims();
-
-    const projection = d3.geoNaturalEarth1().scale(w / 6.2).translate([w / 2, h / 2]);
-    const path = d3.geoPath().projection(projection);
-
-    const zoom = d3.zoom().scaleExtent([0.7, 14]).on('zoom', e => mapGroup.attr('transform', e.transform));
-    svg.call(zoom).on('dblclick.zoom', null);
-
-    // Ocean background
-    svg.append('rect').attr('width', '100%').attr('height', '100%').attr('fill', '#080c12');
-
-    const mapGroup = svg.append('g');
-
-    // Graticule
-    mapGroup.append('path').datum(d3.geoGraticule()()).attr('class', 'graticule').attr('d', path);
-
-    const tooltip = document.getElementById('map-tooltip');
-    const ttName  = tooltip.querySelector('.tt-name');
-    const ttPlays = tooltip.querySelector('.tt-plays');
-
-    async function loadMap() {
-        const res   = await fetch('https://cdn.jsdelivr.net/npm/world-atlas@2/countries-50m.json');
-        const world = await res.json();
-        const geojson = topojson.feature(world, world.objects.countries);
-
-        mapGroup.selectAll('.country')
-            .data(geojson.features)
-            .enter().append('path')
-            .attr('class', 'country')
-            .attr('d', path)
-            .attr('fill', d => {
-                const iso   = numToAlpha2[parseInt(d.id, 10)];
-                const plays = iso ? (countryData[iso] || 0) : 0;
-                return getColor(plays) || '#111e2e';
-            })
-            .on('mousemove', function(event, d) {
-                const iso   = numToAlpha2[parseInt(d.id, 10)];
-                const plays = iso ? (countryData[iso] || 0) : 0;
-                if (!plays) { tooltip.style.display = 'none'; return; }
-                const name = (iso && alpha2ToName[iso]) ? alpha2ToName[iso] : (iso || 'Unknown');
-                ttName.textContent  = name;
-                ttPlays.textContent = plays.toLocaleString() + ' plays';
-                const rect = mapArea.getBoundingClientRect();
-                let tx = event.clientX - rect.left + 16;
-                let ty = event.clientY - rect.top  - 12;
-                if (tx + 170 > rect.width)  tx = event.clientX - rect.left - 170;
-                if (ty + 60  > rect.height)  ty = event.clientY - rect.top  - 60;
-                tooltip.style.left    = tx + 'px';
-                tooltip.style.top     = ty + 'px';
-                tooltip.style.display = 'block';
-            })
-            .on('mouseleave', () => { tooltip.style.display = 'none'; });
-
-        // Borders on top
-        mapGroup.append('path')
-            .datum(topojson.mesh(world, world.objects.countries, (a, b) => a !== b))
-            .attr('class', 'country-border')
-            .attr('d', path);
-    }
-
-    loadMap().catch(e => console.error('Map load error:', e));
-
-    document.getElementById('zoom-in').addEventListener('click',    () => svg.transition().duration(300).call(zoom.scaleBy, 1.5));
-    document.getElementById('zoom-out').addEventListener('click',   () => svg.transition().duration(300).call(zoom.scaleBy, 0.67));
-    document.getElementById('zoom-reset').addEventListener('click', () => svg.transition().duration(400).call(zoom.transform, d3.zoomIdentity));
-
-    window.addEventListener('resize', () => {
-        const { w: nw, h: nh } = getDims();
-        projection.scale(nw / 6.2).translate([nw / 2, nh / 2]);
-        mapGroup.selectAll('path').attr('d', path);
-    });
-</script>
-</body>
-</html>
-
+@section Scripts {
+    <script>
+        const countryData = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(
+            Model.CountryCounts.ToDictionary(c => c.Country ?? "unknown", c => c.Count)
+        ));
+    </script>
+}
