@@ -42,6 +42,10 @@ namespace SpotifyStatisticsWebApp.Pages
                 }
             }
 
+            // Expose AvatarUrl to the sidebar partial via ViewData so the bottom
+            // user card shows the same photo as the large profile avatar on this page.
+            ViewData["AvatarUrl"] = AvatarUrl;
+
             using var conn = new SqlConnection(connStr);
             await conn.OpenAsync();
 

@@ -214,3 +214,27 @@
 .page-btn:hover { border-color: rgba(255,255,255,0.2); color: var(--text); }
 .page-btn.active { background: var(--green); border-color: var(--green); color: #000; font-weight: 600; }
 .page-btn:disabled, .page-btn.disabled { opacity: 0.3; pointer-events: none; }
+
+/* ══════════════════════════════════════════════════════════
+   RESPONSIVE — Recently Played page
+   ══════════════════════════════════════════════════════════ */
+
+@media (max-width: 900px) {
+    .main { padding: 72px 28px 40px; }
+}
+
+@media (max-width: 600px) {
+    .main { padding: 72px 16px 32px; }
+
+    /* Table-like rows become card-like on mobile */
+    .track-row {
+        flex-wrap: wrap;
+        gap: 8px;
+        padding: 12px 14px !important;
+    }
+
+    /* Hide the album column on very small screens */
+    .track-album { display: none; }
+
+    .page-title { font-size: 22px; }
+}

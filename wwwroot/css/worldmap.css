@@ -184,3 +184,21 @@
 }
 
 .zoom-btn:hover { color: var(--text); border-color: rgba(255,255,255,0.18); }
+
+/* ══════════════════════════════════════════════════════════
+   RESPONSIVE — World Map page
+   ══════════════════════════════════════════════════════════ */
+
+@media (max-width: 900px) {
+    .main { padding: 72px 28px 40px; }
+}
+
+@media (max-width: 600px) {
+    .main { padding: 72px 16px 32px; }
+    .page-title { font-size: 22px; }
+
+    /* Map container — allow scroll on tiny screens */
+    #map-container, #worldmap {
+        min-height: 300px;
+    }
+}

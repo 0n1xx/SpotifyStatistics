@@ -211,3 +211,77 @@
     color: var(--green);
     margin-top: 6px;
 }
+
+/* ══════════════════════════════════════════════════════════
+   RESPONSIVE — Settings page
+   ══════════════════════════════════════════════════════════ */
+
+/* ── Tablet ≤ 900px ── */
+@media (max-width: 900px) {
+
+    /* Reduce horizontal padding on tablet */
+    .main {
+        padding: 72px 32px 40px;
+    }
+}
+
+/* ── Mobile ≤ 600px ── */
+@media (max-width: 600px) {
+
+    .main {
+        padding: 72px 16px 32px;
+    }
+
+    /* Setting rows stack vertically on small screens */
+    .setting-row {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 14px;
+        padding: 16px 18px;
+    }
+
+    /* Buttons / inputs in setting rows take full width */
+    .setting-row > div,
+    .setting-row > a,
+    .setting-row > button {
+        width: 100%;
+    }
+
+    /* Email input stretches to full width */
+    .input-field {
+        max-width: 100% !important;
+        width: 100%;
+    }
+
+    /* Avatar section stacks on narrow screens */
+    .avatar-section {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 16px;
+        padding: 18px;
+    }
+
+    /* Avatar upload button fills row */
+    .avatar-actions { flex-direction: column; }
+    .avatar-actions .btn { width: 100%; text-align: center; }
+
+    /* Badge + action button wrap */
+    .setting-row > div[style*="display:flex"] {
+        flex-direction: column;
+        width: 100%;
+    }
+
+    .connected-badge { align-self: flex-start; }
+
+    /* Danger zone buttons full width */
+    .btn-red { width: 100%; text-align: center; }
+
+    /* Delete modal padding */
+    #delete-modal > div {
+        padding: 24px 18px !important;
+        margin: 16px !important;
+    }
+
+    /* Page title sizing */
+    .page-title { font-size: 22px; }
+}

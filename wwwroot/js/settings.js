@@ -48,6 +48,22 @@ document.addEventListener('DOMContentLoaded', () => {
             if (json.success) {
                 status.textContent = '✓ Photo updated';
                 status.style.color = '#1DB954';
+
+                // ── Sync the sidebar user card avatar ──
+                // The bottom user card (.sidebar-user .user-avatar) shows the same
+                // photo as the large profile avatar.  Update it in-place so the user
+                // sees the change without a full page reload.
+                const sidebarAvatar = document.querySelector('.sidebar-user .user-avatar');
+                if (sidebarAvatar && json.url) {
+                    // If there's already an <img>, update its src; otherwise replace the
+                    // initial letter with a new <img> element.
+                    let sidebarImg = sidebarAvatar.querySelector('img');
+                    if (sidebarImg) {
+                        sidebarImg.src = json.url;
+                    } else {
+                        sidebarAvatar.innerHTML = `<img src="${json.url}" alt="Profile photo" style="width:100%;height:100%;object-fit:cover;border-radius:50%">`;
+                    }
+                }
             } else {
                 status.textContent = json.error || 'Upload failed';
                 status.style.color = '#e74c3c';

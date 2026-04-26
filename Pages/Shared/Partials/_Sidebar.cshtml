@@ -14,10 +14,15 @@
     string userName    = User.Identity?.Name ?? "";
     // First letter of username shown as a fallback avatar
     string userInitial = userName.Length > 0 ? userName.Substring(0, 1).ToUpper() : "?";
+
+    // Avatar URL — set in ViewData["AvatarUrl"] by Settings.cshtml.cs OnGetAsync.
+    // When present the photo is shown in the bottom user card so it always matches
+    // the large profile photo on the Settings page.
+    string? avatarUrl = ViewData["AvatarUrl"] as string;
 }
 
 @* ── Sidebar shell ── *@
-<aside class="sidebar">
+<aside class="sidebar" id="sidebar">
 
     @* Logo — clicking navigates back to the landing page *@
     <a class="sidebar-logo" asp-page="/Index">
@@ -111,9 +116,20 @@
     </nav>
 
     @* ── User card — bottom of sidebar, links to Settings ── *@
-    @* Shows first letter of username as avatar and Spotify connection status as subtitle *@
+    @* Shows the profile photo when set (ViewData["AvatarUrl"]), otherwise the initial
+       letter — identical fallback logic as the avatar-large on Settings.cshtml so the
+       two always match. *@
     <a class="sidebar-user" asp-page="/Settings">
-        <div class="user-avatar">@userInitial</div>
+        <div class="user-avatar">
+            @if (avatarUrl != null)
+            {
+                <img src="@avatarUrl" alt="Profile photo">
+            }
+            else
+            {
+                @userInitial
+            }
+        </div>
         <div>
             <div class="user-name">@userName</div>
             <div class="user-sub">@(spotifyConnected ? "Spotify connected" : "Spotify not connected")</div>

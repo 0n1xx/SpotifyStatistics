@@ -1,0 +1,228 @@
+/* manage.css — Styles for Identity Manage pages
+   Loaded by _ManageLayout.cshtml via <link>.
+   Overrides Bootstrap for the dark Statify theme and adds
+   the manage-tabs navigation, form controls, and responsive rules.
+   ─────────────────────────────────────────────────────────────── */
+
+/* ── Bootstrap overrides for dark theme ── */
+
+/* Form controls */
+.form-floating label                  { color: var(--muted2); }
+
+.form-control {
+    background:   #1a1a1a !important;
+    border:       1px solid var(--border) !important;
+    color:        var(--text) !important;
+    border-radius: 10px !important;
+    padding:      13px 16px !important;
+    font-family:  'DM Sans', sans-serif !important;
+}
+
+.form-control:focus {
+    border-color: var(--green) !important;
+    box-shadow:   none !important;
+    background:   #1a1a1a !important;
+}
+
+.form-control:disabled,
+.form-control[readonly] {
+    background: #131313 !important;
+    opacity: 0.7;
+}
+
+.form-floating > .form-control {
+    padding-top:    1.625rem !important;
+    padding-bottom: 0.625rem !important;
+}
+
+.form-floating > label { color: var(--muted2) !important; }
+
+/* Buttons */
+.btn-primary {
+    background:    var(--green) !important;
+    border-color:  var(--green) !important;
+    color:         #000 !important;
+    font-weight:   600;
+    border-radius: 10px;
+    font-family:   'DM Sans', sans-serif;
+    padding:       12px 24px;
+    transition:    background 0.2s;
+}
+
+.btn-primary:hover {
+    background:   var(--green-dim) !important;
+    border-color: var(--green-dim) !important;
+}
+
+.btn-secondary {
+    background:    var(--card2) !important;
+    border-color:  var(--border) !important;
+    color:         var(--text) !important;
+    border-radius: 10px;
+    font-family:   'DM Sans', sans-serif;
+    padding:       12px 24px;
+}
+
+.btn-danger {
+    background:    rgba(231,76,60,0.15) !important;
+    border-color:  rgba(231,76,60,0.3)  !important;
+    color:         #e74c3c !important;
+    border-radius: 10px;
+    font-family:   'DM Sans', sans-serif;
+}
+
+.btn-danger:hover { background: rgba(231,76,60,0.25) !important; }
+
+/* Alerts */
+.alert-success {
+    background:   rgba(29,185,84,0.1)  !important;
+    border-color: rgba(29,185,84,0.25) !important;
+    color:        var(--green) !important;
+    border-radius: 10px;
+}
+
+.alert-danger {
+    background:   rgba(231,76,60,0.1)  !important;
+    border-color: rgba(231,76,60,0.3)  !important;
+    color:        #e74c3c !important;
+    border-radius: 10px;
+}
+
+.alert-warning {
+    background:   rgba(240,180,41,0.1)  !important;
+    border-color: rgba(240,180,41,0.25) !important;
+    color:        #f0b429 !important;
+    border-radius: 10px;
+}
+
+/* Typography helpers */
+.text-danger  { color: #e74c3c !important; font-size: 12px; }
+.text-success { color: var(--green) !important; }
+.text-muted   { color: var(--muted2) !important; }
+
+h1, h2, h3, h4 { font-family: 'Syne', sans-serif; font-weight: 700; }
+p { color: var(--muted2); font-size: 14px; line-height: 1.6; }
+hr { border-color: var(--border); }
+
+/* Tables */
+.table         { color: var(--text); border-color: var(--border); }
+.table thead th {
+    border-color:    var(--border);
+    color:           var(--muted2);
+    font-size:       11px;
+    font-weight:     500;
+    text-transform:  uppercase;
+    letter-spacing:  0.08em;
+}
+.table td {
+    border-color:    rgba(255,255,255,0.04);
+    vertical-align:  middle;
+}
+
+.badge { border-radius: 20px; font-weight: 500; }
+
+/* ── Manage page layout ── */
+
+.main {
+    overflow-y: auto;
+    padding: 40px 48px;
+    display: flex;
+    flex-direction: column;
+    gap: 28px;
+}
+
+.main::-webkit-scrollbar       { width: 4px; }
+.main::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+/* Page header */
+.page-header {
+    padding-bottom: 24px;
+    border-bottom: 1px solid var(--border);
+}
+
+.page-title {
+    font-family:    'Syne', sans-serif;
+    font-size:      24px;
+    font-weight:    800;
+    letter-spacing: -0.5px;
+    margin-bottom:  4px;
+}
+
+.page-sub { font-size: 14px; color: var(--muted2); }
+
+/* ── Manage tabs bar ──
+   Horizontal pill-style tab strip that sits above each manage sub-page content.
+   Active tab is underlined with Spotify green. */
+.manage-tabs {
+    display:         flex;
+    gap:             4px;
+    border-bottom:   1px solid var(--border);
+    padding-bottom:  0;
+    margin-bottom:   28px;
+    overflow-x:      auto;           /* scrollable on narrow viewports */
+    scrollbar-width: none;           /* hide Firefox scrollbar */
+    -ms-overflow-style: none;
+    flex-wrap:       nowrap;
+}
+
+/* Hide WebKit scrollbar on the tab bar */
+.manage-tabs::-webkit-scrollbar { display: none; }
+
+.manage-tab {
+    padding:       10px 16px;
+    font-size:     13px;
+    font-weight:   500;
+    color:         var(--muted2);
+    text-decoration: none;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -1px;
+    transition:    all 0.15s;
+    white-space:   nowrap;           /* prevent tab labels from wrapping */
+    flex-shrink:   0;
+}
+
+.manage-tab:hover  { color: var(--text); }
+
+.manage-tab.active {
+    color:        var(--green);
+    border-bottom-color: var(--green);
+}
+
+/* ══════════════════════════════════════════════════════════
+   RESPONSIVE — Manage pages
+   ══════════════════════════════════════════════════════════ */
+
+/* ── Tablet ≤ 900px ── */
+@media (max-width: 900px) {
+
+    .main { padding: 72px 32px 40px; }
+
+    /* Tabs scroll horizontally — already handled by overflow-x: auto above */
+}
+
+/* ── Mobile ≤ 600px ── */
+@media (max-width: 600px) {
+
+    .main { padding: 72px 16px 32px; }
+
+    .page-title { font-size: 20px; }
+
+    /* Make tab labels slightly smaller so more fit before scrolling */
+    .manage-tab {
+        font-size: 12px;
+        padding: 9px 12px;
+    }
+
+    /* Bootstrap form layout adjustments for narrow screens */
+    .form-floating { margin-bottom: 12px !important; }
+
+    /* Full-width buttons on mobile */
+    .btn-primary,
+    .btn-secondary { width: 100%; margin-top: 4px; }
+
+    /* Row-based button groups stack on mobile */
+    .d-flex.gap-2,
+    .d-flex.gap-3 {
+        flex-direction: column !important;
+    }
+}

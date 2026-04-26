@@ -251,3 +251,33 @@
 }
 
 .dismiss-btn:hover { color: var(--muted2); }
+
+/* ══════════════════════════════════════════════════════════
+   RESPONSIVE — Dashboard page
+   ══════════════════════════════════════════════════════════ */
+
+@media (max-width: 900px) {
+    .main { padding: 72px 28px 40px; }
+}
+
+@media (max-width: 600px) {
+    .main { padding: 72px 16px 32px; }
+
+    /* Stat cards — single column on mobile */
+    .stats-grid {
+        grid-template-columns: 1fr 1fr !important;
+        gap: 12px;
+    }
+
+    /* Chart cards full width */
+    .charts-grid {
+        grid-template-columns: 1fr !important;
+    }
+
+    /* Track / artist / album lists — tighter rows */
+    .track-row, .artist-row {
+        padding: 10px 14px !important;
+    }
+
+    .page-title { font-size: 22px; }
+}
