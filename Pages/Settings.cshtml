@@ -23,14 +23,26 @@
         <div class="setting-card">
             <div class="avatar-section">
                 @* First letter of username as fallback avatar *@
-                <div class="avatar-large" aria-hidden="true">@User.Identity?.Name?.Substring(0, 1).ToUpper()</div>
+                <div class="avatar-large" aria-hidden="true">
+                    @if (Model.AvatarUrl != null)
+                    {
+                        <img src="@Model.AvatarUrl" alt="Profile photo" id="avatar-preview" style="width:100%;height:100%;object-fit:cover;border-radius:50%">
+                    }
+                    else
+                    {
+                        <span id="avatar-initials">@User.Identity?.Name?.Substring(0, 1).ToUpper()</span>
+                        <img id="avatar-preview" src="" alt="Profile photo" style="display:none;width:100%;height:100%;object-fit:cover;border-radius:50%">
+                    }
+                </div>
                 <div>
                     <p class="avatar-name">@User.Identity?.Name</p>
                     <p class="avatar-email">@User.Identity?.Name</p>
                     <div class="avatar-actions">
                         @* Visible button triggers the hidden file input — avoids styling <input type="file"> *@
-                        <button class="btn btn-outline" onclick="document.getElementById('avatar-input').click()">Upload photo</button>
+                        <button class="btn btn-outline" id="upload-avatar-btn" onclick="document.getElementById('avatar-input').click()">Upload photo</button>
+                        <span id="avatar-upload-status" style="font-size:13px;color:var(--muted2);display:none"></span>
                         <input id="avatar-input" type="file" accept="image/*" style="display:none" aria-label="Upload profile photo">
+                        @Html.AntiForgeryToken()
                     </div>
                 </div>
             </div>
