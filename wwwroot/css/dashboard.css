@@ -1,5 +1,7 @@
-/* dashboard.css — Styles for Dashboard page only
-   Loaded via ViewData["ExtraCss"] in Dashboard.cshtml */
+/* =============================================================
+   dashboard.css — Styles for Dashboard page only
+   Loaded via ViewData["ExtraCss"] in Dashboard.cshtml
+   ============================================================= */
 
 /* ── Scrollable content area ── */
 .main {
@@ -10,11 +12,13 @@
     gap: 24px;
 }
 
-/* ── Top bar: title + time filter ── */
+/* ── Top bar: title + time range filter ── */
 .topbar {
     display: flex;
     align-items: center;
     justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;            /* wraps on narrow screens so filter doesn't overflow */
 }
 
 .page-title {
@@ -31,6 +35,7 @@
     border-radius: 8px;
     padding: 3px;
     border: 1px solid var(--border);
+    flex-shrink: 0;             /* don't squish when title is long */
 }
 
 .tf-btn {
@@ -48,6 +53,7 @@
 }
 
 .tf-btn:hover { color: var(--text); }
+
 /* Active range gets a solid green pill */
 .tf-btn.active { background: var(--green); color: #000; }
 
@@ -64,6 +70,7 @@
     border: 1px solid var(--border);
     padding: 20px;
     animation: fadeUp 0.4s ease both;
+    min-width: 0;               /* allow cards to shrink below content width */
 }
 
 .stat-card-label {
@@ -81,11 +88,16 @@
     font-weight: 700;
     line-height: 1;
     margin-bottom: 6px;
+    /* Prevent massive numbers from overflowing the card */
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .stat-card-sub { font-size: 12px; color: var(--muted2); }
 
-/* ── Two-column row: activity chart | time-of-day chart ── */
+/* ── Two-column row: activity chart | time-of-day chart ──
+   On mobile this switches to a single column (see responsive section). */
 .charts-row {
     display: grid;
     grid-template-columns: 1fr 340px;
@@ -107,6 +119,7 @@
     display: flex;
     flex-direction: column;
     align-items: center;
+    min-width: 0;               /* let bars shrink on very narrow viewports */
 }
 
 .tod-bar {
@@ -141,7 +154,7 @@
 
 .top-item:hover { background: var(--card2); }
 
-/* Rank number — coloured gold/silver/bronze for top 3 */
+/* Rank number — gold / silver / bronze for top 3 */
 .top-rank {
     font-family: 'Syne', sans-serif;
     font-size: 12px;
@@ -170,7 +183,6 @@
     border: 1px solid var(--border);
 }
 
-/* .circle modifier makes artist thumbnails round */
 .top-img.circle { border-radius: 50%; }
 
 .top-info { flex: 1; min-width: 0; }
@@ -201,7 +213,7 @@
 
 /* ── Spotify connection banners ── */
 
-/* Full banner shown when Spotify is not connected */
+/* Full banner — shown when Spotify is NOT connected */
 .spotify-banner {
     background: linear-gradient(135deg, rgba(29,185,84,0.12), rgba(29,185,84,0.04));
     border: 1px solid rgba(29,185,84,0.25);
@@ -212,6 +224,7 @@
     justify-content: space-between;
     gap: 20px;
     animation: fadeUp 0.4s ease both;
+    flex-wrap: wrap;            /* wraps on mobile so buttons don't overflow */
 }
 
 .spotify-banner-icon {
@@ -226,7 +239,7 @@
     animation: iconPulse 2s ease-in-out infinite;
 }
 
-/* Slim bar shown when Spotify IS connected */
+/* Slim bar — shown when Spotify IS connected */
 .spotify-connected-bar {
     background: rgba(29,185,84,0.06);
     border: 1px solid rgba(29,185,84,0.15);
@@ -238,7 +251,7 @@
     animation: fadeUp 0.4s ease both;
 }
 
-/* "Dismiss" text button inside the banner */
+/* "Dismiss" text button */
 .dismiss-btn {
     background: none;
     border: none;
@@ -248,6 +261,7 @@
     font-family: 'DM Sans', sans-serif;
     padding: 8px;
     transition: color 0.2s;
+    white-space: nowrap;
 }
 
 .dismiss-btn:hover { color: var(--muted2); }
@@ -256,28 +270,47 @@
    RESPONSIVE — Dashboard page
    ══════════════════════════════════════════════════════════ */
 
+/* ── Tablet ≤ 900px ── */
 @media (max-width: 900px) {
+    /* Leave room for hamburger */
     .main { padding: 72px 28px 40px; }
+
+    /* 4 → 2 stat columns */
+    .stats-grid { grid-template-columns: repeat(2, 1fr); }
+
+    /* Charts stack vertically — remove the fixed 340px column */
+    .charts-row { grid-template-columns: 1fr; }
 }
 
+/* ── Mobile ≤ 600px ── */
 @media (max-width: 600px) {
     .main { padding: 72px 16px 32px; }
 
-    /* Stat cards — single column on mobile */
+    .page-title { font-size: 18px; }
+
+    /* Title + filter: stack when both don't fit */
+    .topbar { flex-direction: column; align-items: flex-start; }
+
+    /* Filter buttons — smaller on mobile */
+    .tf-btn { padding: 6px 10px; font-size: 11px; }
+
+    /* 2 → 1 stat column on very small screens */
     .stats-grid {
-        grid-template-columns: 1fr 1fr !important;
-        gap: 12px;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 10px;
     }
 
-    /* Chart cards full width */
-    .charts-grid {
-        grid-template-columns: 1fr !important;
+    .stat-card { padding: 14px; }
+    .stat-card-val { font-size: 22px; }
+
+    /* Charts already single column from 900px — no change needed */
+
+    /* Spotify banner — stack content vertically */
+    .spotify-banner {
+        flex-direction: column;
+        align-items: flex-start;
     }
 
-    /* Track / artist / album lists — tighter rows */
-    .track-row, .artist-row {
-        padding: 10px 14px !important;
-    }
-
-    .page-title { font-size: 22px; }
+    /* Hide the animated Spotify icon on very small screens */
+    .spotify-banner-icon { display: none; }
 }
