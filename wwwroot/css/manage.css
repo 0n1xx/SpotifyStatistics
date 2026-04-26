@@ -10,7 +10,27 @@
    - Responsive breakpoints: ≤ 900px tablet, ≤ 600px mobile
    ============================================================= */
 
-/* ── Page shell ── */
+/* ── Hard Bootstrap reset — loaded AFTER bootstrap.min.css so these win ── */
+/* WHY: _ManageLayout.cshtml loads Bootstrap first, then app.css + manage.css.
+   Bootstrap sets body { background: #fff; color: #212529 } which would make
+   the page white. We override here with !important so our dark theme wins
+   regardless of Bootstrap specificity. */
+body {
+    background-color: var(--black) !important;
+    color: var(--text) !important;
+    font-family: 'DM Sans', sans-serif !important;
+}
+
+/* Bootstrap container resets */
+.container, .container-fluid, .container-sm,
+.container-md, .container-lg, .container-xl {
+    color: var(--text);
+}
+
+/* Remove Bootstrap's default link color on top of our nav items */
+a { color: inherit; }
+
+
 
 /* Main scrollable area */
 .main {

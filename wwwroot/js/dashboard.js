@@ -58,23 +58,36 @@ function initTodBars() {
 
 // ── Smooth scroll navigation ──
 // Called by onclick on sidebar nav items that link to sections on this page
-// (e.g. Top Tracks, Top Artists, Top Albums)
+// (e.g. Top Tracks, Top Artists, Top Albums).
+//
+// NOTE: These onclick handlers only exist when we ARE on the Dashboard page.
+// When the user is on a different page (e.g. Settings), _Sidebar.cshtml renders
+// plain <a href="/Dashboard#section-*"> links instead — no JS needed there.
 function navScroll(e, id) {
-    e.preventDefault();
+    e.preventDefault(); // stop the browser from jumping to the anchor instantly
+
     if (id === 'top') {
+        // "Dashboard" link — scroll the content area back to the very top
         document.querySelector('.main').scrollTo({ top: 0, behavior: 'smooth' });
     } else {
+        // Section link — scrollIntoView handles both the .main scroll and
+        // cases where the element is already partially visible
         const el = document.getElementById(id);
         if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
-    // Update the active nav item highlight immediately
+
+    // Immediately update the active nav highlight so it doesn't wait for the scroll spy
     document.querySelectorAll('.nav-item[href]').forEach(n => n.classList.remove('active'));
     e.currentTarget.classList.add('active');
 }
 
 // ── Scroll spy ──
 // Watches the .main scroll position and highlights the matching sidebar nav item.
-// Sections are identified by their id="section-*" attributes.
+// Sections are identified by their id="section-*" attributes set in Dashboard.cshtml.
+//
+// Logic: we walk sections from BOTTOM to TOP. The first section whose top edge
+// is above the current scroll position is considered "active". This way if you
+// scroll to the bottom, the last section wins — not the first one.
 function initScrollSpy() {
     const mainEl = document.querySelector('.main');
     const scrollSections = [
@@ -86,12 +99,13 @@ function initScrollSpy() {
     mainEl.addEventListener('scroll', () => {
         const scrollTop = mainEl.scrollTop;
 
-        // If near the top, highlight the Dashboard nav item
+        // If near the top (before the first section), highlight Dashboard nav item
         if (scrollTop < 100) { setNavActiveByHref('#top'); return; }
 
-        // Walk sections from bottom to top — first one above the fold wins
+        // Walk sections from bottom to top — first one scrolled past wins
         for (let i = scrollSections.length - 1; i >= 0; i--) {
             const el = document.getElementById(scrollSections[i].id);
+            // offsetTop is relative to the .main container (since .main is the scroll parent)
             if (el && el.offsetTop - 120 <= scrollTop) {
                 setNavActiveByHref(scrollSections[i].href);
                 return;
@@ -113,4 +127,22 @@ document.addEventListener('DOMContentLoaded', () => {
     initActivityChart();
     initTodBars();
     initScrollSpy();
+
+    // ── Auto-scroll when arriving via anchor link ──
+    // When the user clicks "Top Tracks" on a non-Dashboard page, the sidebar
+    // generates a link like /Dashboard#section-tracks. After the page loads,
+    // the browser tries to scroll to the anchor — but because .main is the scroll
+    // container (not the page itself), the browser can't find it. We do it manually.
+    if (location.hash) {
+        const id = location.hash.slice(1); // strip the leading '#'
+        const el = document.getElementById(id);
+        if (el) {
+            // 100ms delay lets Chart.js and the TOD bars finish rendering first
+            // so the element's offsetTop is fully calculated before we scroll to it
+            setTimeout(() => {
+                el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                setNavActiveByHref(location.hash); // highlight the correct sidebar item
+            }, 100);
+        }
+    }
 });

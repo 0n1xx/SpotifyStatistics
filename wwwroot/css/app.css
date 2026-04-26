@@ -34,10 +34,16 @@ html, body {
 }
 
 /* ── Two-column app shell: sidebar | content ── */
+/* NOTE: overflow:hidden here is essential — without it the 240px sidebar
+   can push the total grid width past 100vw and create a horizontal scrollbar.
+   The actual vertical scrolling happens inside .main, not on the page. */
 .app {
     display: grid;
     grid-template-columns: var(--sidebar) 1fr;
     height: 100vh;
+    width: 100%;
+    overflow: hidden; /* prevent horizontal overflow from the grid itself */
+    max-width: 100vw;
 }
 
 /* SideBar */

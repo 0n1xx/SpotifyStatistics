@@ -58,6 +58,11 @@
     padding: 20px 24px;
     gap: 20px;
     border-bottom: 1px solid var(--border);
+    min-width: 0;
+}
+
+.setting-row > div[style*="display:flex"] {
+    flex-shrink: 0;
 }
 
 .setting-row:last-child { border-bottom: none; }
