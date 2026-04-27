@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.Data.SqlClient;
 using System.Security.Claims;
@@ -9,6 +10,7 @@ namespace SpotifyStatisticsWebApp.Pages
     public class RecentlyPlayedModel : PageModel
     {
         private readonly IConfiguration _config;
+        private readonly ApplicationDbContext _db;
         public List<RecentTrack> Tracks { get; set; } = new();
         public bool SpotifyConnected { get; set; }
         public int TotalCount { get; set; }
@@ -16,15 +18,20 @@ namespace SpotifyStatisticsWebApp.Pages
         public int PageSize { get; set; } = 50;
         public int TotalPages { get; set; }
 
-        public RecentlyPlayedModel(IConfiguration config)
+        public RecentlyPlayedModel(IConfiguration config, ApplicationDbContext db)
         {
             _config = config;
+            _db = db;
         }
 
         public async Task OnGetAsync(int page = 1)
         {
             Page = Math.Max(1, page);
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+            // Avatar from DB for sidebar
+            var profile = await _db.UserProfiles.FirstOrDefaultAsync(p => p.UserId == userId);
+            ViewData["AvatarDataUrl"] = profile?.AvatarBase64;
 
             // Check Spotify connection
             var defaultConn = _config.GetConnectionString("DefaultConnection");

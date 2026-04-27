@@ -301,3 +301,83 @@
     /* Page title sizing */
     .page-title { font-size: 22px; }
 }
+
+/* ── New classes (avatar in DB, phone row, modal refactor) ── */
+
+.avatar-large img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 50%;
+}
+
+.avatar-preview-hidden { display: none; }
+
+.file-input-hidden { display: none; }
+
+.upload-status {
+    display: none;
+    font-size: 13px;
+    color: var(--muted2);
+}
+
+.setting-label--icon {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+/* Native <dialog> modal */
+.delete-modal {
+    border: 1px solid rgba(231, 76, 60, 0.3);
+    border-radius: 16px;
+    background: #111;
+    padding: 0;
+    max-width: 400px;
+    width: 90%;
+    color: var(--text);
+}
+
+.delete-modal::backdrop {
+    background: rgba(0, 0, 0, 0.7);
+}
+
+.delete-modal__card {
+    padding: 32px;
+    text-align: center;
+}
+
+.delete-modal__title {
+    font-family: 'Syne', sans-serif;
+    font-size: 18px;
+    font-weight: 700;
+    margin-bottom: 12px;
+}
+
+.delete-modal__desc {
+    font-size: 14px;
+    color: #888;
+    line-height: 1.6;
+    margin-bottom: 24px;
+}
+
+.delete-modal__actions {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+}
+
+.btn-danger {
+    background: var(--red);
+    color: #fff;
+    font-weight: 600;
+    border: none;
+    padding: 9px 18px;
+    border-radius: 9px;
+    font-size: 13px;
+    font-family: 'DM Sans', sans-serif;
+    cursor: pointer;
+    transition: opacity 0.15s;
+}
+
+.btn-danger:hover { opacity: 0.85; }

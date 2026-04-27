@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
@@ -85,31 +85,30 @@ namespace SpotifyStatisticsWebApp.Controllers
 
             if (existing != null)
             {
-                existing.AccessToken = tokens.access_token;
+                existing.AccessToken  = tokens.access_token;
                 existing.RefreshToken = tokens.refresh_token;
-                existing.ExpiresAt = DateTime.UtcNow.AddSeconds(tokens.expires_in);
+                existing.ExpiresAt    = DateTime.UtcNow.AddSeconds(tokens.expires_in);
             }
             else
             {
                 _db.SpotifyTokens.Add(new SpotifyToken
                 {
-                    UserId = userId,
-                    AccessToken = tokens.access_token,
-                    RefreshToken = tokens.refresh_token,
-                    ExpiresAt = DateTime.UtcNow.AddSeconds(tokens.expires_in)
+                    UserId        = userId,
+                    AccessToken   = tokens.access_token,
+                    RefreshToken  = tokens.refresh_token,
+                    ExpiresAt     = DateTime.UtcNow.AddSeconds(tokens.expires_in)
                 });
             }
 
             await _db.SaveChangesAsync();
-
-            return RedirectToAction("Index", "Home");
+            return Redirect("/Settings");
         }
 
         [HttpGet("disconnect")]
         public async Task<IActionResult> Disconnect()
         {
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            var token = await _db.SpotifyTokens.FirstOrDefaultAsync(t => t.UserId == userId);
+            var token  = await _db.SpotifyTokens.FirstOrDefaultAsync(t => t.UserId == userId);
             if (token != null)
             {
                 _db.SpotifyTokens.Remove(token);
@@ -123,7 +122,7 @@ namespace SpotifyStatisticsWebApp.Controllers
 public record SpotifyTokenResponse(
     string access_token,
     string token_type,
-    int expires_in,
+    int    expires_in,
     string refresh_token,
     string scope
 );

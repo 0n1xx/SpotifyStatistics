@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.Data.SqlClient;
 using SpotifyStatisticsWebApp.Models;
@@ -10,17 +11,23 @@ namespace SpotifyStatisticsWebApp.Pages
     public class WorldMapModel : PageModel
     {
         private readonly IConfiguration _config;
+        private readonly ApplicationDbContext _db;
         public List<CountryCount> CountryCounts { get; set; } = new();
         public bool SpotifyConnected { get; set; }
 
-        public WorldMapModel(IConfiguration config)
+        public WorldMapModel(IConfiguration config, ApplicationDbContext db)
         {
             _config = config;
+            _db = db;
         }
 
         public async Task OnGetAsync()
         {
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+            // Avatar from DB for sidebar
+            var profile = await _db.UserProfiles.FirstOrDefaultAsync(p => p.UserId == userId);
+            ViewData["AvatarDataUrl"] = profile?.AvatarBase64;
 
             var defaultConn = _config.GetConnectionString("DefaultConnection");
             using var spotifyDb = new SqlConnection(defaultConn);

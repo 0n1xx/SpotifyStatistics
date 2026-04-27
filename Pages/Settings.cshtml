@@ -8,35 +8,38 @@
     Layout = "~/Pages/Shared/_AppLayout.cshtml";
 }
 <main class="main">
-    @* ── Page header ── *@
     <header class="page-header">
         <h1 class="page-title">Settings</h1>
         <p class="page-sub">Manage your account, connections and preferences</p>
     </header>
 
-    @* ── Section: Profile ── *@
-    <section class="settings-section" style="animation-delay:0s" aria-labelledby="profile-heading">
+    @* ── Profile ── *@
+    <section class="settings-section" aria-labelledby="profile-heading">
         <h2 id="profile-heading" class="section-title">Profile</h2>
         <article class="setting-card">
             <div class="avatar-section">
-                <div class="avatar-large" aria-hidden="true">
-                    @if (Model.AvatarUrl != null)
+                <figure class="avatar-large" aria-label="Profile photo">
+                    @if (Model.AvatarDataUrl != null)
                     {
-                        <img src="@Model.AvatarUrl" alt="Profile photo" id="avatar-preview" style="width:100%;height:100%;object-fit:cover;border-radius:50%">
+                        <img src="@Model.AvatarDataUrl" alt="Profile photo" id="avatar-preview">
                     }
                     else
                     {
                         <span id="avatar-initials">@User.Identity?.Name?.Substring(0, 1).ToUpper()</span>
-                        <img id="avatar-preview" src="" alt="Profile photo" style="display:none;width:100%;height:100%;object-fit:cover;border-radius:50%">
+                        <img id="avatar-preview" src="" alt="Profile photo" class="avatar-preview-hidden">
                     }
-                </div>
-                <div>
+                </figure>
+                <div class="avatar-info">
                     <p class="avatar-name">@User.Identity?.Name</p>
                     <p class="avatar-email">@User.Identity?.Name</p>
                     <div class="avatar-actions">
-                        <button class="btn btn-outline" id="upload-avatar-btn" onclick="document.getElementById('avatar-input').click()">Upload photo</button>
-                        <span id="avatar-upload-status" style="font-size:13px;color:var(--muted2);display:none"></span>
-                        <input id="avatar-input" type="file" accept="image/*" style="display:none" aria-label="Upload profile photo">
+                        <button class="btn btn-outline" id="upload-avatar-btn"
+                                onclick="document.getElementById('avatar-input').click()">
+                            Upload photo
+                        </button>
+                        <span id="avatar-upload-status" class="upload-status"></span>
+                        <input id="avatar-input" type="file" accept="image/*"
+                               class="file-input-hidden" aria-label="Upload profile photo">
                         @Html.AntiForgeryToken()
                     </div>
                 </div>
@@ -44,8 +47,8 @@
         </article>
     </section>
 
-    @* ── Section: Account ── *@
-    <section class="settings-section" style="animation-delay:0.05s" aria-labelledby="account-heading">
+    @* ── Account ── *@
+    <section class="settings-section" aria-labelledby="account-heading">
         <h2 id="account-heading" class="section-title">Account</h2>
         <article class="setting-card">
             <div class="setting-row">
@@ -55,9 +58,20 @@
                 </div>
                 <div class="setting-actions">
                     <input class="input-field" type="email" id="email-input"
-                           value="@User.Identity?.Name"
-                           aria-label="Email address">
+                           value="@User.Identity?.Name" aria-label="Email address">
                     <button class="btn btn-green" onclick="saveEmail()">Save</button>
+                </div>
+            </div>
+            <div class="setting-row">
+                <div class="setting-info">
+                    <p class="setting-label">Phone number</p>
+                    <p class="setting-desc">Optional — used for account recovery</p>
+                </div>
+                <div class="setting-actions">
+                    <input class="input-field" type="tel" id="phone-input"
+                           value="@Model.PhoneNumber" placeholder="+1 555 000 0000"
+                           aria-label="Phone number">
+                    <button class="btn btn-green" onclick="savePhone()">Save</button>
                 </div>
             </div>
             <div class="setting-row">
@@ -65,19 +79,22 @@
                     <p class="setting-label">Password</p>
                     <p class="setting-desc">Change your account password</p>
                 </div>
-                <a class="btn btn-outline" asp-area="Identity" asp-page="/Account/Manage/ChangePassword">Change password</a>
+                <a class="btn btn-outline" asp-area="Identity"
+                   asp-page="/Account/Manage/ChangePassword">Change password</a>
             </div>
         </article>
     </section>
 
-    @* ── Section: Connected accounts ── *@
-    <section class="settings-section" style="animation-delay:0.1s" aria-labelledby="connections-heading">
+    @* ── Connected accounts ── *@
+    <section class="settings-section" aria-labelledby="connections-heading">
         <h2 id="connections-heading" class="section-title">Connected accounts</h2>
         <article class="setting-card">
             <div class="setting-row">
                 <div class="setting-info">
-                    <p class="setting-label" style="display:flex;align-items:center;gap:8px">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="#1DB954" aria-hidden="true"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.65 14.4c-.2.3-.6.4-.9.2-2.5-1.53-5.63-1.87-9.33-1.03-.36.08-.72-.15-.8-.5-.08-.36.15-.72.5-.8 4.05-.92 7.52-.53 10.33 1.2.3.18.4.58.2.93zm1.24-2.75c-.25.38-.75.5-1.13.25-2.85-1.75-7.2-2.26-10.57-1.23-.43.13-.9-.1-1.03-.53-.13-.43.1-.9.53-1.03 3.85-1.17 8.63-.6 11.93 1.41.37.23.5.73.27 1.13zm.1-2.86C14.5 8.9 8.68 8.7 5.2 9.73c-.52.16-1.07-.14-1.23-.65-.16-.52.14-1.07.65-1.23 4-.22 10.35.43 14.43 2.85.46.27.62.86.35 1.32-.27.45-.87.6-1.32.34l-.09-.07z" /></svg>
+                    <p class="setting-label setting-label--icon">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="#1DB954" aria-hidden="true">
+                            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.65 14.4c-.2.3-.6.4-.9.2-2.5-1.53-5.63-1.87-9.33-1.03-.36.08-.72-.15-.8-.5-.08-.36.15-.72.5-.8 4.05-.92 7.52-.53 10.33 1.2.3.18.4.58.2.93zm1.24-2.75c-.25.38-.75.5-1.13.25-2.85-1.75-7.2-2.26-10.57-1.23-.43.13-.9-.1-1.03-.53-.13-.43.1-.9.53-1.03 3.85-1.17 8.63-.6 11.93 1.41.37.23.5.73.27 1.13zm.1-2.86C14.5 8.9 8.68 8.7 5.2 9.73c-.52.16-1.07-.14-1.23-.65-.16-.52.14-1.07.65-1.23 4-.22 10.35.43 14.43 2.85.46.27.62.86.35 1.32-.27.45-.87.6-1.32.34l-.09-.07z"/>
+                        </svg>
                         Spotify
                     </p>
                     <p class="setting-desc">Access your listening history and stats</p>
@@ -122,8 +139,8 @@
         </article>
     </section>
 
-    @* ── Section: Danger zone ── *@
-    <section class="settings-section" style="animation-delay:0.15s" aria-labelledby="danger-heading">
+    @* ── Danger zone ── *@
+    <section class="settings-section" aria-labelledby="danger-heading">
         <h2 id="danger-heading" class="section-title">Danger zone</h2>
         <article class="danger-zone">
             <header class="danger-header">
@@ -139,23 +156,21 @@
         </article>
     </section>
 
-    @* ── Delete confirmation modal ── *@
-    <div id="delete-modal" role="dialog" aria-modal="true" aria-labelledby="modal-title"
-         style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:100;align-items:center;justify-content:center">
-        <article style="background:#111;border:1px solid rgba(231,76,60,0.3);border-radius:16px;padding:32px;max-width:400px;width:90%;text-align:center">
-            <h2 id="modal-title" style="font-family:'Syne',sans-serif;font-size:18px;font-weight:700;margin-bottom:12px">Delete your account?</h2>
-            <p style="font-size:14px;color:#888;line-height:1.6;margin-bottom:24px">
+    @* ── Delete confirmation modal — uses native <dialog> element ── *@
+    <dialog id="delete-modal" class="delete-modal" aria-labelledby="modal-title">
+        <article class="delete-modal__card">
+            <h2 id="modal-title" class="delete-modal__title">Delete your account?</h2>
+            <p class="delete-modal__desc">
                 This will permanently delete your account and all your listening history.
                 There is no way to recover this data.
             </p>
-            <div style="display:flex;gap:10px;justify-content:center">
+            <footer class="delete-modal__actions">
                 <button class="btn btn-outline"
-                        onclick="document.getElementById('delete-modal').style.display='none'">Cancel</button>
-                <form method="post" asp-page-handler="DeleteAccount" style="margin:0">
-                    <button type="submit" class="btn"
-                            style="background:var(--red);color:#fff;font-weight:600">Yes, delete everything</button>
+                        onclick="document.getElementById('delete-modal').close()">Cancel</button>
+                <form method="post" asp-page-handler="DeleteAccount">
+                    <button type="submit" class="btn btn-danger">Yes, delete everything</button>
                 </form>
-            </div>
+            </footer>
         </article>
-    </div>
+    </dialog>
 </main>

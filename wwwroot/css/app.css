@@ -412,3 +412,38 @@ html, body {
         gap: 10px;
     }
 }
+
+/* ── Sidebar new classes (no inline styles) ── */
+
+.nav-item--spotify-connect {
+    color: #1DB954;
+    border: 1px solid rgba(29,185,84,0.2);
+    background: rgba(29,185,84,0.05);
+}
+
+.nav-item--btn {
+    width: 100%;
+    border: none;
+    background: none;
+    text-align: left;
+    cursor: pointer;
+}
+
+.nav-connected__label { font-size: 13px; }
+.nav-connected__dot   { margin-left: auto; }
+
+.user-avatar__img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 50%;
+}
+
+.user-info { display: flex; flex-direction: column; }
+
+.sidebar-avatar-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 50%;
+}

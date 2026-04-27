@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.DataProtection.EntityFrameworkCore;
+using Microsoft.AspNetCore.DataProtection.EntityFrameworkCore;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using SpotifyStatisticsWebApp.Models;
@@ -12,4 +12,5 @@ public class ApplicationDbContext : IdentityDbContext, IDataProtectionKeyContext
 
     public DbSet<DataProtectionKey> DataProtectionKeys { get; set; }
     public DbSet<SpotifyToken> SpotifyTokens { get; set; }
+    public DbSet<UserProfile> UserProfiles { get; set; }
 }
