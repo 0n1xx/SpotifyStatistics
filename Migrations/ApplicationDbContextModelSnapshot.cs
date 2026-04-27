@@ -317,6 +317,29 @@ namespace SpotifyStatisticsWebApp.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
                 });
+            modelBuilder.Entity("SpotifyStatisticsWebApp.Models.UserProfile", b =>
+            {
+                b.Property<int>("Id")
+                    .ValueGeneratedOnAdd()
+                    .HasColumnType("int");
+
+                SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                b.Property<string>("AvatarBase64")
+                    .HasColumnType("nvarchar(max)");
+
+                b.Property<string>("PhoneNumber")
+                    .HasMaxLength(20)
+                    .HasColumnType("nvarchar(20)");
+
+                b.Property<string>("UserId")
+                    .IsRequired()
+                    .HasColumnType("nvarchar(450)");
+
+                b.HasKey("Id");
+
+                b.ToTable("UserProfiles");
+            });
 #pragma warning restore 612, 618
         }
     }

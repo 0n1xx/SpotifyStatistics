@@ -2,7 +2,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
-namespace SpotifyStatisticsWebApp.Data.Migrations
+namespace SpotifyStatisticsWebApp.Migrations
 {
     public partial class AddUserProfiles : Migration
     {
