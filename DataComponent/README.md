@@ -10,7 +10,7 @@ Data is extracted from the Spotify API, processed, and loaded into databases for
 
 ## Example Dashboard
 
-![Dashboard](dashboardExample.png)
+![Dashboard](dashboardExample.jpg)
 
 ## Architecture
 
