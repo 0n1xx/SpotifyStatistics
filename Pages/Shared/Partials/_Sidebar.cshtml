@@ -4,6 +4,8 @@
    the active nav item and show the correct Spotify connection state.
 *@
 @inject Microsoft.AspNetCore.Http.IHttpContextAccessor HttpContextAccessor
+@inject Microsoft.AspNetCore.Identity.UserManager<Microsoft.AspNetCore.Identity.IdentityUser> SidebarUserManager
+@inject Microsoft.AspNetCore.Hosting.IWebHostEnvironment SidebarEnv
 @{
     // Current Razor Page path — used to mark the active nav item
     var currentPage = ViewContext.RouteData.Values["page"]?.ToString() ?? "";
@@ -15,10 +17,27 @@
     // First letter of username shown as a fallback avatar
     string userInitial = userName.Length > 0 ? userName.Substring(0, 1).ToUpper() : "?";
 
-    // Avatar URL — set in ViewData["AvatarUrl"] by Settings.cshtml.cs OnGetAsync.
-    // When present the photo is shown in the bottom user card so it always matches
-    // the large profile photo on the Settings page.
+    // Avatar URL — resolved directly from disk on every page so the sidebar
+    // user card always shows the correct photo regardless of which page is active.
+    // ViewData["AvatarUrl"] is used as a fast-path when already set (e.g. Settings page).
     string? avatarUrl = ViewData["AvatarUrl"] as string;
+    if (avatarUrl == null)
+    {
+        var sidebarUserId = SidebarUserManager.GetUserId(User);
+        if (sidebarUserId != null)
+        {
+            var avatarsDir = System.IO.Path.Combine(SidebarEnv.WebRootPath, "avatars");
+            foreach (var ext in new[] { "jpg", "jpeg", "png", "gif", "webp" })
+            {
+                var candidate = System.IO.Path.Combine(avatarsDir, $"{sidebarUserId}.{ext}");
+                if (System.IO.File.Exists(candidate))
+                {
+                    avatarUrl = $"/avatars/{sidebarUserId}.{ext}";
+                    break;
+                }
+            }
+        }
+    }
 }
 
 @* ── Sidebar shell ── *@
