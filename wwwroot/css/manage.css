@@ -38,7 +38,7 @@ a { color: inherit; }
     padding: 40px 48px;
     display: flex;
     flex-direction: column;
-    gap: 28px;
+    gap: 32px;
 }
 
 /* Thin scrollbar — same as the rest of the app */
@@ -109,6 +109,11 @@ a { color: inherit; }
     flex-direction: column;
     gap: 12px;
     animation: fadeUp 0.4s ease both;
+}
+
+/* Extra breathing room between consecutive sections */
+.m-section + .m-section {
+    margin-top: 8px;
 }
 
 /* Section title (h2) — small uppercase label above each card */

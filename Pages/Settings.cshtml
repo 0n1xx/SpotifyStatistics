@@ -1,13 +1,9 @@
 @page
 @model SpotifyStatisticsWebApp.Pages.SettingsModel
 @{
-    // Page metadata
     ViewData["Title"] = "Settings";
-    // Page-specific CSS — injected into <head> by _AppLayout.cshtml
     ViewData["ExtraCss"] = "~/css/settings.css";
-    // Page-specific JS — injected before </body> by _AppLayout.cshtml
     ViewData["ExtraJs"] = "~/js/settings.js";
-    // Pass Spotify connection status to the sidebar partial
     ViewData["SpotifyConnected"] = Model.SpotifyConnected;
     Layout = "~/Pages/Shared/_AppLayout.cshtml";
 }
@@ -17,12 +13,12 @@
         <h1 class="page-title">Settings</h1>
         <p class="page-sub">Manage your account, connections and preferences</p>
     </header>
+
     @* ── Section: Profile ── *@
     <section class="settings-section" style="animation-delay:0s" aria-labelledby="profile-heading">
         <h2 id="profile-heading" class="section-title">Profile</h2>
-        <div class="setting-card">
+        <article class="setting-card">
             <div class="avatar-section">
-                @* First letter of username as fallback avatar *@
                 <div class="avatar-large" aria-hidden="true">
                     @if (Model.AvatarUrl != null)
                     {
@@ -38,7 +34,6 @@
                     <p class="avatar-name">@User.Identity?.Name</p>
                     <p class="avatar-email">@User.Identity?.Name</p>
                     <div class="avatar-actions">
-                        @* Visible button triggers the hidden file input — avoids styling <input type="file"> *@
                         <button class="btn btn-outline" id="upload-avatar-btn" onclick="document.getElementById('avatar-input').click()">Upload photo</button>
                         <span id="avatar-upload-status" style="font-size:13px;color:var(--muted2);display:none"></span>
                         <input id="avatar-input" type="file" accept="image/*" style="display:none" aria-label="Upload profile photo">
@@ -46,42 +41,39 @@
                     </div>
                 </div>
             </div>
-        </div>
+        </article>
     </section>
+
     @* ── Section: Account ── *@
     <section class="settings-section" style="animation-delay:0.05s" aria-labelledby="account-heading">
         <h2 id="account-heading" class="section-title">Account</h2>
-        <div class="setting-card">
-            @* Email address row *@
+        <article class="setting-card">
             <div class="setting-row">
                 <div class="setting-info">
                     <p class="setting-label">Email address</p>
                     <p class="setting-desc">Your login email and where we send notifications</p>
                 </div>
-                <div style="display:flex;align-items:center;gap:10px">
+                <div class="setting-actions">
                     <input class="input-field" type="email" id="email-input"
-                           value="@User.Identity?.Name" style="max-width:220px"
+                           value="@User.Identity?.Name"
                            aria-label="Email address">
-                    @* saveEmail() is defined in settings.js *@
                     <button class="btn btn-green" onclick="saveEmail()">Save</button>
                 </div>
             </div>
-            @* Password row *@
             <div class="setting-row">
                 <div class="setting-info">
                     <p class="setting-label">Password</p>
                     <p class="setting-desc">Change your account password</p>
                 </div>
-                @* Links to the ASP.NET Identity built-in password change page *@
                 <a class="btn btn-outline" asp-area="Identity" asp-page="/Account/Manage/ChangePassword">Change password</a>
             </div>
-        </div>
+        </article>
     </section>
+
     @* ── Section: Connected accounts ── *@
     <section class="settings-section" style="animation-delay:0.1s" aria-labelledby="connections-heading">
         <h2 id="connections-heading" class="section-title">Connected accounts</h2>
-        <div class="setting-card">
-            @* Spotify row — shows Connect or Disconnect depending on Model.SpotifyConnected *@
+        <article class="setting-card">
             <div class="setting-row">
                 <div class="setting-info">
                     <p class="setting-label" style="display:flex;align-items:center;gap:8px">
@@ -90,14 +82,13 @@
                     </p>
                     <p class="setting-desc">Access your listening history and stats</p>
                 </div>
-                <div style="display:flex;align-items:center;gap:10px">
+                <div class="setting-actions">
                     @if (Model.SpotifyConnected)
                     {
                         <span class="connected-badge yes">
                             <div class="pulse-dot"></div>
                             Connected
                         </span>
-                        @* Confirm before disconnecting to prevent accidental data loss *@
                         <button class="btn btn-outline"
                                 onclick="if(confirm('Disconnect Spotify?')) window.location='/SpotifyAuth/disconnect'">
                             Disconnect
@@ -110,7 +101,6 @@
                     }
                 </div>
             </div>
-            @* Google row — read-only status badge, no connect/disconnect action yet *@
             <div class="setting-row">
                 <div class="setting-info">
                     <p class="setting-label">Google</p>
@@ -120,7 +110,6 @@
                     @(Model.GoogleConnected ? "Connected" : "Not connected")
                 </span>
             </div>
-            @* GitHub row — read-only status badge *@
             <div class="setting-row">
                 <div class="setting-info">
                     <p class="setting-label">GitHub</p>
@@ -130,12 +119,13 @@
                     @(Model.GitHubConnected ? "Connected" : "Not connected")
                 </span>
             </div>
-        </div>
+        </article>
     </section>
-    @* ── Section: Danger zone — styled red to be visually distinct ── *@
+
+    @* ── Section: Danger zone ── *@
     <section class="settings-section" style="animation-delay:0.15s" aria-labelledby="danger-heading">
         <h2 id="danger-heading" class="section-title">Danger zone</h2>
-        <div class="danger-zone">
+        <article class="danger-zone">
             <header class="danger-header">
                 <p class="danger-title">Irreversible actions</p>
             </header>
@@ -144,16 +134,15 @@
                     <p class="setting-label">Delete account</p>
                     <p class="setting-desc">Permanently delete your account and all data. This cannot be undone.</p>
                 </div>
-                @* Opens the confirmation modal — confirmDelete() is defined in settings.js *@
                 <button class="btn btn-red" onclick="confirmDelete()">Delete account</button>
             </div>
-        </div>
+        </article>
     </section>
+
     @* ── Delete confirmation modal ── *@
-    @* Hidden by default; shown by confirmDelete() in settings.js which sets display to 'flex' *@
     <div id="delete-modal" role="dialog" aria-modal="true" aria-labelledby="modal-title"
          style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:100;align-items:center;justify-content:center">
-        <div style="background:#111;border:1px solid rgba(231,76,60,0.3);border-radius:16px;padding:32px;max-width:400px;width:90%;text-align:center">
+        <article style="background:#111;border:1px solid rgba(231,76,60,0.3);border-radius:16px;padding:32px;max-width:400px;width:90%;text-align:center">
             <h2 id="modal-title" style="font-family:'Syne',sans-serif;font-size:18px;font-weight:700;margin-bottom:12px">Delete your account?</h2>
             <p style="font-size:14px;color:#888;line-height:1.6;margin-bottom:24px">
                 This will permanently delete your account and all your listening history.
@@ -162,12 +151,11 @@
             <div style="display:flex;gap:10px;justify-content:center">
                 <button class="btn btn-outline"
                         onclick="document.getElementById('delete-modal').style.display='none'">Cancel</button>
-                @* POST to DeleteAccount handler in Settings.cshtml.cs *@
                 <form method="post" asp-page-handler="DeleteAccount" style="margin:0">
                     <button type="submit" class="btn"
                             style="background:var(--red);color:#fff;font-weight:600">Yes, delete everything</button>
                 </form>
             </div>
-        </div>
+        </article>
     </div>
 </main>

@@ -7,9 +7,9 @@
 
 @* Email manage page — current email, verification status, change email *@
 
-<div class="m-section">
-    <h2 class="m-section-title">Current email</h2>
-    <div class="m-card">
+<section class="m-section" aria-labelledby="current-email-heading">
+    <h2 id="current-email-heading" class="m-section-title">Current email</h2>
+    <article class="m-card">
 
         @* Current email row with verification badge *@
         <div class="m-row" style="flex-wrap:wrap;">
@@ -20,7 +20,6 @@
                     @if (Model.IsEmailConfirmed)
                     {
                         <span class="m-badge m-badge-green" style="margin-left:8px; vertical-align:middle;">
-                            @* checkmark icon *@
                             <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/></svg>
                             Verified
                         </span>
@@ -33,7 +32,6 @@
             </div>
             @if (!Model.IsEmailConfirmed)
             {
-                @* Only show re-send button if email isn't verified yet *@
                 <div class="m-row-action">
                     <form id="send-verification-form" method="post" asp-page-handler="SendVerificationEmail">
                         <button type="submit" class="m-btn m-btn-outline">Send verification email</button>
@@ -42,12 +40,12 @@
             }
         </div>
 
-    </div>
-</div>
+    </article>
+</section>
 
-<div class="m-section" style="animation-delay:0.05s;">
-    <h2 class="m-section-title">Change email</h2>
-    <div class="m-card">
+<section class="m-section" style="animation-delay:0.05s;" aria-labelledby="change-email-heading">
+    <h2 id="change-email-heading" class="m-section-title">Change email</h2>
+    <article class="m-card">
         <div class="m-row" style="flex-direction:column; align-items:stretch; gap:16px;">
             <form id="change-email-form" method="post" asp-page-handler="ChangeEmail">
                 <div asp-validation-summary="ModelOnly" class="m-alert m-alert-error" style="margin-bottom:12px;"></div>
@@ -69,8 +67,8 @@
                 </div>
             </form>
         </div>
-    </div>
-</div>
+    </article>
+</section>
 
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />

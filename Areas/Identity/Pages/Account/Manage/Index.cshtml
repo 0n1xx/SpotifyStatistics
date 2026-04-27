@@ -7,9 +7,9 @@
 
 @* Profile manage page — username display and phone number *@
 
-<div class="m-section">
-    <h2 class="m-section-title">Your profile</h2>
-    <div class="m-card">
+<section class="m-section" aria-labelledby="your-profile-heading">
+    <h2 id="your-profile-heading" class="m-section-title">Your profile</h2>
+    <article class="m-card">
 
         @* Username row — read-only (changed via email/login) *@
         <div class="m-row">
@@ -46,8 +46,8 @@
             </div>
         </div>
 
-    </div>
-</div>
+    </article>
+</section>
 
 @* Status message — shown after save *@
 @if (TempData["StatusMessage"] != null)

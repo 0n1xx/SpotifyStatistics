@@ -67,9 +67,11 @@
     margin-left: auto;
 }
 
-/* Explicit override for inline-flex divs (Save/Connect buttons) */
-.setting-row > div[style*="display:flex"],
-.setting-row > div[style*="display: flex"] {
+/* Action group — wraps buttons/inputs on the right side of a setting row */
+.setting-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
     flex-shrink: 0;
     margin-left: auto;
 }
@@ -176,8 +178,7 @@
     color: var(--text);
     outline: none;
     transition: border-color 0.2s;
-    width: 100%;
-    max-width: 320px;
+    width: 220px;
 }
 
 .input-field:focus { border-color: var(--green); }
@@ -257,14 +258,14 @@
     /* Buttons / inputs in setting rows take full width */
     .setting-row > div,
     .setting-row > a,
-    .setting-row > button {
+    .setting-row > button,
+    .setting-actions {
         width: 100%;
     }
 
     /* Email input stretches to full width */
     .input-field {
-        max-width: 100% !important;
-        width: 100%;
+        width: 100% !important;
     }
 
     /* Avatar section stacks on narrow screens */
@@ -280,8 +281,9 @@
     .avatar-actions .btn { width: 100%; text-align: center; }
 
     /* Badge + action button wrap */
-    .setting-row > div[style*="display:flex"] {
+    .setting-actions {
         flex-direction: column;
+        align-items: flex-start;
         width: 100%;
     }
 

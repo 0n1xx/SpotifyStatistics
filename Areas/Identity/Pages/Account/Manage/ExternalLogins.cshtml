@@ -9,9 +9,9 @@
 
 @if (Model.CurrentLogins?.Count > 0)
 {
-    <div class="m-section">
-        <h2 class="m-section-title">Connected accounts</h2>
-        <div class="m-card">
+    <section class="m-section" aria-labelledby="connected-accounts-heading">
+        <h2 id="connected-accounts-heading" class="m-section-title">Connected accounts</h2>
+        <article class="m-card">
             @foreach (var login in Model.CurrentLogins)
             {
                 <div class="m-row">
@@ -42,15 +42,15 @@
                     </div>
                 </div>
             }
-        </div>
-    </div>
+        </article>
+    </section>
 }
 
 @if (Model.OtherLogins?.Count > 0)
 {
-    <div class="m-section" style="animation-delay:0.05s;">
-        <h2 class="m-section-title">Add another account</h2>
-        <div class="m-card">
+    <section class="m-section" style="animation-delay:0.05s;" aria-labelledby="add-account-heading">
+        <h2 id="add-account-heading" class="m-section-title">Add another account</h2>
+        <article class="m-card">
             <div class="m-row" style="flex-wrap:wrap; gap:12px;">
                 <div class="m-row-info">
                     <p class="m-row-label">Link a new provider</p>
@@ -69,13 +69,13 @@
                     </form>
                 </div>
             </div>
-        </div>
-    </div>
+        </article>
+    </section>
 }
 
 @if (Model.CurrentLogins?.Count == 0 && Model.OtherLogins?.Count == 0)
 {
-    <div class="m-info-box">
+    <section class="m-info-box" aria-label="No external logins">
         <div class="m-info-icon">
             <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
                 <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/>
@@ -83,7 +83,7 @@
         </div>
         <p class="m-info-title">No external logins available</p>
         <p class="m-info-desc">No third-party login providers are configured for this application.</p>
-    </div>
+    </section>
 }
 
 @section Scripts {

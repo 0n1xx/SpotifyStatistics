@@ -7,9 +7,9 @@
 
 @* Personal Data page — GDPR download and account deletion *@
 
-<div class="m-section">
-    <h2 class="m-section-title">Your data</h2>
-    <div class="m-card">
+<section class="m-section" aria-labelledby="your-data-heading">
+    <h2 id="your-data-heading" class="m-section-title">Your data</h2>
+    <article class="m-card">
         <div class="m-row" style="flex-wrap:wrap;">
             <div class="m-row-info">
                 <p class="m-row-label">Download your data</p>
@@ -18,7 +18,6 @@
             <div class="m-row-action">
                 <form asp-page="DownloadPersonalData" method="post">
                     <button type="submit" class="m-btn m-btn-outline">
-                        @* Download icon *@
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
                             <path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/>
                         </svg>
@@ -27,22 +26,21 @@
                 </form>
             </div>
         </div>
-    </div>
-</div>
+    </article>
+</section>
 
 @* ── Danger zone — account deletion ── *@
-<div class="m-section" style="animation-delay:0.08s;">
-    <h2 class="m-section-title">Danger zone</h2>
-    <div class="m-card-danger">
-        <div class="m-danger-header">
+<section class="m-section" style="animation-delay:0.08s;" aria-labelledby="danger-zone-heading">
+    <h2 id="danger-zone-heading" class="m-section-title">Danger zone</h2>
+    <article class="m-card-danger">
+        <header class="m-danger-header">
             <p class="m-danger-title">
-                @* Warning icon *@
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" style="vertical-align:middle; margin-right:4px;" aria-hidden="true">
                     <path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z"/>
                 </svg>
                 Irreversible actions
             </p>
-        </div>
+        </header>
         <div class="m-row" style="flex-wrap:wrap;">
             <div class="m-row-info">
                 <p class="m-row-label" style="color:var(--text);">Delete account</p>
@@ -57,5 +55,5 @@
                 </a>
             </div>
         </div>
-    </div>
-</div>
+    </article>
+</section>
