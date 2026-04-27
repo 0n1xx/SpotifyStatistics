@@ -61,8 +61,17 @@
     min-width: 0;
 }
 
-.setting-row > div[style*="display:flex"] {
+/* Right-side action area — never shrinks, always stays right-aligned */
+.setting-row > *:last-child {
     flex-shrink: 0;
+    margin-left: auto;
+}
+
+/* Explicit override for inline-flex divs (Save/Connect buttons) */
+.setting-row > div[style*="display:flex"],
+.setting-row > div[style*="display: flex"] {
+    flex-shrink: 0;
+    margin-left: auto;
 }
 
 .setting-row:last-child { border-bottom: none; }

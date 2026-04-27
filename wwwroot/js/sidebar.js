@@ -27,6 +27,10 @@
         btn.classList.add('open');
         btn.setAttribute('aria-expanded', 'true');
         document.body.style.overflow = 'hidden';
+        // Hide the floating X when sidebar slides in — prevents it
+        // from overlapping the sidebar logo. User closes via overlay tap or Escape.
+        btn.style.opacity = '0';
+        btn.style.pointerEvents = 'none';
     }
 
     /** Close the sidebar drawer and restore scroll */
@@ -36,6 +40,8 @@
         btn.classList.remove('open');
         btn.setAttribute('aria-expanded', 'false');
         document.body.style.overflow = '';
+        btn.style.opacity = '';
+        btn.style.pointerEvents = '';
     }
 
     // Toggle on hamburger click

@@ -111,14 +111,16 @@ a { color: inherit; }
     animation: fadeUp 0.4s ease both;
 }
 
-/* Section title (h2) — same weight as settings.css .section-title */
+/* Section title (h2) — small uppercase label above each card */
+/* NOTE: specificity must beat the generic h1,h2,h3,h4 rule below,
+   so we add !important on color to ensure the muted grey wins. */
 .m-section-title {
     font-family:    'Syne', sans-serif;
-    font-size:      13px;
+    font-size:      13px !important;
     font-weight:    700;
     letter-spacing: 0.04em;
     text-transform: uppercase;
-    color:          var(--muted2);
+    color:          var(--muted2) !important;
 }
 
 /* Dark rounded card — matches .setting-card on Settings page */
