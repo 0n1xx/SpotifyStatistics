@@ -1,14 +1,5 @@
-/* =============================================================
-   manage.css — Styles for Identity Manage sub-pages
-   Loaded by _ManageLayout.cshtml via <link>.
-
-   Covers:
-   - Manage page shell (.main, .page-header)
-   - Tab bar (.manage-tabs, .manage-tab)
-   - Content cards (.m-card, .m-row, .m-section)
-   - Bootstrap dark-theme overrides (forms, buttons, alerts)
-   - Responsive breakpoints: ≤ 900px tablet, ≤ 600px mobile
-   ============================================================= */
+/* manage.css — Styles for Identity Manage sub-pages
+   Loaded by _ManageLayout.cshtml via <link>. */
 
 /* ── Hard Bootstrap reset — loaded AFTER bootstrap.min.css so these win ── */
 /* WHY: _ManageLayout.cshtml loads Bootstrap first, then app.css + manage.css.

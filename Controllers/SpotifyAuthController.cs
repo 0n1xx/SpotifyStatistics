@@ -104,6 +104,19 @@ namespace SpotifyStatisticsWebApp.Controllers
 
             return RedirectToAction("Index", "Home");
         }
+
+        [HttpGet("disconnect")]
+        public async Task<IActionResult> Disconnect()
+        {
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            var token = await _db.SpotifyTokens.FirstOrDefaultAsync(t => t.UserId == userId);
+            if (token != null)
+            {
+                _db.SpotifyTokens.Remove(token);
+                await _db.SaveChangesAsync();
+            }
+            return Redirect("/Settings");
+        }
     }
 }
 

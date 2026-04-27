@@ -1,7 +1,5 @@
-/* =============================================================
-   dashboard.css — Styles for Dashboard page only
-   Loaded via ViewData["ExtraCss"] in Dashboard.cshtml
-   ============================================================= */
+/* dashboard.css — Styles for Dashboard page only
+   Loaded via ViewData["ExtraCss"] in Dashboard.cshtml */
 
 /* ── Scrollable content area ── */
 .main {

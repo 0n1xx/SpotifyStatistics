@@ -1,12 +1,10 @@
-/* =============================================================
-   auth.css — Shared styles for Login and Register pages
+/* auth.css — Shared styles for Login and Register pages
    Used by:
      - Areas/Identity/Pages/Account/Login.cshtml
      - Areas/Identity/Pages/Account/Register.cshtml
 
    Layout: two-column grid (hero left | form right).
-   On mobile ≤ 700px: single column, hero collapses to a header bar.
-   ============================================================= */
+   On mobile ≤ 700px: single column, hero collapses to a header bar. */
 
 /* ── Reset & tokens ── */
 *, *::before, *::after {
