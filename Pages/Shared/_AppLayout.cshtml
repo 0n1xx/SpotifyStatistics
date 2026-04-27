@@ -69,17 +69,14 @@
 
     </div>
 
-    @* Page-specific JS (e.g. ~/js/dashboard.js) — loaded after the DOM so it can query elements *@
+    @await RenderSectionAsync("Scripts", required: false)
+
     @if (!string.IsNullOrEmpty(extraJs))
     {
         <script src="@extraJs" asp-append-version="true"></script>
     }
 
-    @* Sidebar hamburger toggle — handles mobile drawer open/close *@
     <script src="~/js/sidebar.js" asp-append-version="true"></script>
-
-    @* Inline <script> blocks injected by individual pages (e.g. JSON-serialised model data for charts) *@
-    @await RenderSectionAsync("Scripts", required: false)
 
 </body>
 </html>
