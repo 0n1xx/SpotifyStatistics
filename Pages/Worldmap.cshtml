@@ -16,14 +16,14 @@
 <main class="main">
     @* ── Page header: title + summary counts ── *@
     <header class="page-header">
-        <div>
+        <div class="page-header-text">
             <h1 class="page-title">World Map</h1>
             <p class="page-sub">Artist origins across your listening history</p>
         </div>
-        <p style="font-size:13px;color:var(--muted2)">
-            <strong style="color:var(--text)">@Model.CountryCounts.Count</strong> countries
+        <p class="map-meta">
+            <strong>@Model.CountryCounts.Count</strong> countries
             &middot;
-            <strong style="color:var(--text)">@Model.CountryCounts.Sum(c => c.Count).ToString("N0")</strong> plays
+            <strong>@Model.CountryCounts.Sum(c => c.Count).ToString("N0")</strong> plays
         </p>
     </header>
     @* ── Map area — SVG populated by D3 in worldmap.js → initMap() ── *@
@@ -64,7 +64,7 @@
             <button class="zoom-btn" id="zoom-in" aria-label="Zoom in">+</button>
             <button class="zoom-btn" id="zoom-out" aria-label="Zoom out">&minus;</button>
             @* Home button resets to the default zoom level and pan position *@
-            <button class="zoom-btn" id="zoom-reset" style="font-size:12px;font-weight:700" aria-label="Reset zoom">&#8962;</button>
+            <button class="zoom-btn zoom-btn--reset" id="zoom-reset" aria-label="Reset zoom">&#8962;</button>
         </nav>
     </section>
 </main>

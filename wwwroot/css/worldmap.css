@@ -202,3 +202,19 @@
         min-height: 300px;
     }
 }
+
+/* ── Header meta: country count + total plays ── */
+.map-meta {
+    font-size: 13px;
+    color: var(--muted2);
+}
+
+.map-meta strong {
+    color: var(--text);
+}
+
+/* ── Zoom reset button — slightly smaller icon text ── */
+.zoom-btn--reset {
+    font-size: 12px;
+    font-weight: 700;
+}

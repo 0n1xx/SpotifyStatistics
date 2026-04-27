@@ -15,7 +15,7 @@
 <main class="main">
     @* ── Page header: title + total play count ── *@
     <header class="page-header">
-        <div>
+        <div class="page-header-text">
             <h1 class="page-title">Recently Played</h1>
             <p class="page-sub">Your full listening history, most recent first</p>
         </div>
@@ -52,7 +52,7 @@
             <span>Artist</span>
             <span>Album</span>
             <span>Country</span>
-            <span style="text-align:right">Played at</span>
+            <span class="col-played-at">Played at</span>
         </header>
         <ol class="table-body" id="trackList">
             @* Starting index accounts for the current pagination offset *@

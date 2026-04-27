@@ -312,3 +312,64 @@
     /* Hide the animated Spotify icon on very small screens */
     .spotify-banner-icon { display: none; }
 }
+
+/* ── Spotify banner inner layout ── */
+
+/* Left side: icon + text */
+.banner-body {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+/* Banner title */
+.banner-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 15px;
+    font-weight: 700;
+    color: #f0f0f0;
+    margin-bottom: 4px;
+}
+
+/* Banner description */
+.banner-desc {
+    font-size: 13px;
+    color: #888;
+    line-height: 1.5;
+}
+
+/* Right side: dismiss + connect buttons */
+.banner-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-shrink: 0;
+}
+
+/* Connected status text */
+.connected-text {
+    font-size: 13px;
+    color: #888;
+}
+
+/* ── Stat card staggered animation via nth-child ── */
+.stat-card:nth-child(1) { animation-delay: 0s; }
+.stat-card:nth-child(2) { animation-delay: 0.05s; }
+.stat-card:nth-child(3) { animation-delay: 0.1s; }
+.stat-card:nth-child(4) { animation-delay: 0.15s; }
+
+/* ── Chart card staggered animation via nth-child ── */
+.charts-row .card:nth-child(1) { animation-delay: 0.2s; }
+.charts-row .card:nth-child(2) { animation-delay: 0.25s; }
+
+/* ── Time-of-day hour labels ── */
+.tod-labels {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 8px;
+}
+
+.tod-label {
+    font-size: 10px;
+    color: var(--muted);
+}

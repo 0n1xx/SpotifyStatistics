@@ -447,3 +447,11 @@ html, body {
     object-fit: cover;
     border-radius: 50%;
 }
+
+/* ── Page header text group (title + subtitle) ──
+   Semantic wrapper replacing bare <div> inside <header class="page-header"> */
+.page-header-text {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}

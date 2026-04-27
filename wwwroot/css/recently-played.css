@@ -238,3 +238,8 @@
 
     .page-title { font-size: 22px; }
 }
+
+/* ── Table header: "Played at" column — right-aligned ── */
+.col-played-at {
+    text-align: right;
+}
