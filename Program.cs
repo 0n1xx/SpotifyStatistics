@@ -1,9 +1,11 @@
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Identity.UI.Services;
 using Microsoft.EntityFrameworkCore;
 using SpotifyStatisticsWebApp.Data;
 using SpotifyStatisticsWebApp.Models;
+using SpotifyStatisticsWebApp.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -55,6 +57,9 @@ builder.Services.AddControllersWithViews();
 // Utils
 builder.Services.AddHttpClient();
 builder.Services.AddDistributedMemoryCache();
+
+// Email sender — Resend API (ключ: Railway → Variables → RESEND_API_KEY)
+builder.Services.AddTransient<IEmailSender, ResendEmailSender>();
 
 builder.Services.AddSession(options =>
 {
