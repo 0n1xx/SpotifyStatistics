@@ -18,7 +18,7 @@ namespace SpotifyStatisticsWebApp.Services
 
         // Отправитель — пока используем тестовый адрес Resend.
         // Письма будут доходить только на твой собственный email пока домен не верифицирован.
-        private const string FromAddress = "onboarding@resend.dev";
+        private const string FromAddress = "noreply@statify.one";
         private const string FromName    = "Statify";
 
         public ResendEmailSender(
