@@ -411,3 +411,64 @@ input::placeholder  { color: #444; }
     /* Stack social buttons vertically on very narrow screens */
     .social-btns { flex-direction: column; }
 }
+
+/* ══════════════════════════════════════════════════════════
+   Forgot password page — центрированный single-column layout
+   ══════════════════════════════════════════════════════════ */
+
+/* Переопределяем двуколоночный грид — на этой странице только правая панель */
+.fp-page {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Логотип — чуть меньше отступ снизу чем на Login */
+.fp-logo {
+    margin-bottom: 32px;
+}
+
+/* Заголовок страницы */
+.fp-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 24px;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+    margin-bottom: 8px;
+}
+
+/* Подзаголовок-описание */
+.fp-desc {
+    font-size: 14px;
+    color: var(--muted);
+    line-height: 1.6;
+    margin-bottom: 28px;
+}
+
+/* Иконка письма на confirmation странице */
+.fp-success-icon {
+    width: 56px;
+    height: 56px;
+    background: rgba(29, 185, 84, 0.12);
+    border: 1px solid rgba(29, 185, 84, 0.25);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--green);
+    margin-bottom: 20px;
+}
+
+/* Ссылка "Back to sign in" с иконкой стрелки */
+.fp-back {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--muted);
+    font-size: 13px;
+    text-decoration: none;
+    margin-top: 20px;
+    transition: color 0.2s;
+}
+
+.fp-back:hover { color: var(--text); }

@@ -327,7 +327,7 @@
     gap: 8px;
 }
 
-/* Native <dialog> modal */
+/* Native <dialog> modal — margin:auto центрирует по обеим осям */
 .delete-modal {
     border: 1px solid rgba(231, 76, 60, 0.3);
     border-radius: 16px;
@@ -336,6 +336,12 @@
     max-width: 400px;
     width: 90%;
     color: var(--text);
+    /* Центрирование: без этого браузер рисует dialog в верхнем левом углу */
+    margin: auto;
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
 }
 
 .delete-modal::backdrop {
