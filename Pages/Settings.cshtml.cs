@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.Data.SqlClient;
@@ -13,6 +14,8 @@ namespace SpotifyStatisticsWebApp.Pages
     {
         private readonly IConfiguration _config;
         private readonly ApplicationDbContext _db;
+        private readonly UserManager<IdentityUser> _userManager;
+        private readonly SignInManager<IdentityUser> _signInManager;
 
         public bool SpotifyConnected { get; set; }
         public bool GoogleConnected { get; set; }
@@ -20,10 +23,13 @@ namespace SpotifyStatisticsWebApp.Pages
         public string? AvatarDataUrl { get; set; }
         public string? PhoneNumber { get; set; }
 
-        public SettingsModel(IConfiguration config, ApplicationDbContext db)
+        public SettingsModel(IConfiguration config, ApplicationDbContext db,
+            UserManager<IdentityUser> userManager, SignInManager<IdentityUser> signInManager)
         {
             _config = config;
             _db = db;
+            _userManager = userManager;
+            _signInManager = signInManager;
         }
 
         public async Task OnGetAsync()
@@ -100,7 +106,29 @@ namespace SpotifyStatisticsWebApp.Pages
 
         public async Task<IActionResult> OnPostDeleteAccountAsync()
         {
-            // TODO: implement full account deletion
+            var user = await _userManager.GetUserAsync(User);
+            if (user == null) return RedirectToPage("/Index");
+
+            var userId = user.Id;
+
+            // Delete UserProfile (avatar + phone)
+            var profile = await _db.UserProfiles.FirstOrDefaultAsync(p => p.UserId == userId);
+            if (profile != null) _db.UserProfiles.Remove(profile);
+
+            // Delete SpotifyTokens
+            var connStr = _config.GetConnectionString("DefaultConnection");
+            using var conn = new SqlConnection(connStr);
+            await conn.OpenAsync();
+            using var cmd = new SqlCommand("DELETE FROM SpotifyTokens WHERE UserId = @uid", conn);
+            cmd.Parameters.AddWithValue("@uid", userId);
+            await cmd.ExecuteNonQueryAsync();
+
+            await _db.SaveChangesAsync();
+
+            // Delete the Identity user (cascades to AspNetUserLogins, Claims, etc.)
+            await _signInManager.SignOutAsync();
+            await _userManager.DeleteAsync(user);
+
             return RedirectToPage("/Index");
         }
     }

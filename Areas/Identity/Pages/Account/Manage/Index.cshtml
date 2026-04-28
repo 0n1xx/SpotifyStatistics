@@ -18,30 +18,26 @@
                 <p class="m-row-desc">Your account display name</p>
             </div>
             <div class="m-row-action">
-                <span style="font-size:14px; color:var(--text); background:var(--card2); padding:8px 14px; border-radius:8px; border:1px solid var(--border);">
-                    @Model.Username
-                </span>
+                <span class="m-value-badge">@Model.Username</span>
             </div>
         </div>
 
-        @* Phone number row — editable *@
-        <div class="m-row" style="flex-wrap:wrap;">
+        @* Phone number row — editable, saved via ASP.NET Identity *@
+        <div class="m-row m-row--wrap">
             <div class="m-row-info">
                 <p class="m-row-label">Phone number</p>
                 <p class="m-row-desc">Optional — used for account recovery</p>
             </div>
-            <div class="m-row-action" style="flex-direction:column; align-items:flex-start;">
+            <div class="m-row-action m-row-action--col">
                 <form method="post">
-                    <div asp-validation-summary="ModelOnly" class="m-alert m-alert-error" style="margin-bottom:8px;"></div>
-                    <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+                    <div asp-validation-summary="ModelOnly" class="m-alert m-alert-error"></div>
+                    <div class="m-phone-row">
                         <input asp-for="Input.PhoneNumber"
-                               placeholder="+1 555 000 0000"
-                               style="background:#1a1a1a; border:1px solid var(--border); border-radius:10px; padding:10px 14px; font-size:14px; font-family:'DM Sans',sans-serif; color:var(--text); outline:none; min-width:160px; max-width:220px; width:100%; transition:border-color 0.2s;"
-                               onfocus="this.style.borderColor='var(--green)'"
-                               onblur="this.style.borderColor='var(--border)'">
-                        <button type="submit" class="m-btn m-btn-green" style="white-space:nowrap;">Save</button>
+                               class="m-input"
+                               placeholder="+1 555 000 0000">
+                        <button type="submit" class="m-btn m-btn-green">Save</button>
                     </div>
-                    <span asp-validation-for="Input.PhoneNumber" class="text-danger" style="font-size:12px; margin-top:4px; display:block;"></span>
+                    <span asp-validation-for="Input.PhoneNumber" class="m-field-error"></span>
                 </form>
             </div>
         </div>
@@ -52,7 +48,7 @@
 @* Status message — shown after save *@
 @if (TempData["StatusMessage"] != null)
 {
-    <div class="m-alert m-alert-success" style="display:block; margin-top:8px;">@TempData["StatusMessage"]</div>
+    <p class="m-alert m-alert-success" role="status">@TempData["StatusMessage"]</p>
 }
 
 @section Scripts {

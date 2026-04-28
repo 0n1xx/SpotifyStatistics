@@ -106,8 +106,12 @@ function saveEmail() {
 
 // ── Save phone ────────────────────────────────────────────────
 async function savePhone() {
-    const phone = document.getElementById('phone-input').value;
+    const phoneInput = document.getElementById('phone-input');
+    const phone = phoneInput.value;
     const token = document.querySelector('input[name="__RequestVerificationToken"]')?.value;
+    const btn = phoneInput.closest('.setting-actions')?.querySelector('.btn-green');
+
+    if (btn) { btn.disabled = true; btn.textContent = 'Saving…'; }
 
     try {
         const res = await fetch('?handler=SavePhone', {
@@ -119,8 +123,31 @@ async function savePhone() {
             body: `phone=${encodeURIComponent(phone)}`
         });
         const json = await res.json();
-        if (json.success) alert('Phone number saved!');
+        if (json.success) {
+            showInlineStatus(phoneInput, '✓ Saved', 'var(--green)');
+        } else {
+            showInlineStatus(phoneInput, 'Failed to save', '#e74c3c');
+        }
     } catch {
-        alert('Failed to save phone number.');
+        showInlineStatus(phoneInput, 'Network error', '#e74c3c');
+    } finally {
+        if (btn) { btn.disabled = false; btn.textContent = 'Save'; }
     }
+}
+
+// ── showInlineStatus — создаёт/обновляет inline статус рядом с полем ─────────
+// Переиспользует существующий span по id чтобы не плодить элементы при повторных сохранениях.
+// Сам исчезает через 2.5s через opacity transition.
+function showInlineStatus(inputEl, message, color) {
+    let status = document.getElementById('phone-save-status');
+    if (!status) {
+        status = document.createElement('span');
+        status.id = 'phone-save-status';
+        status.style.cssText = 'font-size:12px; margin-left:4px; transition:opacity 0.3s;';
+        inputEl.closest('.setting-actions')?.appendChild(status);
+    }
+    status.textContent = message;
+    status.style.color = color;
+    status.style.opacity = '1';
+    setTimeout(() => { status.style.opacity = '0'; }, 2500);
 }
