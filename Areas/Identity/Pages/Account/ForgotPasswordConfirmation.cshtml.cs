@@ -6,7 +6,7 @@ using Microsoft.AspNetCore.Mvc.RazorPages;
 
 namespace SpotifyStatisticsWebApp.Areas.Identity.Pages.Account
 {
-    // Accessible without login — shown after submitting forgot password form
+    // Accessible without login — shown after submitting the forgot password form
     [AllowAnonymous]
     public class ForgotPasswordConfirmationModel : PageModel
     {

@@ -38,16 +38,16 @@ namespace SpotifyStatisticsWebApp.Areas.Identity.Pages.Account
             [Compare("Password", ErrorMessage = "Passwords do not match.")]
             public string ConfirmPassword { get; set; }
 
-            // Токен из письма — декодируется обратно из Base64Url в OnGet
+            // Token from the reset email link — decoded from Base64Url in OnGet
             public string Token { get; set; }
         }
 
         public IActionResult OnGet(string token, string email)
         {
-            // Если токена нет — ссылка невалидна
+            // Invalid link — token is required
             if (token == null) return RedirectToPage("/Index");
 
-            // Декодируем токен из Base64Url обратно в строку
+            // Decode the token from Base64Url back to a plain string
             var decodedToken = Encoding.UTF8.GetString(WebEncoders.Base64UrlDecode(token));
 
             Input = new InputModel
@@ -65,7 +65,7 @@ namespace SpotifyStatisticsWebApp.Areas.Identity.Pages.Account
 
             var user = await _userManager.FindByEmailAsync(Input.Email);
 
-            // Пользователь не найден — редиректим как будто всё ок (security best practice)
+            // User not found — redirect as if successful (security best practice)
             if (user == null) return RedirectToPage("./ResetPasswordConfirmation");
 
             var result = await _userManager.ResetPasswordAsync(
@@ -74,7 +74,7 @@ namespace SpotifyStatisticsWebApp.Areas.Identity.Pages.Account
             if (result.Succeeded)
                 return RedirectToPage("./ResetPasswordConfirmation");
 
-            // Показываем ошибки (например: токен истёк, пароль слишком слабый)
+            // Show errors — e.g. expired token or password too weak
             foreach (var error in result.Errors)
                 ModelState.AddModelError(string.Empty, error.Description);
 

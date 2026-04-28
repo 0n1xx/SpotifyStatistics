@@ -135,9 +135,9 @@ async function savePhone() {
     }
 }
 
-// ── showInlineStatus — создаёт/обновляет inline статус рядом с полем ─────────
-// Переиспользует существующий span по id чтобы не плодить элементы при повторных сохранениях.
-// Сам исчезает через 2.5s через opacity transition.
+// ── showInlineStatus — creates/updates an inline status label next to the field ──
+// Reuses the existing span by id to avoid creating duplicate elements on repeated saves.
+// Fades out automatically after 2.5s via opacity transition.
 function showInlineStatus(inputEl, message, color) {
     let status = document.getElementById('phone-save-status');
     if (!status) {

@@ -58,7 +58,7 @@ builder.Services.AddControllersWithViews();
 builder.Services.AddHttpClient();
 builder.Services.AddDistributedMemoryCache();
 
-// Email sender — Resend API (ключ: Railway → Variables → RESEND_API_KEY)
+// Email sender — Resend API (key: Railway → Variables → RESEND_API_KEY)
 builder.Services.AddTransient<IEmailSender, ResendEmailSender>();
 
 builder.Services.AddSession(options =>

@@ -6,7 +6,7 @@ using Microsoft.AspNetCore.Mvc.RazorPages;
 
 namespace SpotifyStatisticsWebApp.Areas.Identity.Pages.Account
 {
-    // Доступна без логина — показывается после успешного сброса пароля
+    // Accessible without login — shown after a successful password reset
     [AllowAnonymous]
     public class ResetPasswordConfirmationModel : PageModel
     {

@@ -327,7 +327,7 @@
     gap: 8px;
 }
 
-/* Native <dialog> modal — margin:auto центрирует по обеим осям */
+/* Native <dialog> modal — margin:auto centers it on both axes */
 .delete-modal {
     border: 1px solid rgba(231, 76, 60, 0.3);
     border-radius: 16px;
@@ -336,7 +336,7 @@
     max-width: 400px;
     width: 90%;
     color: var(--text);
-    /* Центрирование: без этого браузер рисует dialog в верхнем левом углу */
+    /* Centering: without this the browser renders the dialog in the top-left corner */
     margin: auto;
     position: fixed;
     top: 50%;
