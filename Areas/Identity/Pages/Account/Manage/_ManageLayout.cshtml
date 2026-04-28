@@ -152,9 +152,8 @@
                 @if (!hasSpotify)
                 {
                     @* Not connected — green CTA *@
-                    <a class="nav-item" href="/SpotifyAuth/login"
-                       style="color:#1DB954;border:1px solid rgba(29,185,84,0.2);background:rgba(29,185,84,0.05)">
-                        <svg viewBox="0 0 24 24" fill="#1DB954" style="opacity:1" aria-hidden="true">
+                    <a class="nav-item nav-item--spotify" href="/SpotifyAuth/login">
+                        <svg viewBox="0 0 24 24" fill="#1DB954" class="m-spotify-icon" aria-hidden="true">
                             <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.65 14.4c-.2.3-.6.4-.9.2-2.5-1.53-5.63-1.87-9.33-1.03-.36.08-.72-.15-.8-.5-.08-.36.15-.72.5-.8 4.05-.92 7.52-.53 10.33 1.2.3.18.4.58.2.93zm1.24-2.75c-.25.38-.75.5-1.13.25-2.85-1.75-7.2-2.26-10.57-1.23-.43.13-.9-.1-1.03-.53-.13-.43.1-.9.53-1.03 3.85-1.17 8.63-.6 11.93 1.41.37.23.5.73.27 1.13zm.1-2.86C14.5 8.9 8.68 8.7 5.2 9.73c-.52.16-1.07-.14-1.23-.65-.16-.52.14-1.07.65-1.23 4-.22 10.35.43 14.43 2.85.46.27.62.86.35 1.32-.27.45-.87.6-1.32.34l-.09-.07z" />
                         </svg>
                         Connect Spotify
@@ -164,12 +163,12 @@
                 {
                     @* Connected — read-only status with pulsing dot *@
                     <div class="nav-connected" role="status">
-                        <svg viewBox="0 0 24 24" fill="#1DB954" style="opacity:1" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" fill="#1DB954" class="m-spotify-icon" aria-hidden="true">
                             <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.65 14.4c-.2.3-.6.4-.9.2-2.5-1.53-5.63-1.87-9.33-1.03-.36.08-.72-.15-.8-.5-.08-.36.15-.72.5-.8 4.05-.92 7.52-.53 10.33 1.2.3.18.4.58.2.93zm1.24-2.75c-.25.38-.75.5-1.13.25-2.85-1.75-7.2-2.26-10.57-1.23-.43.13-.9-.1-1.03-.53-.13-.43.1-.9.53-1.03 3.85-1.17 8.63-.6 11.93 1.41.37.23.5.73.27 1.13zm.1-2.86C14.5 8.9 8.68 8.7 5.2 9.73c-.52.16-1.07-.14-1.23-.65-.16-.52.14-1.07.65-1.23 4-.22 10.35.43 14.43 2.85.46.27.62.86.35 1.32-.27.45-.87.6-1.32.34l-.09-.07z" />
                         </svg>
-                        <span style="font-size:13px">Spotify connected</span>
+                        <span class="m-spotify-text">Spotify connected</span>
                         @* Pulse animation defined in app.css @keyframes pulse *@
-                        <div class="pulse-dot" style="margin-left:auto"></div>
+                        <div class="pulse-dot m-pulse-right"></div>
                     </div>
                 }
 
@@ -186,7 +185,7 @@
                 @* Sign out — POST to Identity logout, redirect to landing page *@
                 <form method="post" asp-area="Identity" asp-page="/Account/Logout" asp-route-returnUrl="/">
                     <button type="submit" class="nav-item"
-                            style="width:100%;border:none;background:none;text-align:left;cursor:pointer">
+                            class="m-signout-btn">
                         <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
                             <path d="M17 7l-1.41 1.41L18.17 11H8v2h10.17l-2.58 2.58L17 17l5-5zM4 5h8V3H4c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h8v-2H4V5z" />
                         </svg>

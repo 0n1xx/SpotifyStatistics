@@ -472,3 +472,23 @@ input::placeholder  { color: #444; }
 }
 
 .fp-back:hover { color: var(--text); }
+
+/* ── Forgot/Reset password — full-width right panel ──
+   On these standalone pages there is no left hero column,
+   so the right panel stretches to fill the whole page. */
+.fp-panel {
+    width: 100%;
+}
+
+/* Sign in button on reset confirmation — block + centered */
+.fp-signin-btn {
+    display: block;
+    text-align: center;
+    text-decoration: none;
+}
+
+/* Social button — full width variant (used inside flex:1 form on Login/Register) */
+.btn-social--full { width: 100%; }
+
+/* OAuth form wrapper — flex:1 so both Google and GitHub buttons share equal width */
+.social-form { flex: 1; }

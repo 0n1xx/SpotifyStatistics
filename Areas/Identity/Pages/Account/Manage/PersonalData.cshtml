@@ -5,15 +5,17 @@
     ViewData["ActivePage"] = ManageNavPages.PersonalData;
 }
 
-@* Personal Data page — GDPR download and account deletion *@
+@* Personal Data page — GDPR data export and account deletion *@
 
 <section class="m-section" aria-labelledby="your-data-heading">
     <h2 id="your-data-heading" class="m-section-title">Your data</h2>
     <article class="m-card">
-        <div class="m-row" style="flex-wrap:wrap;">
+        <div class="m-row m-row--wrap">
             <div class="m-row-info">
                 <p class="m-row-label">Download your data</p>
-                <p class="m-row-desc">Export a copy of all personal data we store about your account as a JSON file.</p>
+                <p class="m-row-desc">
+                    Export a copy of all personal data we store about your account as a JSON file.
+                </p>
             </div>
             <div class="m-row-action">
                 <form asp-page="DownloadPersonalData" method="post">
@@ -29,24 +31,25 @@
     </article>
 </section>
 
-@* ── Danger zone — account deletion ── *@
-<section class="m-section" style="animation-delay:0.08s;" aria-labelledby="danger-zone-heading">
+@* Danger zone — account deletion *@
+<section class="m-section m-section--delay" aria-labelledby="danger-zone-heading">
     <h2 id="danger-zone-heading" class="m-section-title">Danger zone</h2>
     <article class="m-card-danger">
         <header class="m-danger-header">
             <p class="m-danger-title">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" style="vertical-align:middle; margin-right:4px;" aria-hidden="true">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"
+                     class="m-icon-inline" aria-hidden="true">
                     <path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z"/>
                 </svg>
                 Irreversible actions
             </p>
         </header>
-        <div class="m-row" style="flex-wrap:wrap;">
+        <div class="m-row m-row--wrap">
             <div class="m-row-info">
-                <p class="m-row-label" style="color:var(--text);">Delete account</p>
+                <p class="m-row-label m-row-label--text">Delete account</p>
                 <p class="m-row-desc">
                     Permanently removes your account and all associated Spotify data.
-                    <strong style="color:var(--text);">This cannot be undone.</strong>
+                    <strong class="m-delete-strong">This cannot be undone.</strong>
                 </p>
             </div>
             <div class="m-row-action">

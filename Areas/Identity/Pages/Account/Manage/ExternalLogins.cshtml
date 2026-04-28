@@ -48,15 +48,15 @@
 
 @if (Model.OtherLogins?.Count > 0)
 {
-    <section class="m-section" style="animation-delay:0.05s;" aria-labelledby="add-account-heading">
+    <section class="m-section m-section--delay-sm" aria-labelledby="add-account-heading">
         <h2 id="add-account-heading" class="m-section-title">Add another account</h2>
         <article class="m-card">
-            <div class="m-row" style="flex-wrap:wrap; gap:12px;">
+            <div class="m-row m-row--gap">
                 <div class="m-row-info">
                     <p class="m-row-label">Link a new provider</p>
                     <p class="m-row-desc">Sign in faster by connecting an additional account.</p>
                 </div>
-                <div class="m-row-action" style="flex-wrap:wrap; gap:8px;">
+                <div class="m-row-action m-row-action--wrap">
                     <form asp-page-handler="LinkLogin" method="post">
                         @foreach (var provider in Model.OtherLogins)
                         {
