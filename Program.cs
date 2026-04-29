@@ -1,11 +1,14 @@
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.UI.Services;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
 using SpotifyStatisticsWebApp.Data;
 using SpotifyStatisticsWebApp.Models;
 using SpotifyStatisticsWebApp.Services;
+using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -53,6 +56,27 @@ builder.Services.AddAuthentication(options =>
 // MVC
 builder.Services.AddRazorPages();
 builder.Services.AddControllersWithViews();
+
+// ── JWT Bearer — used by the iOS app API ──────────────────────────────────
+// Secret is read from JWT_SECRET environment variable (Railway → Variables).
+// The Bearer scheme runs alongside Cookie auth — web pages use cookies,
+// iOS API calls use Bearer tokens. They don't interfere with each other.
+var jwtSecret = builder.Configuration["JWT_SECRET"] ?? "dev-secret-change-in-production";
+builder.Services.AddAuthentication()
+    .AddJwtBearer("Bearer", options =>
+    {
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuer           = true,
+            ValidateAudience         = true,
+            ValidateLifetime         = true,
+            ValidateIssuerSigningKey = true,
+            ValidIssuer              = "statify",
+            ValidAudience            = "statify-ios",
+            IssuerSigningKey         = new SymmetricSecurityKey(
+                Encoding.UTF8.GetBytes(jwtSecret)),
+        };
+    });
 
 // Utils
 builder.Services.AddHttpClient();
@@ -116,6 +140,9 @@ app.UseAuthorization();
 
 // Routes
 app.MapRazorPages();
+
+// Map API controllers — required for ApiController to respond to /api/* routes
+app.MapControllers();
 app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Home}/{action=Index}/{id?}");
