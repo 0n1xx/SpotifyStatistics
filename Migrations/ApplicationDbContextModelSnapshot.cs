@@ -328,6 +328,10 @@ namespace SpotifyStatisticsWebApp.Migrations
                 b.Property<string>("AvatarBase64")
                     .HasColumnType("nvarchar(max)");
 
+                b.Property<string>("DisplayName")
+                    .HasMaxLength(100)
+                    .HasColumnType("nvarchar(100)");
+
                 b.Property<string>("PhoneNumber")
                     .HasMaxLength(20)
                     .HasColumnType("nvarchar(20)");

@@ -156,9 +156,9 @@ html, body {
     margin-bottom: 20px;
 }
 
-/* Large display headline */
+/* Large display headline — DM Sans is more readable than Syne at large sizes */
 .hero-title {
-    font-family: 'Syne', sans-serif;
+    font-family: 'DM Sans', sans-serif;
     font-size: clamp(32px, 3.5vw, 54px);
     font-weight: 800;
     line-height: 1.05;

@@ -30,7 +30,8 @@
                     }
                 </figure>
                 <div class="avatar-info">
-                    <p class="avatar-name">@User.Identity?.Name</p>
+                    @* Show DisplayName if set, otherwise fall back to email *@
+                    <p class="avatar-name">@(Model.DisplayName ?? User.Identity?.Name)</p>
                     <p class="avatar-email">@User.Identity?.Name</p>
                     <div class="avatar-actions">
                         <button class="btn btn-outline" id="upload-avatar-btn"
@@ -51,6 +52,21 @@
     <section class="settings-section" aria-labelledby="account-heading">
         <h2 id="account-heading" class="section-title">Account</h2>
         <article class="setting-card">
+
+            @* Display name — shown in sidebar and profile header, falls back to email *@
+            <div class="setting-row">
+                <div class="setting-info">
+                    <p class="setting-label">Display name</p>
+                    <p class="setting-desc">Shown in your profile and sidebar. Max 50 characters.</p>
+                </div>
+                <div class="setting-actions">
+                    <input class="input-field" type="text" id="username-input"
+                           value="@Model.DisplayName" placeholder="Your name"
+                           maxlength="50" aria-label="Display name">
+                    <button class="btn btn-green" onclick="saveUsername()">Save</button>
+                </div>
+            </div>
+
             <div class="setting-row">
                 <div class="setting-info">
                     <p class="setting-label">Email address</p>

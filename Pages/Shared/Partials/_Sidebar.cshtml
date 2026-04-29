@@ -2,8 +2,11 @@
 @{
     var currentPage = ViewContext.RouteData.Values["page"]?.ToString() ?? "";
     bool spotifyConnected = ViewData["SpotifyConnected"] is bool sc && sc;
-    string userName    = User.Identity?.Name ?? "";
-    string userInitial = userName.Length > 0 ? userName.Substring(0, 1).ToUpper() : "?";
+    string userEmail   = User.Identity?.Name ?? "";
+    string userInitial = userEmail.Length > 0 ? userEmail.Substring(0, 1).ToUpper() : "?";
+
+    // DisplayName set by user in Settings — falls back to email if not set
+    string displayName = ViewData["DisplayName"] as string ?? userEmail;
 
     // Avatar comes from DB (persists across deploys), passed via ViewData["AvatarDataUrl"]
     string? avatarUrl = ViewData["AvatarDataUrl"] as string;
@@ -116,7 +119,7 @@
             }
         </div>
         <div class="user-info">
-            <div class="user-name">@userName</div>
+            <div class="user-name">@displayName</div>
             <div class="user-sub">@(spotifyConnected ? "Spotify connected" : "Spotify not connected")</div>
         </div>
     </a>

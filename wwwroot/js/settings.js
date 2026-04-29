@@ -104,6 +104,48 @@ function saveEmail() {
     alert('Email update coming soon: ' + email);
 }
 
+// ── Save username (display name) ──────────────────────────────
+// Posts to ?handler=SaveUsername and shows inline status feedback.
+// Client-side max length check mirrors the 50-char server limit.
+async function saveUsername() {
+    const input = document.getElementById('username-input');
+    const username = input.value.trim();
+    const token   = document.querySelector('input[name="__RequestVerificationToken"]')?.value;
+    const btn     = input.closest('.setting-actions')?.querySelector('.btn-green');
+
+    if (username.length > 50) {
+        showInlineStatus(input, 'Max 50 characters', '#e74c3c');
+        return;
+    }
+
+    if (btn) { btn.disabled = true; btn.textContent = 'Saving…'; }
+
+    try {
+        const res = await fetch('?handler=SaveUsername', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'RequestVerificationToken': token ?? ''
+            },
+            body: `username=${encodeURIComponent(username)}`
+        });
+        const json = await res.json();
+        if (json.success) {
+            showInlineStatus(input, '✓ Saved', 'var(--green)');
+
+            // Update sidebar display name if element exists
+            const sidebarName = document.querySelector('.avatar-name');
+            if (sidebarName) sidebarName.textContent = username || sidebarName.textContent;
+        } else {
+            showInlineStatus(input, json.error ?? 'Failed to save', '#e74c3c');
+        }
+    } catch {
+        showInlineStatus(input, 'Network error', '#e74c3c');
+    } finally {
+        if (btn) { btn.disabled = false; btn.textContent = 'Save'; }
+    }
+}
+
 // ── Save phone ────────────────────────────────────────────────
 async function savePhone() {
     const phoneInput = document.getElementById('phone-input');

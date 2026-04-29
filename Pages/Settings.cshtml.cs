@@ -22,6 +22,7 @@ namespace SpotifyStatisticsWebApp.Pages
         public bool GitHubConnected { get; set; }
         public string? AvatarDataUrl { get; set; }
         public string? PhoneNumber { get; set; }
+        public string? DisplayName { get; set; }
 
         public SettingsModel(IConfiguration config, ApplicationDbContext db,
             UserManager<IdentityUser> userManager, SignInManager<IdentityUser> signInManager)
@@ -41,7 +42,9 @@ namespace SpotifyStatisticsWebApp.Pages
             var profile = await _db.UserProfiles.FirstOrDefaultAsync(p => p.UserId == userId);
             AvatarDataUrl = profile?.AvatarBase64;
             PhoneNumber   = profile?.PhoneNumber;
+            DisplayName   = profile?.DisplayName;
             ViewData["AvatarDataUrl"] = AvatarDataUrl;
+            ViewData["DisplayName"]   = DisplayName;
 
             using var conn = new SqlConnection(connStr);
             await conn.OpenAsync();
@@ -99,6 +102,28 @@ namespace SpotifyStatisticsWebApp.Pages
                 _db.UserProfiles.Add(new UserProfile { UserId = userId, PhoneNumber = phone });
             else
                 profile.PhoneNumber = phone;
+
+            await _db.SaveChangesAsync();
+            return new JsonResult(new { success = true });
+        }
+
+        // ── SaveUsername handler ──────────────────────────────────────────────────
+        // Saves the user-chosen display name to UserProfiles.
+        // Max 50 chars — validated here and in JS before the request is made.
+        public async Task<IActionResult> OnPostSaveUsernameAsync(string username)
+        {
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
+
+            // Trim and enforce max length server-side
+            username = (username ?? "").Trim();
+            if (username.Length > 50)
+                return new JsonResult(new { success = false, error = "Max 50 characters" });
+
+            var profile = await _db.UserProfiles.FirstOrDefaultAsync(p => p.UserId == userId);
+            if (profile == null)
+                _db.UserProfiles.Add(new UserProfile { UserId = userId, DisplayName = username });
+            else
+                profile.DisplayName = username;
 
             await _db.SaveChangesAsync();
             return new JsonResult(new { success = true });

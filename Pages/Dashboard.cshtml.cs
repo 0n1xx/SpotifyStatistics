@@ -40,6 +40,7 @@ namespace SpotifyStatisticsWebApp.Pages
             // Avatar from DB for sidebar
             var profile = await _db.UserProfiles.FirstOrDefaultAsync(p => p.UserId == userId);
             ViewData["AvatarDataUrl"] = profile?.AvatarBase64;
+            ViewData["DisplayName"]   = profile?.DisplayName;
 
             // Check Spotify connection
             var spotifyConn = _config.GetConnectionString("DefaultConnection");
