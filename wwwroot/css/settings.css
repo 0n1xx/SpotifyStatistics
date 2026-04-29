@@ -67,13 +67,22 @@
     margin-left: auto;
 }
 
-/* Action group — wraps buttons/inputs on the right side of a setting row */
+/* Action group — wraps buttons/inputs on the right side of a setting row.
+   align-items:center keeps the Save button vertically centred next to the input
+   regardless of the input's computed height. */
 .setting-actions {
     display: flex;
     align-items: center;
     gap: 10px;
     flex-shrink: 0;
     margin-left: auto;
+}
+
+/* Ensure all inputs inside .setting-actions share the same height so the
+   adjacent Save button always sits on the same baseline */
+.setting-actions .input-field {
+    height: 42px;
+    box-sizing: border-box;
 }
 
 .setting-row:last-child { border-bottom: none; }
