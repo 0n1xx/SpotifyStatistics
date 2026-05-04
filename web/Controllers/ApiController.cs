@@ -425,7 +425,7 @@ namespace SpotifyStatisticsWebApp.Controllers
                     artist   = reader.IsDBNull(1) ? "" : reader.GetString(1),
                     album    = reader.IsDBNull(2) ? "" : reader.GetString(2),
                     country  = reader.IsDBNull(3) ? "" : reader.GetString(3),
-                    playedAt = reader.IsDBNull(4) ? "" : reader.GetDateTime(4).ToString("o"),
+                    playedAt = reader.IsDBNull(4) ? "" : reader.GetDateTimeOffset(4).ToString("o"),
                 });
 
             return Ok(new
