@@ -7,43 +7,24 @@
 
 import SwiftUI
 
-import SwiftUI
-
 struct ContentView: View {
+
+    @State private var authManager = AuthManager()
+
     var body: some View {
-        ZStack {
-            Color.appBackground.ignoresSafeArea()
-
-            VStack(spacing: 24) {
-
-                // Title
-                Text("Statify")
-                    .font(.syne(32, weight: .bold))
+        Group {
+            if authManager.isLoggedIn {
+                Text("Welcome, \(authManager.currentUser?.email ?? "")!")
                     .foregroundColor(.appAccent)
-
-                // Card example
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("Top Track")
-                        .sectionHeader()
-                    Text("Middle of the Ocean. — Drake")
-                        .font(.dmSans(15))
-                        .foregroundColor(.appTextSecondary)
-                }
-                .padding(16)
-                .cardStyle()
-
-                // Button examples
-                Button("Connect Spotify") {}
-                    .buttonStyle(PrimaryButtonStyle())
-
-                Button("Sign in with Google") {}
-                    .buttonStyle(SecondaryButtonStyle())
+                    .font(.syne(24, weight: .bold))
+            } else {
+                LoginView()
             }
-            .padding(24)
         }
+        .environment(authManager)
+        .preferredColorScheme(.dark)
     }
 }
-
 #Preview {
     ContentView()
 }
