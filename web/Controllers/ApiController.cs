@@ -156,6 +156,51 @@ namespace SpotifyStatisticsWebApp.Controllers
             });
         }
 
+        // <summary>
+        // POST /api/auth/register
+        // Creates a new account and returns a JWT token immediately.
+        // Request body: { "email": "...", "password": "..." }
+        // Response:     { "token": "...", "expiresAt": "...", "email": "..." }
+        // </summary>
+        [HttpPost("auth/register")]
+        [AllowAnonymous]
+        public async Task<IActionResult> Register([FromBody] LoginRequest req)
+        {
+            if (string.IsNullOrWhiteSpace(req.Email) || string.IsNullOrWhiteSpace(req.Password))
+                return BadRequest(new { error = "Email and password are required" });
+        
+            // Check if email already exists
+            var existing = await _userManager.FindByEmailAsync(req.Email);
+            if (existing != null)
+                return Conflict(new { error = "An account with this email already exists" });
+        
+            // Create the new user
+            var user = new IdentityUser
+            {
+                UserName = req.Email,
+                Email = req.Email,
+                EmailConfirmed = true
+            };
+        
+            var result = await _userManager.CreateAsync(user, req.Password);
+            if (!result.Succeeded)
+            {
+                var errors = result.Errors.Select(e => e.Description);
+                return BadRequest(new { error = string.Join(" ", errors) });
+            }
+        
+            // Generate JWT immediately so user is logged in after registration
+            var token   = GenerateJwt(user);
+            var expires = DateTime.UtcNow.AddDays(30);
+        
+            return Ok(new
+            {
+                token,
+                expiresAt = expires.ToString("o"),
+                email     = user.Email,
+            });
+        }
+
         // ══════════════════════════════════════════════════════════════════════
         // PROFILE
         // ══════════════════════════════════════════════════════════════════════
