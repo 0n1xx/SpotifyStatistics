@@ -8,15 +8,12 @@
 import SwiftUI
 
 struct ContentView: View {
-
     @State private var authManager = AuthManager()
 
     var body: some View {
         Group {
             if authManager.isLoggedIn {
-                Text("Welcome, \(authManager.currentUser?.email ?? "")!")
-                    .foregroundColor(.appAccent)
-                    .font(.syne(24, weight: .bold))
+                MainTabView()
             } else {
                 LoginView()
             }
