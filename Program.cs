@@ -101,7 +101,41 @@ var app = builder.Build();
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-    db.Database.Migrate();
+    var retries = 10;
+    while (retries-- > 0)
+    {
+        try
+        {
+            db.Database.Migrate();
+            break;
+        }
+        catch (Exception ex) when (ex.Message.Contains("already an object") || ex.Message.Contains("already exists"))
+        {
+            // Tables exist but migrations table is empty - just insert migration records
+            db.Database.ExecuteSqlRaw(@"
+                IF NOT EXISTS (SELECT 1 FROM [__EFMigrationsHistory] WHERE [MigrationId] = '00000000000000_CreateIdentitySchema')
+                    INSERT INTO [__EFMigrationsHistory] VALUES ('00000000000000_CreateIdentitySchema', '9.0.0');
+                IF NOT EXISTS (SELECT 1 FROM [__EFMigrationsHistory] WHERE [MigrationId] = '20260321185315_InitialCreate')
+                    INSERT INTO [__EFMigrationsHistory] VALUES ('20260321185315_InitialCreate', '9.0.0');
+                IF NOT EXISTS (SELECT 1 FROM [__EFMigrationsHistory] WHERE [MigrationId] = '20260321191243_AddSpotifyTokens')
+                    INSERT INTO [__EFMigrationsHistory] VALUES ('20260321191243_AddSpotifyTokens', '9.0.0');
+                IF NOT EXISTS (SELECT 1 FROM [__EFMigrationsHistory] WHERE [MigrationId] = '20260424005330_InitialCreate')
+                    INSERT INTO [__EFMigrationsHistory] VALUES ('20260424005330_InitialCreate', '9.0.0');
+                IF NOT EXISTS (SELECT 1 FROM [__EFMigrationsHistory] WHERE [MigrationId] = '20260424011043_DataProtectionKeys')
+                    INSERT INTO [__EFMigrationsHistory] VALUES ('20260424011043_DataProtectionKeys', '9.0.0');
+                IF NOT EXISTS (SELECT 1 FROM [__EFMigrationsHistory] WHERE [MigrationId] = '20260427000000_AddUserProfiles')
+                    INSERT INTO [__EFMigrationsHistory] VALUES ('20260427000000_AddUserProfiles', '9.0.0');
+                IF NOT EXISTS (SELECT 1 FROM [__EFMigrationsHistory] WHERE [MigrationId] = '20260428000000_AddDisplayName')
+                    INSERT INTO [__EFMigrationsHistory] VALUES ('20260428000000_AddDisplayName', '9.0.0');
+            ");
+            break;
+        }
+        catch (Exception)
+        {
+            if (retries == 0) throw;
+            Thread.Sleep(3000);
+        }
+    }
 }
 
 // Forwarded headers 
