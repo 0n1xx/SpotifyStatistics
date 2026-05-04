@@ -8,7 +8,12 @@
 import Foundation
 import Observation
 
+// @MainActor guarantees all property mutations happen on the main thread,
+// which is required for @Observable classes used by SwiftUI.
+// Without this, setting errorMessage/tracks from an async context causes
+// a runtime warning in iOS 17+ and a crash in strict concurrency (iOS 18/Swift 6).
 @Observable
+@MainActor
 final class RecentlyPlayedViewModel {
 
     var tracks: [TrackHistory] = []
@@ -21,10 +26,15 @@ final class RecentlyPlayedViewModel {
     private var hasNextPage: Bool = true
 
     // MARK: - Initial Load
+    // Called on first appear and on pull-to-refresh.
+    // Resets all state so the UI starts fresh on each full reload.
     func load() async {
-        isLoading = true
+        // Reset state before starting — this ensures a clean slate on retry
         errorMessage = nil
+        tracks = []
         currentPage = 1
+        hasNextPage = true
+        isLoading = true
         defer { isLoading = false }
 
         do {

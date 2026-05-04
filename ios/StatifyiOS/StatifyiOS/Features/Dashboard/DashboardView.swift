@@ -204,7 +204,7 @@ struct DashboardView: View {
             Chart {
                 ForEach(Array(viewModel.timeOfDay.enumerated()), id: \.offset) { hour, count in
                     BarMark(
-                        x: .value("Hour", "\(hour)"),
+                        x: .value("Hour", hour),
                         y: .value("Plays", count)
                     )
                     .foregroundStyle(Color.appAccent)
@@ -212,13 +212,16 @@ struct DashboardView: View {
                 }
             }
             .frame(height: 160)
+            .chartXScale(domain: 0...23)
             .chartXAxis {
                 AxisMarks(values: [0, 6, 12, 18, 23]) { value in
+                    AxisGridLine(stroke: StrokeStyle(lineWidth: 0.3))
+                        .foregroundStyle(Color.appBorder)
                     AxisValueLabel {
-                        if let h = value.as(String.self) {
-                            Text(h)
+                        if let h = value.as(Int.self) {
+                            Text(hourLabel(h))
                                 .font(.dmSans(10))
-                                .foregroundColor(.appTextSecondary)
+                                .foregroundStyle(Color.appTextSecondary)
                         }
                     }
                 }
@@ -234,34 +237,43 @@ struct DashboardView: View {
         }
     }
 
+    private func hourLabel(_ hour: Int) -> String {
+        switch hour {
+        case 0:  return "12am"
+        case 6:  return "6am"
+        case 12: return "12pm"
+        case 18: return "6pm"
+        case 23: return "11pm"
+        default: return "\(hour)"
+        }
+    }
+
     // MARK: - Activity Chart
     private var activityChart: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("Activity by Month").sectionHeader()
 
             Chart(viewModel.activity) { month in
-                LineMark(
+                // BarMark works with any number of data points (1, 2, N).
+                // LineMark+AreaMark with .catmullRom is invisible for a single point —
+                // that's why the chart appeared empty when the user only has data for Apr 2026.
+                BarMark(
                     x: .value("Month", month.month),
                     y: .value("Plays", month.count)
                 )
                 .foregroundStyle(Color.appAccent)
-                .interpolationMethod(.catmullRom)
-
-                AreaMark(
-                    x: .value("Month", month.month),
-                    y: .value("Plays", month.count)
-                )
-                .foregroundStyle(
-                    LinearGradient(
-                        colors: [Color.appAccent.opacity(0.3), Color.clear],
-                        startPoint: .top,
-                        endPoint: .bottom
-                    )
-                )
-                .interpolationMethod(.catmullRom)
+                .cornerRadius(3)
             }
+            .chartXScale(range: .plotDimension(padding: 8))
             .frame(height: 160)
-            .chartXAxis(.hidden)
+            .chartXAxis {
+                // Show every month label, rotated so they don't overlap
+                AxisMarks { value in
+                    AxisValueLabel(orientation: .verticalReversed)
+                        .font(.dmSans(10))
+                        .foregroundStyle(Color.appTextSecondary)
+                }
+            }
             .chartYAxis(.hidden)
             .padding(16)
             .background(Color.appCard)

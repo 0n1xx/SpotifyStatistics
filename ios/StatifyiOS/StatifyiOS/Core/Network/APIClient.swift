@@ -105,6 +105,12 @@ final class APIClient {
 
         // Inspect the HTTP status code
         if let httpResponse = response as? HTTPURLResponse {
+            // DEBUG — remove before release
+            print("🌐 [\(httpResponse.statusCode)] \(urlRequest.url?.path ?? "")")
+            if let raw = String(data: data, encoding: .utf8) {
+                print("📦 RAW JSON: \(raw.prefix(500))")
+            }
+
             switch httpResponse.statusCode {
             case 200...299:
                 // Success — continue to decoding
@@ -118,13 +124,13 @@ final class APIClient {
         }
 
         // Decode the raw JSON bytes into our Swift model.
-        // convertFromSnakeCase automatically maps snake_case keys to camelCase.
-        // Example: "played_at" → playedAt
+        // No keyDecodingStrategy — C# System.Text.Json outputs camelCase by default.
         do {
             let decoder = JSONDecoder()
-            decoder.keyDecodingStrategy = .convertFromSnakeCase
             return try decoder.decode(T.self, from: data)
         } catch {
+            // DEBUG — remove before release
+            print("❌ DECODE ERROR for \(T.self): \(error)")
             throw APIError.decodingFailed
         }
     }

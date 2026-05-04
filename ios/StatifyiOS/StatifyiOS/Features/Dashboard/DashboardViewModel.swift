@@ -11,7 +11,10 @@ import Observation
 // MARK: - DashboardViewModel
 // Fetches and holds all data for the Dashboard screen.
 // @Observable means SwiftUI will re-render DashboardView when any var changes.
+// @MainActor guarantees all property mutations happen on the main thread,
+// which is required for @Observable classes used by SwiftUI.
 @Observable
+@MainActor
 final class DashboardViewModel {
 
     // MARK: - State
