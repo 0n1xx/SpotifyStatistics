@@ -66,17 +66,19 @@ final class AuthManager {
             KeychainManager.shared.saveToken(response.token)
 
             // Store the user so screens can access their name, email etc.
-            currentUser = response.user
+            currentUser = User(id: "", email: response.email, displayName: nil)
 
             // This triggers ContentView to switch to MainTabView
             isLoggedIn = true
 
-        } catch APIError.unauthorized {
-            errorMessage = "Incorrect email or password."
         } catch APIError.serverError(let code) {
-            errorMessage = "Server error (\(code)). Please try again."
+            errorMessage = "Server error: \(code)"
+        } catch APIError.decodingFailed {
+            errorMessage = "Decoding failed"
+        } catch APIError.unauthorized {
+            errorMessage = "Unauthorized"
         } catch {
-            errorMessage = "Something went wrong. Check your connection."
+            errorMessage = "Error: \(error.localizedDescription)"
         }
     }
 
@@ -97,7 +99,7 @@ final class AuthManager {
             )
 
             KeychainManager.shared.saveToken(response.token)
-            currentUser = response.user
+            currentUser = User(id: "", email: response.email, displayName: nil)
             isLoggedIn = true
 
         } catch APIError.serverError(409) {
@@ -137,7 +139,8 @@ struct RegisterRequest: Encodable {
 
 struct AuthResponse: Decodable {
     let token: String
-    let user: User
+    let expiresAt: String
+    let email: String
 }
 
 // MARK: - User Model
