@@ -7,13 +7,39 @@
 
 import SwiftUI
 
+import SwiftUI
+
 struct ContentView: View {
     var body: some View {
         ZStack {
             Color.appBackground.ignoresSafeArea()
-            Text("Statify")
-                .font(.syne(32, weight: .bold))
-                .foregroundColor(.appAccent)
+
+            VStack(spacing: 24) {
+
+                // Title
+                Text("Statify")
+                    .font(.syne(32, weight: .bold))
+                    .foregroundColor(.appAccent)
+
+                // Card example
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Top Track")
+                        .sectionHeader()
+                    Text("HUMBLE. — Kendrick Lamar")
+                        .font(.dmSans(15))
+                        .foregroundColor(.appTextSecondary)
+                }
+                .padding(16)
+                .cardStyle()
+
+                // Button examples
+                Button("Connect Spotify") {}
+                    .buttonStyle(PrimaryButtonStyle())
+
+                Button("Sign in with Google") {}
+                    .buttonStyle(SecondaryButtonStyle())
+            }
+            .padding(24)
         }
     }
 }
