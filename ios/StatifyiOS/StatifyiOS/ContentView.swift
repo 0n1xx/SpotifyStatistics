@@ -25,7 +25,7 @@ struct ContentView: View {
                 VStack(alignment: .leading, spacing: 8) {
                     Text("Top Track")
                         .sectionHeader()
-                    Text("HUMBLE. — Kendrick Lamar")
+                    Text("Middle of the Ocean. — Drake")
                         .font(.dmSans(15))
                         .foregroundColor(.appTextSecondary)
                 }
