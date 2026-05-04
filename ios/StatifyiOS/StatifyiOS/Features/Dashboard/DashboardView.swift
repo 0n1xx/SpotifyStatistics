@@ -170,7 +170,8 @@ struct DashboardView: View {
                             Text(item.primary)
                                 .font(.dmSans(15, weight: .bold))
                                 .foregroundColor(.appTextPrimary)
-                                .lineLimit(1)
+                                .lineLimit(2)       // Long feat. titles wrap instead of truncating
+                                .fixedSize(horizontal: false, vertical: true)
                             Text(item.secondary)
                                 .font(.dmSans(13))
                                 .foregroundColor(.appTextSecondary)

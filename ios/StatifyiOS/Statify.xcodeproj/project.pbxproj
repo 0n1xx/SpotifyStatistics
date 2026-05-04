@@ -7,16 +7,16 @@
 	objects = {
 
 /* Begin PBXFileReference section */
-		FED05C3B2FA8506400FE1209 /* StatifyiOS.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = StatifyiOS.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		FED05C3B2FA8506400FE1209 /* Statify.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Statify.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
-		FED05C692FA9258900FE1209 /* Exceptions for "StatifyiOS" folder in "StatifyiOS" target */ = {
+		FED05C692FA9258900FE1209 /* Exceptions for "StatifyiOS" folder in "Statify" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				Info.plist,
 			);
-			target = FED05C3A2FA8506400FE1209 /* StatifyiOS */;
+			target = FED05C3A2FA8506400FE1209 /* Statify */;
 		};
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
@@ -24,7 +24,7 @@
 		FED05C3D2FA8506400FE1209 /* StatifyiOS */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
-				FED05C692FA9258900FE1209 /* Exceptions for "StatifyiOS" folder in "StatifyiOS" target */,
+				FED05C692FA9258900FE1209 /* Exceptions for "StatifyiOS" folder in "Statify" target */,
 			);
 			path = StatifyiOS;
 			sourceTree = "<group>";
@@ -53,7 +53,7 @@
 		FED05C3C2FA8506400FE1209 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				FED05C3B2FA8506400FE1209 /* StatifyiOS.app */,
+				FED05C3B2FA8506400FE1209 /* Statify.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -61,9 +61,9 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		FED05C3A2FA8506400FE1209 /* StatifyiOS */ = {
+		FED05C3A2FA8506400FE1209 /* Statify */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = FED05C462FA8506600FE1209 /* Build configuration list for PBXNativeTarget "StatifyiOS" */;
+			buildConfigurationList = FED05C462FA8506600FE1209 /* Build configuration list for PBXNativeTarget "Statify" */;
 			buildPhases = (
 				FED05C372FA8506400FE1209 /* Sources */,
 				FED05C382FA8506400FE1209 /* Frameworks */,
@@ -76,11 +76,11 @@
 			fileSystemSynchronizedGroups = (
 				FED05C3D2FA8506400FE1209 /* StatifyiOS */,
 			);
-			name = StatifyiOS;
+			name = Statify;
 			packageProductDependencies = (
 			);
 			productName = StatifyiOS;
-			productReference = FED05C3B2FA8506400FE1209 /* StatifyiOS.app */;
+			productReference = FED05C3B2FA8506400FE1209 /* Statify.app */;
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
@@ -98,7 +98,7 @@
 					};
 				};
 			};
-			buildConfigurationList = FED05C362FA8506400FE1209 /* Build configuration list for PBXProject "StatifyiOS" */;
+			buildConfigurationList = FED05C362FA8506400FE1209 /* Build configuration list for PBXProject "Statify" */;
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
 			knownRegions = (
@@ -112,7 +112,7 @@
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				FED05C3A2FA8506400FE1209 /* StatifyiOS */,
+				FED05C3A2FA8506400FE1209 /* Statify */,
 			);
 		};
 /* End PBXProject section */
@@ -330,7 +330,7 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		FED05C362FA8506400FE1209 /* Build configuration list for PBXProject "StatifyiOS" */ = {
+		FED05C362FA8506400FE1209 /* Build configuration list for PBXProject "Statify" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				FED05C442FA8506600FE1209 /* Debug */,
@@ -339,7 +339,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		FED05C462FA8506600FE1209 /* Build configuration list for PBXNativeTarget "StatifyiOS" */ = {
+		FED05C462FA8506600FE1209 /* Build configuration list for PBXNativeTarget "Statify" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				FED05C472FA8506600FE1209 /* Debug */,

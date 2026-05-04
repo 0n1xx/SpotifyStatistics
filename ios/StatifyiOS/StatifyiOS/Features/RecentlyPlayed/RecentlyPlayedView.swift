@@ -98,33 +98,26 @@ struct TrackRow: View {
                     .foregroundColor(.appAccent)
             }
 
-            // Song info
+            // Song info — takes full remaining width, date sits below artist
             VStack(alignment: .leading, spacing: 3) {
                 Text(track.song)
                     .font(.dmSans(15, weight: .bold))
                     .foregroundColor(.appTextPrimary)
-                    .lineLimit(1)
+                    // No lineLimit — title always shows in full, row grows vertically
+                    .fixedSize(horizontal: false, vertical: true)
 
                 Text(track.artist)
                     .font(.dmSans(13))
                     .foregroundColor(.appTextSecondary)
                     .lineLimit(1)
-            }
 
-            Spacer()
-
-            // Date + country flag
-            VStack(alignment: .trailing, spacing: 3) {
+                // Date moved here so it never competes with the title for horizontal space
                 Text(track.formattedDate)
                     .font(.dmSans(11))
                     .foregroundColor(.appTextSecondary)
-
-                if !track.country.isEmpty && track.country != "unknown" {
-                    Text(track.country)
-                        .font(.dmSans(11))
-                        .foregroundColor(.appTextSecondary)
-                }
             }
+
+            Spacer(minLength: 0)
         }
         .padding(12)
         .background(Color.appCard)
