@@ -76,16 +76,6 @@ struct DashboardView: View {
                                     }
                                 )
                             }
-
-                            // MARK: Listening by Hour
-                            if !viewModel.timeOfDay.isEmpty {
-                                timeOfDayChart
-                            }
-
-                            // MARK: Activity by Month
-                            if !viewModel.activity.isEmpty {
-                                activityChart
-                            }
                         }
                         .padding(16)
                     }
@@ -170,7 +160,7 @@ struct DashboardView: View {
                             Text(item.primary)
                                 .font(.dmSans(15, weight: .bold))
                                 .foregroundColor(.appTextPrimary)
-                                .lineLimit(2)       // Long feat. titles wrap instead of truncating
+                                .lineLimit(2)
                                 .fixedSize(horizontal: false, vertical: true)
                             Text(item.secondary)
                                 .font(.dmSans(13))
@@ -196,99 +186,9 @@ struct DashboardView: View {
             )
         }
     }
-
-    // MARK: - Time of Day Chart
-    private var timeOfDayChart: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("Listening by Hour").sectionHeader()
-
-            Chart {
-                ForEach(Array(viewModel.timeOfDay.enumerated()), id: \.offset) { hour, count in
-                    BarMark(
-                        x: .value("Hour", hour),
-                        y: .value("Plays", count)
-                    )
-                    .foregroundStyle(Color.appAccent)
-                    .cornerRadius(3)
-                }
-            }
-            .frame(height: 160)
-            .chartXScale(domain: 0...23)
-            .chartXAxis {
-                AxisMarks(values: [0, 6, 12, 18, 23]) { value in
-                    AxisGridLine(stroke: StrokeStyle(lineWidth: 0.3))
-                        .foregroundStyle(Color.appBorder)
-                    AxisValueLabel {
-                        if let h = value.as(Int.self) {
-                            Text(hourLabel(h))
-                                .font(.dmSans(10))
-                                .foregroundStyle(Color.appTextSecondary)
-                        }
-                    }
-                }
-            }
-            .chartYAxis(.hidden)
-            .padding(16)
-            .background(Color.appCard)
-            .cornerRadius(12)
-            .overlay(
-                RoundedRectangle(cornerRadius: 12)
-                    .stroke(Color.appBorder, lineWidth: 1)
-            )
-        }
-    }
-
-    private func hourLabel(_ hour: Int) -> String {
-        switch hour {
-        case 0:  return "12am"
-        case 6:  return "6am"
-        case 12: return "12pm"
-        case 18: return "6pm"
-        case 23: return "11pm"
-        default: return "\(hour)"
-        }
-    }
-
-    // MARK: - Activity Chart
-    private var activityChart: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("Activity by Month").sectionHeader()
-
-            Chart(viewModel.activity) { month in
-                // BarMark works with any number of data points (1, 2, N).
-                // LineMark+AreaMark with .catmullRom is invisible for a single point —
-                // that's why the chart appeared empty when the user only has data for Apr 2026.
-                BarMark(
-                    x: .value("Month", month.month),
-                    y: .value("Plays", month.count)
-                )
-                .foregroundStyle(Color.appAccent)
-                .cornerRadius(3)
-            }
-            .chartXScale(range: .plotDimension(padding: 8))
-            .frame(height: 160)
-            .chartXAxis {
-                // Show every month label, rotated so they don't overlap
-                AxisMarks { value in
-                    AxisValueLabel(orientation: .verticalReversed)
-                        .font(.dmSans(10))
-                        .foregroundStyle(Color.appTextSecondary)
-                }
-            }
-            .chartYAxis(.hidden)
-            .padding(16)
-            .background(Color.appCard)
-            .cornerRadius(12)
-            .overlay(
-                RoundedRectangle(cornerRadius: 12)
-                    .stroke(Color.appBorder, lineWidth: 1)
-            )
-        }
-    }
 }
 
 // MARK: - Stat Card
-// Reusable summary card for the 2x2 grid at the top of Dashboard
 struct StatCard: View {
     let title: String
     let value: String
