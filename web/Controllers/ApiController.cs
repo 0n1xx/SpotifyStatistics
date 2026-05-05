@@ -236,6 +236,7 @@ namespace SpotifyStatisticsWebApp.Controllers
 
         public record UpdateProfileRequest(string? DisplayName);
         public record UpdatePhoneRequest(string? PhoneNumber);
+        public record UpdateAvatarRequest(string? AvatarBase64);
 
         /// <summary>
         /// PUT /api/settings/profile
@@ -284,6 +285,28 @@ namespace SpotifyStatisticsWebApp.Controllers
             return Ok(new { phoneNumber = profile.PhoneNumber });
         }
 
+
+        /// <summary>
+        /// PUT /api/settings/avatar
+        /// Saves a base64-encoded avatar image.
+        /// Request body: { "avatarBase64": "data:image/jpeg;base64,..." }
+        /// </summary>
+        [HttpPut("settings/avatar")]
+        [Authorize(AuthenticationSchemes = "Bearer")]
+        public async Task<IActionResult> UpdateAvatar([FromBody] UpdateAvatarRequest req)
+        {
+            var userId = UserId;
+            var profile = await _db.UserProfiles.FirstOrDefaultAsync(p => p.UserId == userId);
+            if (profile == null)
+            {
+                profile = new UserProfile { UserId = userId };
+                _db.UserProfiles.Add(profile);
+            }
+
+            profile.AvatarBase64 = req.AvatarBase64;
+            await _db.SaveChangesAsync();
+            return Ok(new { ok = true });
+        }
         // ══════════════════════════════════════════════════════════════════════
         // DASHBOARD STATS
         // ══════════════════════════════════════════════════════════════════════
