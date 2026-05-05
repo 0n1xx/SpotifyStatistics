@@ -231,6 +231,60 @@ namespace SpotifyStatisticsWebApp.Controllers
         }
 
         // ══════════════════════════════════════════════════════════════════════
+        // SETTINGS — update profile fields from iOS app
+        // ══════════════════════════════════════════════════════════════════════
+
+        public record UpdateProfileRequest(string? DisplayName);
+        public record UpdatePhoneRequest(string? PhoneNumber);
+
+        /// <summary>
+        /// PUT /api/settings/profile
+        /// Updates the user's display name.
+        /// Request body: { "displayName": "..." }
+        /// </summary>
+        [HttpPut("settings/profile")]
+        [Authorize(AuthenticationSchemes = "Bearer")]
+        public async Task<IActionResult> UpdateProfile([FromBody] UpdateProfileRequest req)
+        {
+            if (req.DisplayName != null && req.DisplayName.Length > 100)
+                return BadRequest(new { error = "Display name must be 100 characters or fewer." });
+
+            var userId = UserId;
+            var profile = await _db.UserProfiles.FirstOrDefaultAsync(p => p.UserId == userId);
+            if (profile == null)
+            {
+                profile = new UserProfile { UserId = userId };
+                _db.UserProfiles.Add(profile);
+            }
+
+            profile.DisplayName = req.DisplayName?.Trim();
+            await _db.SaveChangesAsync();
+            return Ok(new { displayName = profile.DisplayName });
+        }
+
+        /// <summary>
+        /// PUT /api/settings/phone
+        /// Updates the user's phone number.
+        /// Request body: { "phoneNumber": "..." }
+        /// </summary>
+        [HttpPut("settings/phone")]
+        [Authorize(AuthenticationSchemes = "Bearer")]
+        public async Task<IActionResult> UpdatePhone([FromBody] UpdatePhoneRequest req)
+        {
+            var userId = UserId;
+            var profile = await _db.UserProfiles.FirstOrDefaultAsync(p => p.UserId == userId);
+            if (profile == null)
+            {
+                profile = new UserProfile { UserId = userId };
+                _db.UserProfiles.Add(profile);
+            }
+
+            profile.PhoneNumber = req.PhoneNumber?.Trim();
+            await _db.SaveChangesAsync();
+            return Ok(new { phoneNumber = profile.PhoneNumber });
+        }
+
+        // ══════════════════════════════════════════════════════════════════════
         // DASHBOARD STATS
         // ══════════════════════════════════════════════════════════════════════
 
