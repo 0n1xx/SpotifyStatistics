@@ -91,10 +91,33 @@ struct SettingsView: View {
         // Triggered when user picks a photo from the library
         .onChange(of: selectedPhoto) {
             Task {
-                if let data = try? await selectedPhoto?.loadTransferable(type: Data.self),
-                   let image = UIImage(data: data) {
-                    avatarImage = image
-                    // TODO: Upload to PUT /api/settings/avatar
+                guard let data = try? await selectedPhoto?.loadTransferable(type: Data.self),
+                      let image = UIImage(data: data) else { return }
+
+                // Resize to max 512px to keep the base64 payload small
+                let size   = image.size
+                let scale  = min(512 / size.width, 512 / size.height, 1)
+                let target = CGSize(width: size.width * scale, height: size.height * scale)
+                let renderer = UIGraphicsImageRenderer(size: target)
+                let resized  = renderer.image { _ in image.draw(in: CGRect(origin: .zero, size: target)) }
+
+                // Convert to JPEG base64 data URL
+                guard let jpeg = resized.jpegData(compressionQuality: 0.7) else { return }
+                let dataURL = "data:image/jpeg;base64," + jpeg.base64EncodedString()
+
+                avatarImage = resized
+
+                // Upload to backend
+                do {
+                    struct Body: Encodable { let avatarBase64: String }
+                    struct Resp: Decodable { let ok: Bool }
+                    let _: Resp = try await APIClient.shared.put(
+                        path: "/api/settings/avatar",
+                        body: Body(avatarBase64: dataURL)
+                    )
+                    saveStatus = "Photo saved!"
+                } catch {
+                    saveStatus = "Upload failed"
                 }
             }
         }
