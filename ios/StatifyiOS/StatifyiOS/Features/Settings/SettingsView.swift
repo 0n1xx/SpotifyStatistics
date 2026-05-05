@@ -32,6 +32,9 @@ struct SettingsView: View {
     @State private var selectedPhoto: PhotosPickerItem? = nil
     @State private var avatarImage: UIImage? = nil          // Selected avatar image
     @State private var saveStatus: String? = nil            // "Saved!" feedback message
+    @State private var isSaving: Bool = false               // Prevents double-tap while saving
+    @State private var showOAuthAlert: Bool = false         // Web-only OAuth info alert
+    @State private var oAuthProvider: String = ""           // Provider name shown in alert
 
     var body: some View {
         NavigationStack {
@@ -72,6 +75,17 @@ struct SettingsView: View {
             }
         } message: {
             Text("This will permanently delete your account and all your listening history. There is no way to recover this data.")
+        }
+        // MARK: Web-only OAuth Info Alert
+        // Google and GitHub OAuth run through the web browser session, not the app.
+        // Connecting them on the website keeps both platforms in sync automatically.
+        .alert("Connect \(oAuthProvider) on the web", isPresented: $showOAuthAlert) {
+            Button("Open website") {
+                openURL("https://spotifystatistics-production.up.railway.app/Identity/Account/Manage/ExternalLogins")
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("To link your \(oAuthProvider) account, visit Settings on the website. Once connected there, it will be active here too.")
         }
         // MARK: Photo Selection Handler
         // Triggered when user picks a photo from the library
@@ -175,11 +189,25 @@ struct SettingsView: View {
 
                         Button("Save") {
                             hideKeyboard()
-                            saveStatus = "Saved!"
-                            // TODO: PUT /api/settings/profile { displayName }
+                            guard !isSaving else { return }
+                            isSaving = true
+                            Task {
+                                defer { isSaving = false }
+                                do {
+                                    struct Body: Encodable { let displayName: String }
+                                    struct Resp: Decodable { let displayName: String? }
+                                    let _: Resp = try await APIClient.shared.put(
+                                        path: "/api/settings/profile",
+                                        body: Body(displayName: displayName)
+                                    )
+                                    saveStatus = "Saved!"
+                                } catch {
+                                    saveStatus = "Save failed"
+                                }
+                            }
                         }
                         .font(.dmSans(13, weight: .bold))
-                        .foregroundColor(.appAccent)
+                        .foregroundColor(isSaving ? .appTextSecondary : .appAccent)
                     }
                 }
 
@@ -218,10 +246,25 @@ struct SettingsView: View {
 
                         Button("Save") {
                             hideKeyboard()
-                            // TODO: PUT /api/settings/phone { phoneNumber }
+                            guard !isSaving else { return }
+                            isSaving = true
+                            Task {
+                                defer { isSaving = false }
+                                do {
+                                    struct Body: Encodable { let phoneNumber: String }
+                                    struct Resp: Decodable { let phoneNumber: String? }
+                                    let _: Resp = try await APIClient.shared.put(
+                                        path: "/api/settings/phone",
+                                        body: Body(phoneNumber: phoneNumber)
+                                    )
+                                    saveStatus = "Saved!"
+                                } catch {
+                                    saveStatus = "Save failed"
+                                }
+                            }
                         }
                         .font(.dmSans(13, weight: .bold))
-                        .foregroundColor(.appAccent)
+                        .foregroundColor(isSaving ? .appTextSecondary : .appAccent)
                     }
                 }
 
@@ -303,7 +346,8 @@ struct SettingsView: View {
                         Spacer()
 
                         Button("Connect") {
-                            openURL("https://spotifystatistics-production.up.railway.app/Identity/Account/ExternalLogin?provider=Google")
+                            oAuthProvider = "Google"
+                            showOAuthAlert = true
                         }
                         .font(.dmSans(13, weight: .bold))
                         .foregroundColor(.appTextPrimary)
@@ -333,7 +377,8 @@ struct SettingsView: View {
                         Spacer()
 
                         Button("Connect") {
-                            openURL("https://spotifystatistics-production.up.railway.app/Identity/Account/ExternalLogin?provider=GitHub")
+                            oAuthProvider = "GitHub"
+                            showOAuthAlert = true
                         }
                         .font(.dmSans(13, weight: .bold))
                         .foregroundColor(.appTextPrimary)
