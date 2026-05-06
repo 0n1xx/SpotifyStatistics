@@ -554,14 +554,8 @@ namespace SpotifyStatisticsWebApp.Controllers
         }
     }
 
-    // ── Request DTOs ──────────────────────────────────────────────────────────
+    // ── Helpers ───────────────────────────────────────────────────────────────
 
-    /// <summary>Request body for POST /api/auth/login</summary>
-    public class LoginRequest
-    {
-        public string Email    { get; set; } = "";
-        public string Password { get; set; } = "";
-    }
     /// <summary>
     /// Formats a Toronto local datetime as ISO-8601 with the correct EDT/EST offset.
     /// e.g. "2026-05-06T09:39:00-04:00"
@@ -577,5 +571,14 @@ namespace SpotifyStatisticsWebApp.Controllers
         var sign   = offset >= TimeSpan.Zero ? "+" : "-";
         var hhmm   = offset.Duration().ToString(@"hh\:mm");
         return dt.ToString("yyyy-MM-ddTHH:mm:ss") + sign + hhmm;
+    }
+
+    // ── Request DTOs ──────────────────────────────────────────────────────────
+
+    /// <summary>Request body for POST /api/auth/login</summary>
+    public class LoginRequest
+    {
+        public string Email    { get; set; } = "";
+        public string Password { get; set; } = "";
     }
 }

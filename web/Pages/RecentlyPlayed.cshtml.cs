@@ -30,9 +30,16 @@ namespace SpotifyStatisticsWebApp.Pages
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
 
             // Avatar from DB for sidebar
-            var profile = await _db.UserProfiles.FirstOrDefaultAsync(p => p.UserId == userId);
-            ViewData["AvatarDataUrl"] = profile?.AvatarBase64;
-            ViewData["DisplayName"]   = profile?.DisplayName;
+            try
+            {
+                var profile = await _db.UserProfiles.FirstOrDefaultAsync(p => p.UserId == userId);
+                ViewData["AvatarDataUrl"] = profile?.AvatarBase64;
+                ViewData["DisplayName"]   = profile?.DisplayName;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Profile fetch error: {ex.Message}");
+            }
 
             // Check Spotify connection
             try
