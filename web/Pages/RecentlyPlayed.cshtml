@@ -56,7 +56,7 @@
         </header>
         <ol class="table-body" id="trackList">
             @* Starting index accounts for the current pagination offset *@
-            @{ int idx = (Model.CurrentPage - 1) * Model.CurrentPageSize + 1; }
+            @{ int idx = (Model.CurrentPage - 1) * Model.PageSize + 1; }
             @foreach (var t in Model.Tracks)
             {
                 @* data-* attributes are read by filterRows() and setFilter() in recently-played.js *@
@@ -65,7 +65,7 @@
                     data-artist="@t.Artist.ToLower()"
                     data-album="@t.Album.ToLower()"
                     data-played="@t.PlayedAt.ToString("o")"
-                    style="animation-delay:@(((idx - 1) % Model.CurrentPageSize) * 0.012)s">
+                    style="animation-delay:@(((idx - 1) % Model.PageSize) * 0.012)s">
                     <span class="track-num">@idx</span>
                     <div class="track-song">
                         <div class="track-icon" aria-hidden="true">🎵</div>
@@ -85,7 +85,7 @@
     <nav class="pagination" aria-label="Pagination">
         <p class="page-info">
             Page <strong>@Model.CurrentPage</strong> of <strong>@Model.TotalPages</strong>
-            &nbsp;·&nbsp; showing @((Model.CurrentPage - 1) * Model.CurrentPageSize + 1)–@(Math.Min(Model.CurrentPage * Model.CurrentPageSize, Model.TotalCount))
+            &nbsp;·&nbsp; showing @((Model.CurrentPage - 1) * Model.PageSize + 1)–@(Math.Min(Model.CurrentPage * Model.PageSize, Model.TotalCount))
             of <strong>@Model.TotalCount.ToString("N0")</strong>
         </p>
         <div class="page-btns">
