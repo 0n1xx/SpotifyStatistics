@@ -49,7 +49,7 @@ html, body {
 /* Content area — fills the right grid column and scrolls vertically.
    Each page adds its own padding/layout on top of this via page-specific CSS. */
 .main {
-    overflow-y: auto;
+    overflow-y: scroll;
     height: 100vh;
     min-height: 0; /* required: grid children don't shrink below content size by default */
     box-sizing: border-box;
@@ -281,37 +281,31 @@ html, body {
 .main,
 .sidebar {
     scrollbar-width: thin;
-    scrollbar-color: rgba(255,255,255,0.28) rgba(255,255,255,0.04);
+    scrollbar-color: rgba(255,255,255,0.3) rgba(255,255,255,0.05);
 }
 
 .main::-webkit-scrollbar,
 .sidebar::-webkit-scrollbar {
-    width: 10px;
-    background: rgba(255,255,255,0.04);
+    width: 8px;
 }
 
 .main::-webkit-scrollbar-track,
 .sidebar::-webkit-scrollbar-track {
-    background: rgba(255,255,255,0.04);
+    background: rgba(255,255,255,0.05);
 }
 
 .main::-webkit-scrollbar-thumb,
 .sidebar::-webkit-scrollbar-thumb {
-    background: rgba(255,255,255,0.28);
-    border-radius: 5px;
+    background: rgba(255,255,255,0.3);
+    border-radius: 4px;
     min-height: 40px;
-    border: 2px solid transparent;
-    background-clip: padding-box;
 }
 
 .main::-webkit-scrollbar-thumb:hover,
 .sidebar::-webkit-scrollbar-thumb:hover {
-    background: rgba(255,255,255,0.45);
-    background-clip: padding-box;
+    background: rgba(255,255,255,0.5);
 }
 
-/* Force scrollbar always visible — prevents macOS overlay-scrollbar hiding */
-.main { overflow-y: scroll; }
 
 /* Animations part */
 
