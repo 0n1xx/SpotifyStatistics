@@ -457,12 +457,12 @@ def spotify_history():
             master_engine.raw_connection()
         )
 
-        df_ms['played_at'] = (
-            pd.to_datetime(df_ms['played_at'], utc=True)
-            .dt.tz_convert(TORONTO_TZ)
-            .dt.tz_localize(None)
-            .dt.floor('s')
-        )
+        # played_at in MSSQL is stored as UTC — convert to Toronto for comparison
+        # ClickHouse data is already in Toronto time (converted in load_clickhouse)
+        # MSSQL stores played_at as Toronto local time (no tz info).
+        # ClickHouse also returns Toronto local time (converted in load_clickhouse).
+        # Parse both as naive datetimes so the keys match without any shift.
+        df_ms['played_at'] = pd.to_datetime(df_ms['played_at']).dt.floor('s')
 
         key_cols = ['played_at', 'song', 'artist', 'album', 'user_id']
 
