@@ -299,3 +299,38 @@
 .col-played-at {
     text-align: right;
 }
+
+/* ── Infinite scroll spinner ── */
+.spinner-wrap {
+    display: flex;
+    justify-content: center;
+    padding: 24px 0;
+}
+
+.spinner {
+    width: 28px;
+    height: 28px;
+    border: 2px solid var(--border);
+    border-top-color: var(--green);
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+/* ── Empty / error state ── */
+.empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    padding: 48px 0;
+    color: var(--muted2);
+    font-size: 14px;
+}
+
+.empty-state svg {
+    color: var(--muted);
+}

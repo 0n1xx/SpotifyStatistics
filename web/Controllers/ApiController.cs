@@ -508,7 +508,9 @@ namespace SpotifyStatisticsWebApp.Controllers
                         artist   = reader.IsDBNull(1) ? "" : reader.GetString(1),
                         album    = reader.IsDBNull(2) ? "" : reader.GetString(2),
                         country  = reader.IsDBNull(3) ? "" : reader.GetString(3),
-                        playedAt = reader.IsDBNull(4) ? "" : FormatTorontoTime(reader.GetDateTime(4)),
+                        // SQL Server stores played_at as datetimeoffset — must use
+                        // GetDateTimeOffset, not GetDateTime (which throws InvalidCastException).
+                        playedAt = reader.IsDBNull(4) ? "" : reader.GetDateTimeOffset(4).ToString("o"),
                     });
 
                 return Ok(new
@@ -563,25 +565,6 @@ namespace SpotifyStatisticsWebApp.Controllers
 
             return Ok(new { countries });
         }
-
-    // ── Helpers ───────────────────────────────────────────────────────────────
-
-    /// <summary>
-    /// Formats a Toronto local datetime as ISO-8601 with the correct EDT/EST offset.
-    /// e.g. "2026-05-06T09:39:00-04:00"
-    /// </summary>
-    private static string FormatTorontoTime(DateTime dt)
-    {
-        TimeZoneInfo tz;
-        try   { tz = TimeZoneInfo.FindSystemTimeZoneById("America/Toronto"); }
-        catch { tz = TimeZoneInfo.FindSystemTimeZoneById("Eastern Standard Time"); }
-
-        var dtUtc  = TimeZoneInfo.ConvertTimeToUtc(DateTime.SpecifyKind(dt, DateTimeKind.Unspecified), tz);
-        var offset = dt - dtUtc;
-        var sign   = offset >= TimeSpan.Zero ? "+" : "-";
-        var hhmm   = offset.Duration().ToString(@"hh\:mm");
-        return dt.ToString("yyyy-MM-ddTHH:mm:ss") + sign + hhmm;
-    }
 
     // ── Request DTOs ──────────────────────────────────────────────────────────
 

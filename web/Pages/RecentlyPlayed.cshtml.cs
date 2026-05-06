@@ -6,17 +6,18 @@ using System.Security.Claims;
 
 namespace SpotifyStatisticsWebApp.Pages
 {
+    // The page now loads no tracks server-side.
+    // All data is fetched client-side via GET /api/history?page=&limit=
+    // using the same JWT-authenticated endpoint the iOS app uses.
+    // The page model only sets up sidebar state (avatar, display name, Spotify status)
+    // and passes the total count for the header.
     [Authorize]
     public class RecentlyPlayedModel : PageModel
     {
         private readonly IConfiguration _config;
         private readonly ApplicationDbContext _db;
-        public List<RecentTrack> Tracks { get; set; } = new();
         public bool SpotifyConnected { get; set; }
         public int TotalCount { get; set; }
-        public int CurrentPage { get; set; } = 1;
-        public int PageSize { get; set; } = 50;
-        public int TotalPages { get; set; }
 
         public RecentlyPlayedModel(IConfiguration config, ApplicationDbContext db)
         {
@@ -24,12 +25,11 @@ namespace SpotifyStatisticsWebApp.Pages
             _db = db;
         }
 
-        public async Task OnGetAsync(int page = 1)
+        public async Task OnGetAsync()
         {
-            CurrentPage = Math.Max(1, page);
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
 
-            // Avatar from DB for sidebar
+            // Avatar / display name for sidebar
             try
             {
                 var profile = await _db.UserProfiles.FirstOrDefaultAsync(p => p.UserId == userId);
@@ -41,7 +41,7 @@ namespace SpotifyStatisticsWebApp.Pages
                 Console.WriteLine($"Profile fetch error: {ex.Message}");
             }
 
-            // Check Spotify connection
+            // Spotify connection status for sidebar badge
             try
             {
                 var defaultConn = _config.GetConnectionString("DefaultConnection");
@@ -57,62 +57,23 @@ namespace SpotifyStatisticsWebApp.Pages
                 Console.WriteLine($"SpotifyTokens check error: {ex.Message}");
             }
 
+            // Total count for the page header — lightweight COUNT(*) only
             var connStr = _config.GetConnectionString("MusicHistoryConnection");
-            if (string.IsNullOrEmpty(connStr)) return; // No music DB configured yet
+            if (string.IsNullOrEmpty(connStr)) return;
 
             try
             {
                 using var conn = new SqlConnection(connStr);
                 await conn.OpenAsync();
-
-                // Total count for pagination
                 using var countCmd = new SqlCommand(
                     "SELECT COUNT(*) FROM dbo.music_history WHERE user_id = @uid", conn);
                 countCmd.Parameters.AddWithValue("@uid", userId);
                 TotalCount = (int)(await countCmd.ExecuteScalarAsync() ?? 0);
-                // Math.Max(1, …) ensures TotalPages is never 0, which would
-                // make CurrentPage < TotalPages always false and disable Next.
-                TotalPages = Math.Max(1, (int)Math.Ceiling(TotalCount / (double)PageSize));
-
-                int offset = (CurrentPage - 1) * PageSize;
-                using var cmd = new SqlCommand(@"
-                    SELECT song, artist, album, country, played_at
-                    FROM dbo.music_history
-                    WHERE user_id = @uid
-                    ORDER BY played_at DESC
-                    OFFSET @offset ROWS FETCH NEXT @size ROWS ONLY", conn);
-                cmd.Parameters.AddWithValue("@uid", userId);
-                cmd.Parameters.AddWithValue("@offset", offset);
-                cmd.Parameters.AddWithValue("@size", PageSize);
-
-                using var reader = await cmd.ExecuteReaderAsync();
-                while (await reader.ReadAsync())
-                {
-                    Tracks.Add(new RecentTrack
-                    {
-                        Song    = reader.IsDBNull(0) ? "" : reader.GetString(0),
-                        Artist  = reader.IsDBNull(1) ? "" : reader.GetString(1),
-                        Album   = reader.IsDBNull(2) ? "" : reader.GetString(2),
-                        Country = reader.IsDBNull(3) ? "" : reader.GetString(3),
-                        PlayedAt = reader.IsDBNull(4) ? DateTime.MinValue : 
-                            (DateTime.TryParse(reader.GetValue(4)?.ToString(), out var dt) ? dt : DateTime.MinValue)
-                    });
-                }
             }
             catch (Exception ex)
             {
-                // DB unavailable or query error — show empty state instead of 500
-                Console.WriteLine($"RecentlyPlayed error: {ex.Message}");
+                Console.WriteLine($"RecentlyPlayed count error: {ex.Message}");
             }
         }
-    }
-
-    public class RecentTrack
-    {
-        public string Song { get; set; } = "";
-        public string Artist { get; set; } = "";
-        public string Album { get; set; } = "";
-        public string Country { get; set; } = "";
-        public DateTime PlayedAt { get; set; }
     }
 }

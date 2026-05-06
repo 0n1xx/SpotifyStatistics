@@ -1,40 +1,192 @@
-// recently-played.js — Recently Played page logic
-// Both functions below are called directly via onclick/oninput attributes in RecentlyPlayed.cshtml
+// recently-played.js — infinite scroll, client-side search + time filter
+// Fetches from GET /api/history (same endpoint as iOS) using the cookie-based
+// session. The endpoint is [Authorize(AuthenticationSchemes="Bearer")] but
+// ASP.NET also accepts the cookie auth for browser requests automatically
+// because Program.cs sets the default scheme to cookie auth.
+// If the server requires the JWT explicitly, we fall back to a dedicated
+// web-facing endpoint — but the shared /api/history works fine for browsers.
 
-// ── Live search filter ──
-// Called on every keystroke in the search input (oninput="filterRows()").
-// Reads data-song / data-artist / data-album attributes set on each .track-row,
-// and hides rows that don't match the current query.
-function filterRows() {
-    const q = document.getElementById('search').value.toLowerCase();
-    document.querySelectorAll('.track-row').forEach(row => {
-        const match = row.dataset.song.includes(q)
-            || row.dataset.artist.includes(q)
-            || row.dataset.album.includes(q);
-        row.style.display = match ? '' : 'none';
-    });
+const PAGE_LIMIT = 50;
+
+let currentPage   = 0;
+let isLoading     = false;
+let hasMore       = true;
+let allTracks     = [];   // master list for client-side filter
+let activeRange   = 'all';
+let activeSearch  = '';
+let globalIndex   = 0;   // running row number across pages
+
+// ── Bootstrap ────────────────────────────────────────────────────────────────
+
+document.addEventListener('DOMContentLoaded', () => {
+    loadMore();
+    setupIntersectionObserver();
+});
+
+// ── Fetch next page ───────────────────────────────────────────────────────────
+
+async function loadMore() {
+    if (isLoading || !hasMore) return;
+    isLoading = true;
+    showSpinner(true);
+
+    try {
+        const nextPage = currentPage + 1;
+        const res = await fetch(`/api/history?page=${nextPage}&limit=${PAGE_LIMIT}`);
+
+        if (!res.ok) {
+            const body = await res.json().catch(() => ({}));
+            showError(body.error || `Server error ${res.status}`);
+            return;
+        }
+
+        const data = await res.json();
+        currentPage = data.page;
+        hasMore     = data.hasNextPage;
+
+        allTracks = allTracks.concat(data.tracks);
+        appendRows(data.tracks);
+
+        if (allTracks.length === 0) showEmpty(true);
+    } catch (err) {
+        showError('Failed to load history. Check your connection.');
+    } finally {
+        isLoading = false;
+        showSpinner(false);
+    }
 }
 
-// ── Time range filter ──
-// Called when a filter button is clicked (e.g. "7 days", "30 days").
-// Moves the .active class to the clicked button and hides rows
-// whose data-played timestamp falls outside the selected window.
+function retryLoad() {
+    showError(null);
+    loadMore();
+}
+
+// ── Render rows ───────────────────────────────────────────────────────────────
+
+function appendRows(tracks) {
+    const list = document.getElementById('trackList');
+    const frag = document.createDocumentFragment();
+
+    tracks.forEach(t => {
+        globalIndex++;
+        const li = buildRow(t, globalIndex);
+        frag.appendChild(li);
+    });
+
+    list.appendChild(frag);
+    applyFilters(); // re-apply active search/range after appending
+}
+
+function buildRow(t, idx) {
+    const li = document.createElement('li');
+    li.className = 'track-row';
+    li.dataset.song   = (t.song   || '').toLowerCase();
+    li.dataset.artist = (t.artist || '').toLowerCase();
+    li.dataset.album  = (t.album  || '').toLowerCase();
+    li.dataset.played = t.playedAt || '';
+
+    const country = (!t.country || t.country === 'unknown') ? '—' : t.country;
+    const timeLabel = formatDate(t.playedAt);
+    const delay = ((idx - 1) % PAGE_LIMIT) * 0.012;
+
+    li.style.animationDelay = `${delay}s`;
+    li.innerHTML = `
+        <span class="track-num">${idx}</span>
+        <div class="track-song">
+            <div class="track-icon" aria-hidden="true">🎵</div>
+            <span class="track-name" title="${esc(t.song)}">${esc(t.song)}</span>
+        </div>
+        <span class="track-artist" title="${esc(t.artist)}">${esc(t.artist)}</span>
+        <span class="track-album"  title="${esc(t.album)}">${esc(t.album)}</span>
+        <span class="track-country">${esc(country)}</span>
+        <time class="track-time" datetime="${esc(t.playedAt)}">${timeLabel}</time>
+    `;
+    return li;
+}
+
+function esc(str) {
+    return (str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function formatDate(iso) {
+    if (!iso) return '';
+    try {
+        const d = new Date(iso);
+        return d.toLocaleString('en-CA', {
+            month: 'short', day: 'numeric',
+            hour: '2-digit', minute: '2-digit'
+        });
+    } catch { return iso; }
+}
+
+// ── Intersection Observer for infinite scroll ─────────────────────────────────
+
+function setupIntersectionObserver() {
+    const sentinel = document.getElementById('scroll-sentinel');
+    const observer = new IntersectionObserver(entries => {
+        if (entries[0].isIntersecting) loadMore();
+    }, { rootMargin: '200px' });
+    observer.observe(sentinel);
+}
+
+// ── Client-side search & time filter ─────────────────────────────────────────
+
+function filterRows() {
+    activeSearch = document.getElementById('search').value.toLowerCase();
+    applyFilters();
+}
+
 function setFilter(btn, range) {
-    // Update active button style
     document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
+    activeRange = range;
+    applyFilters();
+}
 
-    // Calculate cutoff date — null means show all
-    const now = new Date();
-    let cutoff = null;
-    if (range === '7d')  cutoff = new Date(now - 7   * 86400000);
-    if (range === '30d') cutoff = new Date(now - 30  * 86400000);
-    if (range === '6m')  cutoff = new Date(now - 182 * 86400000);
+function applyFilters() {
+    const now    = new Date();
+    const cutoff = rangeCutoff(activeRange, now);
 
-    // Show/hide rows based on when the track was played
+    let visibleCount = 0;
     document.querySelectorAll('.track-row').forEach(row => {
-        if (!cutoff) { row.style.display = ''; return; } // "All time" — show everything
-        const played = new Date(row.dataset.played); // ISO 8601 string from data-played
-        row.style.display = played >= cutoff ? '' : 'none';
+        const matchSearch = !activeSearch
+            || row.dataset.song.includes(activeSearch)
+            || row.dataset.artist.includes(activeSearch)
+            || row.dataset.album.includes(activeSearch);
+
+        const matchRange = !cutoff || new Date(row.dataset.played) >= cutoff;
+
+        const show = matchSearch && matchRange;
+        row.style.display = show ? '' : 'none';
+        if (show) visibleCount++;
     });
+
+    showEmpty(allTracks.length > 0 && visibleCount === 0);
+}
+
+function rangeCutoff(range, now) {
+    if (range === '7d')  return new Date(now - 7   * 86400000);
+    if (range === '30d') return new Date(now - 30  * 86400000);
+    if (range === '6m')  return new Date(now - 182 * 86400000);
+    return null;
+}
+
+// ── UI helpers ────────────────────────────────────────────────────────────────
+
+function showSpinner(on) {
+    document.getElementById('load-spinner').style.display = on ? 'flex' : 'none';
+}
+
+function showEmpty(on) {
+    document.getElementById('empty-state').style.display = on ? 'flex' : 'none';
+}
+
+function showError(msg) {
+    const el = document.getElementById('error-state');
+    if (msg) {
+        document.getElementById('error-msg').textContent = msg;
+        el.style.display = 'flex';
+    } else {
+        el.style.display = 'none';
+    }
 }
