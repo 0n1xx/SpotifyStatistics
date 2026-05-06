@@ -122,10 +122,14 @@ function formatDate(iso) {
 // ── Intersection Observer for infinite scroll ─────────────────────────────────
 
 function setupIntersectionObserver() {
-    const sentinel = document.getElementById('scroll-sentinel');
-    const observer = new IntersectionObserver(entries => {
+    const sentinel  = document.getElementById('scroll-sentinel');
+    const scrollBox = document.querySelector('.main');
+    const observer  = new IntersectionObserver(entries => {
         if (entries[0].isIntersecting) loadMore();
-    }, { rootMargin: '200px' });
+    }, {
+        root: scrollBox,   // observe relative to the scrolling .main, not the viewport
+        rootMargin: '200px'
+    });
     observer.observe(sentinel);
 }
 
