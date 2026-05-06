@@ -8,7 +8,7 @@
 
 The data pipeline feeds directly into an **Apache Superset** analytics dashboard, giving platform-wide visibility into listening activity across all users.
 
-![Statify Admin Dashboard](../docs/dashboard.png)
+![Statify Admin Dashboard](../docs/dashboard.jpg)
 
 **Dashboard includes:**
 - KPI cards — total plays, unique artists, unique songs, countries covered
