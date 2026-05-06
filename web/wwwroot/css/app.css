@@ -30,7 +30,7 @@ html, body {
     background: var(--black);
     color: var(--text);
     font-family: 'DM Sans', sans-serif;
-    overflow: hidden; /* The inner .main div scrolls, not the page */
+    overflow-y: auto;
 }
 
 /* ── Two-column app shell: sidebar | content ── */
@@ -50,7 +50,7 @@ html, body {
    Each page adds its own padding/layout on top of this via page-specific CSS. */
 .main {
     overflow-y: auto;
-    height: 100%;
+    height: 100vh;
     min-height: 0; /* required: grid children don't shrink below content size by default */
     box-sizing: border-box;
 }
