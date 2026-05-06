@@ -117,7 +117,7 @@ Internal analytics dashboard powered by **Apache Superset**, connected directly 
 - **Artist word cloud** — frequency-weighted visualization
 - **Raw history table** — full unfiltered event log
 
-![Statify Admin Dashboard](docs/dashboard.png)
+![Statify Admin Dashboard](docs/dashboard.jpg)
 
 ---
 
