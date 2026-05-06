@@ -465,7 +465,7 @@ namespace SpotifyStatisticsWebApp.Controllers
         /// Response includes pagination metadata so iOS can implement infinite scroll.
         /// </summary>
         [HttpGet("history")]
-        [Authorize(AuthenticationSchemes = "Bearer")]
+        [Authorize(AuthenticationSchemes = "Bearer,Identity.Application")]
         public async Task<IActionResult> GetHistory([FromQuery] int page = 1, [FromQuery] int limit = 50)
         {
             // Clamp inputs to safe ranges
@@ -508,9 +508,12 @@ namespace SpotifyStatisticsWebApp.Controllers
                         artist   = reader.IsDBNull(1) ? "" : reader.GetString(1),
                         album    = reader.IsDBNull(2) ? "" : reader.GetString(2),
                         country  = reader.IsDBNull(3) ? "" : reader.GetString(3),
-                        // SQL Server stores played_at as datetimeoffset — must use
-                        // GetDateTimeOffset, not GetDateTime (which throws InvalidCastException).
-                        playedAt = reader.IsDBNull(4) ? "" : reader.GetDateTimeOffset(4).ToString("o"),
+                        // The DB stores played_at as the Toronto local wall-clock time
+                        // but with offset +00:00 (written without a timezone offset).
+                        // GetDateTimeOffset returns e.g. 2026-05-06T10:11:00+00:00 which
+                        // iOS would display as 06:11 Toronto time (−4h EDT). Fix: strip
+                        // the bogus +00:00 offset and re-attach the real Toronto offset.
+                        playedAt = reader.IsDBNull(4) ? "" : TorontoIso(reader.GetDateTimeOffset(4)),
                     });
 
                 return Ok(new
@@ -565,6 +568,29 @@ namespace SpotifyStatisticsWebApp.Controllers
 
             return Ok(new { countries });
         }
+
+    // ── Helpers ───────────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// The DB stores played_at as the Toronto wall-clock time but with offset +00:00
+    /// (i.e. the python importer wrote local time into a datetimeoffset column without
+    /// supplying the real offset). This method re-attaches the correct EDT/EST offset
+    /// so iOS displays the right local time.
+    ///
+    /// e.g. stored: 2026-05-06T10:11:00+00:00  →  returned: 2026-05-06T10:11:00-04:00
+    /// </summary>
+    private static string TorontoIso(DateTimeOffset stored)
+    {
+        TimeZoneInfo tz;
+        try   { tz = TimeZoneInfo.FindSystemTimeZoneById("America/Toronto"); }
+        catch { tz = TimeZoneInfo.FindSystemTimeZoneById("Eastern Standard Time"); }
+
+        // Treat the stored DateTime as Toronto local (ignore the bogus +00:00 offset)
+        var localDt = DateTime.SpecifyKind(stored.DateTime, DateTimeKind.Unspecified);
+        var torontoOffset = tz.GetUtcOffset(localDt);
+        var corrected = new DateTimeOffset(localDt, torontoOffset);
+        return corrected.ToString("o"); // e.g. 2026-05-06T10:11:00-04:00
+    }
 
     // ── Request DTOs ──────────────────────────────────────────────────────────
 
