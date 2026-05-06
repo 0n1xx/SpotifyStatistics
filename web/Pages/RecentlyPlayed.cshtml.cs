@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.Data.SqlClient;
@@ -44,38 +44,47 @@ namespace SpotifyStatisticsWebApp.Pages
             SpotifyConnected = (int)(await checkCmd.ExecuteScalarAsync() ?? 0) > 0;
 
             var connStr = _config.GetConnectionString("MusicHistoryConnection");
-            using var conn = new SqlConnection(connStr);
-            await conn.OpenAsync();
+            if (string.IsNullOrEmpty(connStr)) return; // No music DB configured yet
 
-            // Total count for pagination
-            using var countCmd = new SqlCommand(
-                "SELECT COUNT(*) FROM music_history WHERE user_id = @uid", conn);
-            countCmd.Parameters.AddWithValue("@uid", userId);
-            TotalCount = (int)(await countCmd.ExecuteScalarAsync() ?? 0);
-            TotalPages = (int)Math.Ceiling(TotalCount / (double)PageSize);
-
-            int offset = (Page - 1) * PageSize;
-            using var cmd = new SqlCommand(@"
-                SELECT song, artist, album, country, played_at
-                FROM music_history
-                WHERE user_id = @uid
-                ORDER BY played_at DESC
-                OFFSET @offset ROWS FETCH NEXT @size ROWS ONLY", conn);
-            cmd.Parameters.AddWithValue("@uid", userId);
-            cmd.Parameters.AddWithValue("@offset", offset);
-            cmd.Parameters.AddWithValue("@size", PageSize);
-
-            using var reader = await cmd.ExecuteReaderAsync();
-            while (await reader.ReadAsync())
+            try
             {
-                Tracks.Add(new RecentTrack
+                using var conn = new SqlConnection(connStr);
+                await conn.OpenAsync();
+
+                // Total count for pagination
+                using var countCmd = new SqlCommand(
+                    "SELECT COUNT(*) FROM music_history WHERE user_id = @uid", conn);
+                countCmd.Parameters.AddWithValue("@uid", userId);
+                TotalCount = (int)(await countCmd.ExecuteScalarAsync() ?? 0);
+                TotalPages = (int)Math.Ceiling(TotalCount / (double)PageSize);
+
+                int offset = (Page - 1) * PageSize;
+                using var cmd = new SqlCommand(@"
+                    SELECT song, artist, album, country, played_at
+                    FROM music_history
+                    WHERE user_id = @uid
+                    ORDER BY played_at DESC
+                    OFFSET @offset ROWS FETCH NEXT @size ROWS ONLY", conn);
+                cmd.Parameters.AddWithValue("@uid", userId);
+                cmd.Parameters.AddWithValue("@offset", offset);
+                cmd.Parameters.AddWithValue("@size", PageSize);
+
+                using var reader = await cmd.ExecuteReaderAsync();
+                while (await reader.ReadAsync())
                 {
-                    Song = reader.IsDBNull(0) ? "" : reader.GetString(0),
-                    Artist = reader.IsDBNull(1) ? "" : reader.GetString(1),
-                    Album = reader.IsDBNull(2) ? "" : reader.GetString(2),
-                    Country = reader.IsDBNull(3) ? "" : reader.GetString(3),
-                    PlayedAt = reader.IsDBNull(4) ? DateTime.MinValue : reader.GetDateTime(4)
-                });
+                    Tracks.Add(new RecentTrack
+                    {
+                        Song    = reader.IsDBNull(0) ? "" : reader.GetString(0),
+                        Artist  = reader.IsDBNull(1) ? "" : reader.GetString(1),
+                        Album   = reader.IsDBNull(2) ? "" : reader.GetString(2),
+                        Country = reader.IsDBNull(3) ? "" : reader.GetString(3),
+                        PlayedAt = reader.IsDBNull(4) ? DateTime.MinValue : reader.GetDateTime(4)
+                    });
+                }
+            }
+            catch (SqlException)
+            {
+                // Music history DB unavailable — show empty state instead of 500
             }
         }
     }
