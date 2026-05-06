@@ -494,17 +494,23 @@ namespace SpotifyStatisticsWebApp.Controllers
             cmd.Parameters.AddWithValue("@offset", offset);
             cmd.Parameters.AddWithValue("@size", limit);
 
-            using var reader = await cmd.ExecuteReaderAsync();
-            while (await reader.ReadAsync())
-                tracks.Add(new
-                {
-                    song     = reader.IsDBNull(0) ? "" : reader.GetString(0),
-                    artist   = reader.IsDBNull(1) ? "" : reader.GetString(1),
-                    album    = reader.IsDBNull(2) ? "" : reader.GetString(2),
-                    country  = reader.IsDBNull(3) ? "" : reader.GetString(3),
-                    // played_at is stored as Toronto local time — attach correct EDT/EST offset
-                    playedAt = reader.IsDBNull(4) ? "" : FormatTorontoTime(reader.GetDateTime(4)),
-                });
+            try
+            {
+                using var reader = await cmd.ExecuteReaderAsync();
+                while (await reader.ReadAsync())
+                    tracks.Add(new
+                    {
+                        song     = reader.IsDBNull(0) ? "" : reader.GetString(0),
+                        artist   = reader.IsDBNull(1) ? "" : reader.GetString(1),
+                        album    = reader.IsDBNull(2) ? "" : reader.GetString(2),
+                        country  = reader.IsDBNull(3) ? "" : reader.GetString(3),
+                        playedAt = reader.IsDBNull(4) ? "" : FormatTorontoTime(reader.GetDateTime(4)),
+                    });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { error = ex.Message });
+            }
 
             return Ok(new
             {

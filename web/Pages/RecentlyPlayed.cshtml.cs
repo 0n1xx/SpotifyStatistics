@@ -92,7 +92,8 @@ namespace SpotifyStatisticsWebApp.Pages
                         Artist  = reader.IsDBNull(1) ? "" : reader.GetString(1),
                         Album   = reader.IsDBNull(2) ? "" : reader.GetString(2),
                         Country = reader.IsDBNull(3) ? "" : reader.GetString(3),
-                        PlayedAt = reader.IsDBNull(4) ? DateTime.MinValue : reader.GetDateTime(4)
+                        PlayedAt = reader.IsDBNull(4) ? DateTime.MinValue : 
+                            (DateTime.TryParse(reader.GetValue(4)?.ToString(), out var dt) ? dt : DateTime.MinValue)
                     });
                 }
             }
