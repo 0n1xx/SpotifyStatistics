@@ -581,3 +581,4 @@ namespace SpotifyStatisticsWebApp.Controllers
         public string Password { get; set; } = "";
     }
 }
+}
