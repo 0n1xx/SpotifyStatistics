@@ -58,12 +58,11 @@ async function loadMore() {
     // keep loading — IntersectionObserver only fires on transitions, not on stays.
     requestAnimationFrame(() => {
         if (!hasMore) return;
-        const sentinel  = document.getElementById('scroll-sentinel');
         const scrollBox = document.querySelector('.main');
-        if (!sentinel || !scrollBox) return;
-        const sRect = sentinel.getBoundingClientRect();
-        const bRect = scrollBox.getBoundingClientRect();
-        if (sRect.top < bRect.bottom + 200) loadMore();
+        if (!scrollBox) return;
+        // Use scroll-based check: if remaining scrollable distance is within 200px, load more
+        const remaining = scrollBox.scrollHeight - scrollBox.scrollTop - scrollBox.clientHeight;
+        if (remaining < 200) loadMore();
     });
 }
 
@@ -142,6 +141,13 @@ function setupIntersectionObserver() {
         rootMargin: '200px'
     });
     observer.observe(sentinel);
+
+    // Fallback: also trigger on scroll so we never miss the sentinel
+    scrollBox.addEventListener('scroll', () => {
+        if (!hasMore || isLoading) return;
+        const remaining = scrollBox.scrollHeight - scrollBox.scrollTop - scrollBox.clientHeight;
+        if (remaining < 300) loadMore();
+    }, { passive: true });
 }
 
 // ── Client-side search & time filter ─────────────────────────────────────────

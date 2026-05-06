@@ -2,7 +2,15 @@
 
 > Native iOS companion to the Statify web platform. Full feature parity with the web application — built in Swift with SwiftUI.
 
-**Status: In Development**
+**Status: Complete**
+
+---
+
+## Demo
+
+https://github.com/user-attachments/assets/YOUR_VIDEO_ID_HERE
+
+<!-- To add your screencast: drag the video file into any GitHub Issue comment box, wait for the upload link to appear, then paste it here in place of the URL above. -->
 
 ---
 
@@ -100,65 +108,19 @@ All authenticated requests attach a JWT Bearer token from Keychain. Token refres
 
 | Feature | Web | iOS |
 |---|---|---|
-| Spotify OAuth login | ✅ | 🔲 |
-| Google / GitHub OAuth | ✅ | 🔲 |
-| Dashboard — top tracks, artists, albums | ✅ | 🔲 |
-| Listening by hour chart | ✅ | 🔲 |
-| Activity heatmap by month | ✅ | 🔲 |
-| Recently Played — paginated history | ✅ | 🔲 |
-| Search + time range filter | ✅ | 🔲 |
-| World Map — artist origins | ✅ | 🔲 |
-| Profile photo + display name | ✅ | 🔲 |
-| Email + password management | ✅ | 🔲 |
-| Linked accounts | ✅ | 🔲 |
-| GDPR data export | ✅ | 🔲 |
-| Account deletion | ✅ | 🔲 |
-
----
-
-## Build Plan
-
-### Phase 1 — Foundation
-- [ ] Project setup (SwiftUI, targets, folder structure)
-- [ ] `APIClient` with async/await + JWT injection
-- [ ] Keychain token storage via `KeychainManager`
-- [ ] Login and Register screens
-- [ ] Spotify OAuth via `ASWebAuthenticationSession`
-
-### Phase 2 — Core Screens
-- [ ] Dashboard — top tracks, artists, albums
-- [ ] Listening by hour (Swift Charts bar chart)
-- [ ] Activity heatmap (custom SwiftUI calendar grid)
-- [ ] Recently Played — paginated list + search + time range filter
-
-### Phase 3 — Map & Settings
-- [ ] World Map — MapKit with country annotations and detail sheet
-- [ ] Settings — profile photo, email, password management
-- [ ] Linked accounts, GDPR export, account deletion
-
-### Phase 4 — Polish
-- [ ] Dark theme aligned with web design system
-- [ ] Syne + DM Sans custom fonts
-- [ ] Skeleton loading states
-- [ ] Error handling and empty states
-- [ ] App icon and launch screen
-- [ ] TestFlight distribution
-
----
-
-## Design System
-
-Matches the Statify web design exactly:
-
-| Token | Value |
-|---|---|
-| Background | `#080808` |
-| Card | `#111111` |
-| Accent | `#1DB954` |
-| Text primary | `#FFFFFF` |
-| Text secondary | `#999999` |
-| Heading font | Syne |
-| Body font | DM Sans |
+| Spotify OAuth login | ✅ | ✅ |
+| Google / GitHub OAuth | ✅ | — |
+| Dashboard — top tracks, artists, albums | ✅ | ✅ |
+| Listening by hour chart | ✅ | ✅ |
+| Activity heatmap by month | ✅ | ✅ |
+| Recently Played — paginated history | ✅ | ✅ |
+| Search + time range filter | ✅ | ✅ |
+| World Map — artist origins | ✅ | ✅ |
+| Profile photo + display name | ✅ | ✅ |
+| Email + password management | ✅ | ✅ |
+| Linked accounts | ✅ | ✅ |
+| GDPR data export | ✅ | ✅ |
+| Account deletion | ✅ | ✅ |
 
 ---
 
@@ -186,3 +148,19 @@ private let baseURL = "https://spotifystatistics-production.up.railway.app"
 ```
 
 Build and run on your simulator or device.
+
+---
+
+## Design System
+
+Matches the Statify web design exactly:
+
+| Token | Value |
+|---|---|
+| Background | `#080808` |
+| Card | `#111111` |
+| Accent | `#1DB954` |
+| Text primary | `#FFFFFF` |
+| Text secondary | `#999999` |
+| Heading font | Syne |
+| Body font | DM Sans |
