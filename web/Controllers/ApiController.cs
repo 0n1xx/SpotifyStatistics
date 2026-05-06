@@ -552,7 +552,6 @@ namespace SpotifyStatisticsWebApp.Controllers
 
             return Ok(new { countries });
         }
-    }
 
     // ── Helpers ───────────────────────────────────────────────────────────────
 
