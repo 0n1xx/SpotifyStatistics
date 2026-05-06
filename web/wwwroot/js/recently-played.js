@@ -53,6 +53,18 @@ async function loadMore() {
         isLoading = false;
         showSpinner(false);
     }
+
+    // If sentinel is still visible after load (content didn't fill the scroll area),
+    // keep loading — IntersectionObserver only fires on transitions, not on stays.
+    requestAnimationFrame(() => {
+        if (!hasMore) return;
+        const sentinel  = document.getElementById('scroll-sentinel');
+        const scrollBox = document.querySelector('.main');
+        if (!sentinel || !scrollBox) return;
+        const sRect = sentinel.getBoundingClientRect();
+        const bRect = scrollBox.getBoundingClientRect();
+        if (sRect.top < bRect.bottom + 200) loadMore();
+    });
 }
 
 function retryLoad() {

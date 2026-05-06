@@ -281,30 +281,33 @@ html, body {
 .main,
 .sidebar {
     scrollbar-width: thin;
-    scrollbar-color: rgba(255,255,255,0.22) transparent;
+    scrollbar-color: rgba(255,255,255,0.28) rgba(255,255,255,0.04);
 }
 
 .main::-webkit-scrollbar,
 .sidebar::-webkit-scrollbar {
-    width: 6px;
-    background: transparent;
+    width: 10px;
+    background: rgba(255,255,255,0.04);
 }
 
 .main::-webkit-scrollbar-track,
 .sidebar::-webkit-scrollbar-track {
-    background: transparent;
+    background: rgba(255,255,255,0.04);
 }
 
 .main::-webkit-scrollbar-thumb,
 .sidebar::-webkit-scrollbar-thumb {
-    background: rgba(255,255,255,0.22);
-    border-radius: 3px;
+    background: rgba(255,255,255,0.28);
+    border-radius: 5px;
     min-height: 40px;
+    border: 2px solid transparent;
+    background-clip: padding-box;
 }
 
 .main::-webkit-scrollbar-thumb:hover,
 .sidebar::-webkit-scrollbar-thumb:hover {
-    background: rgba(255,255,255,0.38);
+    background: rgba(255,255,255,0.45);
+    background-clip: padding-box;
 }
 
 /* Force scrollbar always visible — prevents macOS overlay-scrollbar hiding */
