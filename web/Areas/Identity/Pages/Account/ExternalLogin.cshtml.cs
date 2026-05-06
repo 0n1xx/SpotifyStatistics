@@ -17,6 +17,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.Extensions.Logging;
+using SpotifyStatisticsWebApp.Services;
 
 namespace SpotifyStatisticsWebApp.Areas.Identity.Pages.Account
 {
@@ -29,13 +30,15 @@ namespace SpotifyStatisticsWebApp.Areas.Identity.Pages.Account
         private readonly IUserEmailStore<IdentityUser> _emailStore;
         private readonly IEmailSender _emailSender;
         private readonly ILogger<ExternalLoginModel> _logger;
+        private readonly JwtService _jwt;
 
         public ExternalLoginModel(
             SignInManager<IdentityUser> signInManager,
             UserManager<IdentityUser> userManager,
             IUserStore<IdentityUser> userStore,
             ILogger<ExternalLoginModel> logger,
-            IEmailSender emailSender)
+            IEmailSender emailSender,
+            JwtService jwt)
         {
             _signInManager = signInManager;
             _userManager = userManager;
@@ -43,6 +46,7 @@ namespace SpotifyStatisticsWebApp.Areas.Identity.Pages.Account
             _emailStore = GetEmailStore();
             _logger = logger;
             _emailSender = emailSender;
+            _jwt = jwt;
         }
 
         /// <summary>
@@ -88,15 +92,16 @@ namespace SpotifyStatisticsWebApp.Areas.Identity.Pages.Account
         
         public IActionResult OnGet() => RedirectToPage("./Login");
 
-        public IActionResult OnPost(string provider, string returnUrl = null)
+        public IActionResult OnPost(string provider, string returnUrl = null, bool mobile = false)
         {
             // Request a redirect to the external login provider.
-            var redirectUrl = Url.Page("./ExternalLogin", pageHandler: "Callback", values: new { returnUrl });
+            // mobile=true → callback returns JWT deep-link instead of cookie redirect
+            var redirectUrl = Url.Page("./ExternalLogin", pageHandler: "Callback", values: new { returnUrl, mobile });
             var properties = _signInManager.ConfigureExternalAuthenticationProperties(provider, redirectUrl);
             return new ChallengeResult(provider, properties);
         }
 
-        public async Task<IActionResult> OnGetCallbackAsync(string returnUrl = null, string remoteError = null)
+        public async Task<IActionResult> OnGetCallbackAsync(string returnUrl = null, string remoteError = null, bool mobile = false)
         {
             returnUrl = returnUrl ?? Url.Content("~/");
             if (remoteError != null)
@@ -116,6 +121,20 @@ namespace SpotifyStatisticsWebApp.Areas.Identity.Pages.Account
             if (result.Succeeded)
             {
                 _logger.LogInformation("{Name} logged in with {LoginProvider} provider.", info.Principal.Identity.Name, info.LoginProvider);
+
+                // Mobile OAuth flow — return JWT via deep-link instead of cookie redirect
+                if (mobile)
+                {
+                    var email = info.Principal.FindFirstValue(ClaimTypes.Email) ?? "";
+                    var user  = await _userManager.FindByEmailAsync(email);
+                    if (user != null)
+                    {
+                        var jwt = _jwt.Generate(user);
+                        var deepLink = $"statify://oauth-callback?token={Uri.EscapeDataString(jwt)}&email={Uri.EscapeDataString(email)}";
+                        return Redirect(deepLink);
+                    }
+                }
+
                 return LocalRedirect(returnUrl);
             }
             if (result.IsLockedOut)
