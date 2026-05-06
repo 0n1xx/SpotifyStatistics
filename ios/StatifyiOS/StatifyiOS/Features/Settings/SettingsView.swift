@@ -56,10 +56,30 @@ struct SettingsView: View {
             .navigationTitle("Settings")
             .navigationBarTitleDisplayMode(.large)
         }
-        // Populate fields from current user on appear
+        // Populate fields by fetching fresh profile from server on every appear
         .onAppear {
+            // Pre-fill instantly from cached user so fields aren't blank while loading
             email = authManager.currentUser?.email ?? ""
             displayName = authManager.currentUser?.displayName ?? ""
+            // Then refresh from API to pick up any changes made on web or other devices
+            Task {
+                struct ProfileResp: Decodable {
+                    let displayName: String?
+                    let email: String?
+                    let avatarBase64: String?
+                }
+                if let profile: ProfileResp = try? await APIClient.shared.get(path: "/api/profile") {
+                    if let n = profile.displayName { displayName = n }
+                    if let e = profile.email        { email = e }
+                    // Load saved avatar if user hasn't picked a new one this session
+                    if avatarImage == nil, let b64 = profile.avatarBase64,
+                       let url = URL(string: b64),
+                       let data = try? Data(contentsOf: url),
+                       let img = UIImage(data: data) {
+                        avatarImage = img
+                    }
+                }
+            }
         }
         // MARK: Change Password Sheet
         .sheet(isPresented: $showChangePassword) {
@@ -80,12 +100,9 @@ struct SettingsView: View {
         // Google and GitHub OAuth run through the web browser session, not the app.
         // Connecting them on the website keeps both platforms in sync automatically.
         .alert("Connect \(oAuthProvider) on the web", isPresented: $showOAuthAlert) {
-            Button("Open website") {
-                openURL("https://spotifystatistics-production.up.railway.app/Identity/Account/Manage/ExternalLogins")
-            }
-            Button("Cancel", role: .cancel) {}
+            Button("Got it", role: .cancel) {}
         } message: {
-            Text("To link your \(oAuthProvider) account, visit Settings on the website. Once connected there, it will be active here too.")
+            Text("To link your \(oAuthProvider) account, open the website in a browser, go to Settings → Connected accounts, and connect from there. It will sync to the app automatically.")
         }
         // MARK: Photo Selection Handler
         // Triggered when user picks a photo from the library
@@ -178,11 +195,13 @@ struct SettingsView: View {
                         .font(.dmSans(14))
                         .foregroundColor(.appTextSecondary)
 
-                    // Upload photo button — same as web
-                    Text("Upload photo")
-                        .font(.dmSans(13))
-                        .foregroundColor(.appAccent)
-                        .padding(.top, 2)
+                    // Upload photo button
+                    PhotosPicker(selection: $selectedPhoto, matching: .images) {
+                        Text("Upload photo")
+                            .font(.dmSans(13))
+                            .foregroundColor(.appAccent)
+                    }
+                    .padding(.top, 2)
                 }
 
                 Spacer()
@@ -223,6 +242,10 @@ struct SettingsView: View {
                                         path: "/api/settings/profile",
                                         body: Body(displayName: displayName)
                                     )
+                                    // Reflect new display name in cached user so other screens update
+                                    if let u = authManager.currentUser {
+                                        authManager.currentUser = User(id: u.id, email: u.email, displayName: displayName)
+                                    }
                                     saveStatus = "Saved!"
                                 } catch {
                                     saveStatus = "Save failed"

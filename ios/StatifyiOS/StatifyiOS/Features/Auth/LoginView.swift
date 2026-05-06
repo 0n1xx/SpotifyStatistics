@@ -7,6 +7,7 @@
 
 import SwiftUI
 
+
 struct LoginView: View {
 
     // MARK: - Environment
@@ -56,12 +57,8 @@ struct LoginView: View {
                                 .font(.dmSans(13, weight: .bold))
                                 .foregroundColor(.appTextSecondary)
 
-                            TextField("you@example.com", text: $email)
-                                .font(.dmSans(16))
-                                .foregroundColor(.appTextPrimary)
-                                .keyboardType(.emailAddress)
-                                .autocapitalization(.none)
-                                .autocorrectionDisabled()
+                            PlainTextField(placeholder: "you@example.com", text: $email, keyboardType: .emailAddress)
+                                .frame(height: 22)
                                 .padding(14)
                                 .background(Color.appCard)
                                 .cornerRadius(10)
