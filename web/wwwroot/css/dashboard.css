@@ -183,9 +183,14 @@
 
 .top-img.circle { border-radius: 50%; }
 
-.top-info { flex: 1; min-width: 0; }
+.top-info {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+}
 
 .top-name {
+    display: block;
     font-size: 13px;
     font-weight: 500;
     white-space: nowrap;
@@ -194,6 +199,7 @@
 }
 
 .top-sub {
+    display: block;
     font-size: 11px;
     color: var(--muted2);
     margin-top: 1px;
@@ -207,6 +213,8 @@
     color: var(--muted);
     flex-shrink: 0;
     white-space: nowrap;
+    margin-left: auto;
+    padding-left: 8px;
 }
 
 /* ── Spotify connection banners ── */
@@ -302,6 +310,27 @@
     .stat-card-val { font-size: 22px; }
 
     /* Charts already single column from 900px — no change needed */
+
+    /* Top tracks/artists/albums — tighter on mobile */
+    .top-item {
+        gap: 8px;
+        padding: 6px 8px;
+    }
+
+    .top-img {
+        width: 30px;
+        height: 30px;
+        font-size: 13px;
+    }
+
+    .top-rank {
+        width: 14px;
+        font-size: 11px;
+    }
+
+    .top-name { font-size: 12px; }
+    .top-sub  { font-size: 10px; }
+    .top-count { font-size: 10px; }
 
     /* Spotify banner — stack content vertically */
     .spotify-banner {
