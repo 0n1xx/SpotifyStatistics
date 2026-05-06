@@ -1,13 +1,10 @@
 /* recently-played.css — Recently Played page */
 
 .main {
-    overflow-y: auto;
     padding: 36px 48px;
     display: flex;
     flex-direction: column;
     gap: 24px;
-    height: 100%;
-    box-sizing: border-box;
 }
 
 .page-header {
