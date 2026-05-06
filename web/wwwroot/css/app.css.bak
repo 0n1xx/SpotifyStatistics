@@ -278,31 +278,13 @@ html, body {
 .connect-btn:hover { background: var(--green-dim); }
 
 /* Scrollbars */
-.main,
-.sidebar {
-    scrollbar-width: thin;
-    scrollbar-color: rgba(255,255,255,0.15) transparent;
-}
-
 .main::-webkit-scrollbar,
-.sidebar::-webkit-scrollbar {
-    width: 6px;
-}
-
-.main::-webkit-scrollbar-track,
-.sidebar::-webkit-scrollbar-track {
-    background: transparent;
-}
+.sidebar::-webkit-scrollbar { width: 4px; }
 
 .main::-webkit-scrollbar-thumb,
 .sidebar::-webkit-scrollbar-thumb {
-    background: rgba(255,255,255,0.15);
-    border-radius: 3px;
-}
-
-.main::-webkit-scrollbar-thumb:hover,
-.sidebar::-webkit-scrollbar-thumb:hover {
-    background: rgba(255,255,255,0.28);
+    background: var(--border);
+    border-radius: 2px;
 }
 
 /* Animations part */
