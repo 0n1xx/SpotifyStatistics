@@ -9,5 +9,16 @@
 		<string>Syne-Regular.ttf</string>
 		<string>Syne-Bold.ttf</string>
 	</array>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>statify</string>
+			</array>
+			<key>CFBundleURLName</key>
+			<string>com.statify.app</string>
+		</dict>
+	</array>
 </dict>
 </plist>

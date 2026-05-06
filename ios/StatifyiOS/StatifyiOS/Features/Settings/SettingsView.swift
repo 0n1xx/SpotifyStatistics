@@ -13,7 +13,8 @@
 
 import SwiftUI
 import PhotosUI         // Required for photo picker
-import SafariServices   // Required for opening OAuth URLs in Safari
+import SafariServices
+import AuthenticationServices  // ASWebAuthenticationSession for OAuth
 
 struct SettingsView: View {
 
@@ -33,8 +34,7 @@ struct SettingsView: View {
     @State private var avatarImage: UIImage? = nil          // Selected avatar image
     @State private var saveStatus: String? = nil            // "Saved!" feedback message
     @State private var isSaving: Bool = false               // Prevents double-tap while saving
-    @State private var showOAuthAlert: Bool = false         // Web-only OAuth info alert
-    @State private var oAuthProvider: String = ""           // Provider name shown in alert
+    @State private var oAuthSession: ASWebAuthenticationSession? = nil  // OAuth session
 
     var body: some View {
         NavigationStack {
@@ -96,14 +96,7 @@ struct SettingsView: View {
         } message: {
             Text("This will permanently delete your account and all your listening history. There is no way to recover this data.")
         }
-        // MARK: Web-only OAuth Info Alert
-        // Google and GitHub OAuth run through the web browser session, not the app.
-        // Connecting them on the website keeps both platforms in sync automatically.
-        .alert("Connect \(oAuthProvider) on the web", isPresented: $showOAuthAlert) {
-            Button("Got it", role: .cancel) {}
-        } message: {
-            Text("To link your \(oAuthProvider) account, open the website in a browser, go to Settings → Connected accounts, and connect from there. It will sync to the app automatically.")
-        }
+
         // MARK: Photo Selection Handler
         // Triggered when user picks a photo from the library
         .onChange(of: selectedPhoto) {
@@ -392,8 +385,7 @@ struct SettingsView: View {
                         Spacer()
 
                         Button("Connect") {
-                            oAuthProvider = "Google"
-                            showOAuthAlert = true
+                            startOAuth(provider: "Google")
                         }
                         .font(.dmSans(13, weight: .bold))
                         .foregroundColor(.appTextPrimary)
@@ -423,8 +415,7 @@ struct SettingsView: View {
                         Spacer()
 
                         Button("Connect") {
-                            oAuthProvider = "GitHub"
-                            showOAuthAlert = true
+                            startOAuth(provider: "GitHub")
                         }
                         .font(.dmSans(13, weight: .bold))
                         .foregroundColor(.appTextPrimary)
@@ -504,6 +495,29 @@ struct SettingsView: View {
     }
 
     // MARK: - Helpers
+
+    // MARK: OAuth via ASWebAuthenticationSession
+    // Opens Google/GitHub login in a secure in-app browser.
+    // On success the server redirects to statify://oauth-callback?token=...&email=...
+    // which is handled by StatifyiOSApp.onOpenURL → authManager.handleOAuthCallback.
+    private func startOAuth(provider: String) {
+        let base = "https://spotifystatistics-production.up.railway.app"
+        let urlString = "\(base)/Identity/Account/ExternalLogin?provider=\(provider)&mobile=true"
+        guard let url = URL(string: urlString) else { return }
+
+        let session = ASWebAuthenticationSession(
+            url: url,
+            callbackURLScheme: "statify"
+        ) { callbackURL, error in
+            oAuthSession = nil
+            guard let callbackURL, error == nil else { return }
+            // Delegate to AuthManager — it extracts token and logs in
+            authManager.handleOAuthCallback(url: callbackURL)
+        }
+        session.prefersEphemeralWebBrowserSession = true  // No shared cookie = no redirect loop
+        oAuthSession = session
+        session.start()
+    }
 
     // Opens a URL in Safari — used for OAuth flows
     private func openURL(_ urlString: String) {

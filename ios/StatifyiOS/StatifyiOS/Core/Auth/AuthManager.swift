@@ -118,6 +118,20 @@ final class AuthManager {
         currentUser = nil
         isLoggedIn = false
     }
+
+    // MARK: - OAuth Deep-link Callback
+    // Called from StatifyiOSApp when the app receives a statify://oauth-callback URL.
+    // Extracts token + email from query params and logs the user in.
+    func handleOAuthCallback(url: URL) {
+        guard let components = URLComponents(url: url, resolvingAgainstBaseURL: false),
+              let token = components.queryItems?.first(where: { $0.name == "token" })?.value,
+              let email = components.queryItems?.first(where: { $0.name == "email" })?.value
+        else { return }
+
+        KeychainManager.shared.saveToken(token)
+        currentUser = User(id: "", email: email, displayName: nil)
+        isLoggedIn = true
+    }
 }
 
 // MARK: - Request Models
