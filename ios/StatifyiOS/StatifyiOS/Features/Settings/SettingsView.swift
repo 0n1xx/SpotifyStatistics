@@ -34,7 +34,6 @@ struct SettingsView: View {
     @State private var avatarImage: UIImage? = nil          // Selected avatar image
     @State private var saveStatus: String? = nil            // "Saved!" feedback message
     @State private var isSaving: Bool = false               // Prevents double-tap while saving
-    @State private var oAuthSession: ASWebAuthenticationSession? = nil  // OAuth session
 
     var body: some View {
         NavigationStack {
@@ -501,22 +500,7 @@ struct SettingsView: View {
     // On success the server redirects to statify://oauth-callback?token=...&email=...
     // which is handled by StatifyiOSApp.onOpenURL → authManager.handleOAuthCallback.
     private func startOAuth(provider: String) {
-        let base = "https://spotifystatistics-production.up.railway.app"
-        let urlString = "\(base)/Identity/Account/ExternalLogin?provider=\(provider)&mobile=true"
-        guard let url = URL(string: urlString) else { return }
-
-        let session = ASWebAuthenticationSession(
-            url: url,
-            callbackURLScheme: "statify"
-        ) { callbackURL, error in
-            oAuthSession = nil
-            guard let callbackURL, error == nil else { return }
-            // Delegate to AuthManager — it extracts token and logs in
-            authManager.handleOAuthCallback(url: callbackURL)
-        }
-        session.prefersEphemeralWebBrowserSession = true  // No shared cookie = no redirect loop
-        oAuthSession = session
-        session.start()
+        Statify.startOAuth(provider: provider, authManager: authManager)
     }
 
     // Opens a URL in Safari — used for OAuth flows

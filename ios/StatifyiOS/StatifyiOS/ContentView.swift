@@ -8,7 +8,7 @@
 import SwiftUI
 
 struct ContentView: View {
-    @State private var authManager = AuthManager()
+    @Environment(AuthManager.self) private var authManager
 
     var body: some View {
         Group {
@@ -18,10 +18,11 @@ struct ContentView: View {
                 LoginView()
             }
         }
-        .environment(authManager)
         .preferredColorScheme(.dark)
     }
 }
+
 #Preview {
     ContentView()
+        .environment(AuthManager())
 }

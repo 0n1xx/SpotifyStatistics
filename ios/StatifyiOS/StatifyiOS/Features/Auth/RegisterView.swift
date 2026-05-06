@@ -172,6 +172,48 @@ struct RegisterView: View {
                         .opacity(email.isEmpty || password.isEmpty ? 0.5 : 1)
                     }
 
+                    // MARK: Divider
+                    HStack {
+                        Rectangle().frame(height: 1).foregroundColor(.appBorder)
+                        Text("or").font(.dmSans(13)).foregroundColor(.appTextSecondary).fixedSize()
+                        Rectangle().frame(height: 1).foregroundColor(.appBorder)
+                    }
+
+                    // MARK: Social Login
+                    VStack(spacing: 12) {
+                        Button {
+                            startOAuth(provider: "Google", authManager: authManager)
+                        } label: {
+                            HStack(spacing: 10) {
+                                Image(systemName: "globe")
+                                Text("Continue with Google")
+                                    .font(.dmSans(15, weight: .bold))
+                            }
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 14)
+                            .foregroundColor(.appTextPrimary)
+                            .background(Color.appCard)
+                            .cornerRadius(10)
+                            .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.appBorder, lineWidth: 1))
+                        }
+
+                        Button {
+                            startOAuth(provider: "GitHub", authManager: authManager)
+                        } label: {
+                            HStack(spacing: 10) {
+                                Image(systemName: "chevron.left.forwardslash.chevron.right")
+                                Text("Continue with GitHub")
+                                    .font(.dmSans(15, weight: .bold))
+                            }
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 14)
+                            .foregroundColor(.appTextPrimary)
+                            .background(Color.appCard)
+                            .cornerRadius(10)
+                            .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.appBorder, lineWidth: 1))
+                        }
+                    }
+
                     // MARK: Back to Login
                     Button {
                         dismiss()
