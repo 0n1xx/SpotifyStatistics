@@ -35,13 +35,20 @@ namespace SpotifyStatisticsWebApp.Pages
             ViewData["DisplayName"]   = profile?.DisplayName;
 
             // Check Spotify connection
-            var defaultConn = _config.GetConnectionString("DefaultConnection");
-            using var spotifyDb = new SqlConnection(defaultConn);
-            await spotifyDb.OpenAsync();
-            using var checkCmd = new SqlCommand(
-                "SELECT COUNT(*) FROM SpotifyTokens WHERE UserId = @uid", spotifyDb);
-            checkCmd.Parameters.AddWithValue("@uid", userId);
-            SpotifyConnected = (int)(await checkCmd.ExecuteScalarAsync() ?? 0) > 0;
+            try
+            {
+                var defaultConn = _config.GetConnectionString("DefaultConnection");
+                using var spotifyDb = new SqlConnection(defaultConn);
+                await spotifyDb.OpenAsync();
+                using var checkCmd = new SqlCommand(
+                    "SELECT COUNT(*) FROM SpotifyTokens WHERE UserId = @uid", spotifyDb);
+                checkCmd.Parameters.AddWithValue("@uid", userId);
+                SpotifyConnected = (int)(await checkCmd.ExecuteScalarAsync() ?? 0) > 0;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"SpotifyTokens check error: {ex.Message}");
+            }
 
             var connStr = _config.GetConnectionString("MusicHistoryConnection");
             if (string.IsNullOrEmpty(connStr)) return; // No music DB configured yet
@@ -82,9 +89,10 @@ namespace SpotifyStatisticsWebApp.Pages
                     });
                 }
             }
-            catch (SqlException)
+            catch (Exception ex)
             {
-                // Music history DB unavailable — show empty state instead of 500
+                // DB unavailable or query error — show empty state instead of 500
+                Console.WriteLine($"RecentlyPlayed error: {ex.Message}");
             }
         }
     }
