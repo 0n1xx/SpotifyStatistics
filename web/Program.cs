@@ -80,6 +80,7 @@ builder.Services.AddAuthentication()
 
 // Utils
 builder.Services.AddHttpClient();
+builder.Services.AddScoped<SpotifyStatisticsWebApp.Services.JwtService>();
 builder.Services.AddDistributedMemoryCache();
 
 // Email sender — Resend API (key: Railway → Variables → RESEND_API_KEY)
