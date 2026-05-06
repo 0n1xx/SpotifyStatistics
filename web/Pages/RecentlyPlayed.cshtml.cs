@@ -53,7 +53,7 @@ namespace SpotifyStatisticsWebApp.Pages
 
                 // Total count for pagination
                 using var countCmd = new SqlCommand(
-                    "SELECT COUNT(*) FROM music_history WHERE user_id = @uid", conn);
+                    "SELECT COUNT(*) FROM dbo.music_history WHERE user_id = @uid", conn);
                 countCmd.Parameters.AddWithValue("@uid", userId);
                 TotalCount = (int)(await countCmd.ExecuteScalarAsync() ?? 0);
                 TotalPages = (int)Math.Ceiling(TotalCount / (double)PageSize);
@@ -61,7 +61,7 @@ namespace SpotifyStatisticsWebApp.Pages
                 int offset = (Page - 1) * PageSize;
                 using var cmd = new SqlCommand(@"
                     SELECT song, artist, album, country, played_at
-                    FROM music_history
+                    FROM dbo.music_history
                     WHERE user_id = @uid
                     ORDER BY played_at DESC
                     OFFSET @offset ROWS FETCH NEXT @size ROWS ONLY", conn);
