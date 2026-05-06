@@ -326,10 +326,10 @@ namespace SpotifyStatisticsWebApp.Controllers
 
             await using var conn = await MusicDbAsync();
 
-            var totalTracks    = await ScalarAsync<int>(conn, $"SELECT COUNT(*) FROM music_history WHERE user_id = @uid {df}", ("@uid", userId));
-            var uniqueArtists  = await ScalarAsync<int>(conn, $"SELECT COUNT(DISTINCT artist) FROM music_history WHERE user_id = @uid {df}", ("@uid", userId));
-            var uniqueAlbums   = await ScalarAsync<int>(conn, $"SELECT COUNT(DISTINCT album) FROM music_history WHERE user_id = @uid {df}", ("@uid", userId));
-            var uniqueCountries = await ScalarAsync<int>(conn, $"SELECT COUNT(DISTINCT country) FROM music_history WHERE user_id = @uid AND country != 'unknown' {df}", ("@uid", userId));
+            var totalTracks    = await ScalarAsync<int>(conn, $"SELECT COUNT(*) FROM dbo.music_history WHERE user_id = @uid {df}", ("@uid", userId));
+            var uniqueArtists  = await ScalarAsync<int>(conn, $"SELECT COUNT(DISTINCT artist) FROM dbo.music_history WHERE user_id = @uid {df}", ("@uid", userId));
+            var uniqueAlbums   = await ScalarAsync<int>(conn, $"SELECT COUNT(DISTINCT album) FROM dbo.music_history WHERE user_id = @uid {df}", ("@uid", userId));
+            var uniqueCountries = await ScalarAsync<int>(conn, $"SELECT COUNT(DISTINCT country) FROM dbo.music_history WHERE user_id = @uid AND country != 'unknown' {df}", ("@uid", userId));
 
             // Top 10 tracks
             var topTracks = new List<object>();
@@ -477,7 +477,7 @@ namespace SpotifyStatisticsWebApp.Controllers
 
             // Total count for pagination metadata
             var totalCount = await ScalarAsync<int>(conn,
-                "SELECT COUNT(*) FROM music_history WHERE user_id = @uid",
+                "SELECT COUNT(*) FROM dbo.music_history WHERE user_id = @uid",
                 ("@uid", userId));
 
             int totalPages = (int)Math.Ceiling(totalCount / (double)limit);
@@ -486,7 +486,7 @@ namespace SpotifyStatisticsWebApp.Controllers
             var tracks = new List<object>();
             using var cmd = new SqlCommand(@"
                 SELECT song, artist, album, country, played_at
-                FROM music_history
+                FROM dbo.music_history
                 WHERE user_id = @uid
                 ORDER BY played_at DESC
                 OFFSET @offset ROWS FETCH NEXT @size ROWS ONLY", conn);

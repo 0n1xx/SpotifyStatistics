@@ -14,7 +14,7 @@ namespace SpotifyStatisticsWebApp.Pages
         public List<RecentTrack> Tracks { get; set; } = new();
         public bool SpotifyConnected { get; set; }
         public int TotalCount { get; set; }
-        public int Page { get; set; } = 1;
+        public new int Page { get; set; } = 1;
         public int PageSize { get; set; } = 50;
         public int TotalPages { get; set; }
 
