@@ -5,7 +5,7 @@ from datetime import datetime, timedelta
 from airflow.decorators import dag, task
 from airflow.models import Variable
 from airflow.utils.email import send_email
-from clickhouse_driver import Client
+import clickhouse_connect
 from urllib.parse import urlparse
 from sqlalchemy import create_engine, text
 import psycopg2
@@ -64,12 +64,14 @@ schedule_interval = "*/3 * * * *"
 conn_string = Variable.get("CLICKHOUSE_CONN")
 url = urlparse(conn_string)
 
-client = Client(
+# clickhouse_connect uses HTTP (port 8123) — compatible with Railway TCP proxy
+client = clickhouse_connect.get_client(
     host=url.hostname,
-    port=url.port or 9000,
-    user=url.username,
+    port=url.port or 8123,
+    username=url.username,
     password=url.password,
-    database=url.path.lstrip("/") or "default"
+    database=url.path.lstrip("/") or "default",
+    secure=False,
 )
 
 MSSQL_CONN_SPOTIFY = Variable.get("MSSQL_CONN_SPOTIFY")
@@ -363,10 +365,10 @@ def spotify_history():
         if before != len(df):
             print(f"Dropped {before - len(df)} duplicates before insert")
 
-        client.execute("INSERT INTO default.music_history VALUES", df.to_dict(orient="records"))
+        client.insert_df("music_history", df[['played_at', 'song', 'artist', 'album', 'date', 'country', 'begin_area', 'user_id']])
         print(f"Inserted {len(df)} rows into ClickHouse")
 
-        client.execute("""
+        client.command("""
             OPTIMIZE TABLE default.music_history
             DEDUPLICATE BY song, album, artist, played_at, user_id
         """)
@@ -390,7 +392,8 @@ def spotify_history():
                                > 1 \
                           """
 
-        artists = [row[0] for row in client.execute(query_conflicts)]
+        result = client.query(query_conflicts)
+        artists = [row[0] for row in result.result_rows]
 
         if not artists:
             return
@@ -420,7 +423,8 @@ def spotify_history():
             GROUP BY artist
         """
 
-        majority_rows = client.execute(query_majority)
+        result_majority = client.query(query_majority)
+        majority_rows = result_majority.result_rows
 
         print(f"Computed majority for {len(majority_rows)} artists")
 
@@ -432,19 +436,18 @@ def spotify_history():
                     begin_area = '{begin_area}'
                 WHERE artist = '{artist}'
             """
-            client.execute(update_query)
+            client.command(update_query)
 
         print("Update queries executed")
 
         # --- STEP 4: optimize (apply mutations) ---
-        client.execute("OPTIMIZE TABLE music_history FINAL")
+        client.command("OPTIMIZE TABLE music_history FINAL")
 
     @task
     def load_mssql():
-        rows, columns = client.execute("SELECT * FROM music_history", with_column_types=True)
-
-        col_names = [col[0] for col in columns]
-        df_ch = pd.DataFrame(rows, columns=col_names)
+        result = client.query("SELECT played_at, song, artist, album, date, country, begin_area, user_id FROM music_history")
+        col_names = result.column_names
+        df_ch = pd.DataFrame(result.result_rows, columns=col_names)
 
         df_ch['played_at'] = pd.to_datetime(df_ch['played_at']).dt.floor('s')
         df_ch['date'] = pd.to_datetime(df_ch['date']).dt.date
@@ -501,13 +504,12 @@ def spotify_history():
         OPTIMIZE DEDUPLICATE in ClickHouse. Only new rows are inserted.
         """
         # Read all rows from ClickHouse
-        rows, columns = client.execute(
+        result = client.query(
             "SELECT played_at, song, artist, album, date, country, begin_area, user_id "
-            "FROM music_history",
-            with_column_types=True,
+            "FROM music_history"
         )
-        col_names = [col[0] for col in columns]
-        df_ch = pd.DataFrame(rows, columns=col_names)
+        col_names = result.column_names
+        df_ch = pd.DataFrame(result.result_rows, columns=col_names)
 
         if df_ch.empty:
             print("ClickHouse is empty, nothing to sync")
