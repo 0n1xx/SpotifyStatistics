@@ -504,11 +504,18 @@ namespace SpotifyStatisticsWebApp.Controllers
                     country  = reader.IsDBNull(3) ? "" : reader.GetString(3),
                     playedAt = reader.IsDBNull(4) ? "" : (() => {
                             var dt = reader.GetDateTime(4);
-                            var tz = TimeZoneInfo.FindSystemTimeZoneById("America/Toronto");
-                            var offset = tz.GetUtcOffset(dt);
-                            return dt.ToString("yyyy-MM-ddTHH:mm:ss") + (offset < TimeSpan.Zero
-                                ? "-" + offset.ToString(@"hh\:mm")
-                                : "+" + offset.ToString(@"hh\:mm"));
+                            TimeZoneInfo tz;
+                            try {
+                                // Linux (Railway)
+                                tz = TimeZoneInfo.FindSystemTimeZoneById("America/Toronto");
+                            } catch {
+                                // Windows fallback
+                                tz = TimeZoneInfo.FindSystemTimeZoneById("Eastern Standard Time");
+                            }
+                            var off = tz.GetUtcOffset(dt);
+                            var sign = off < TimeSpan.Zero ? "-" : "+";
+                            var abs = off.Duration();
+                            return dt.ToString("yyyy-MM-ddTHH:mm:ss") + sign + abs.ToString(@"hh\:mm");
                         })(),
                 });
 
