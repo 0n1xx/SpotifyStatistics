@@ -146,9 +146,9 @@ Consistent visual identity across web and iOS:
 - [x] Transactional email via Resend on `statify.one`
 - [x] Custom domain with DNS + SSL
 - [x] Admin analytics dashboard (Superset + ClickHouse)
-- [ ] iOS app — Phase 1: Auth + Dashboard
-- [ ] iOS app — Phase 2: Recently Played + World Map
-- [ ] iOS app — Phase 3: Settings + Polish
+- [x] iOS app — Phase 1: Auth + Dashboard
+- [x] iOS app — Phase 2: Recently Played + World Map
+- [x] iOS app — Phase 3: Settings + Polish
 
 ---
 
