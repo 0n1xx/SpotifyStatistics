@@ -56,7 +56,7 @@
         </header>
         <ol class="table-body" id="trackList">
             @* Starting index accounts for the current pagination offset *@
-            @{ int idx = (Model.Page - 1) * Model.PageSize + 1; }
+            @{ int idx = (Model.CurrentPage - 1) * Model.CurrentPageSize + 1; }
             @foreach (var t in Model.Tracks)
             {
                 @* data-* attributes are read by filterRows() and setFilter() in recently-played.js *@
@@ -65,7 +65,7 @@
                     data-artist="@t.Artist.ToLower()"
                     data-album="@t.Album.ToLower()"
                     data-played="@t.PlayedAt.ToString("o")"
-                    style="animation-delay:@(((idx - 1) % Model.PageSize) * 0.012)s">
+                    style="animation-delay:@(((idx - 1) % Model.CurrentPageSize) * 0.012)s">
                     <span class="track-num">@idx</span>
                     <div class="track-song">
                         <div class="track-icon" aria-hidden="true">🎵</div>
@@ -84,16 +84,16 @@
     @* ── Pagination controls ── *@
     <nav class="pagination" aria-label="Pagination">
         <p class="page-info">
-            Page <strong>@Model.Page</strong> of <strong>@Model.TotalPages</strong>
-            &nbsp;·&nbsp; showing @((Model.Page - 1) * Model.PageSize + 1)–@(Math.Min(Model.Page * Model.PageSize, Model.TotalCount))
+            Page <strong>@Model.CurrentPage</strong> of <strong>@Model.TotalPages</strong>
+            &nbsp;·&nbsp; showing @((Model.CurrentPage - 1) * Model.CurrentPageSize + 1)–@(Math.Min(Model.CurrentPage * Model.CurrentPageSize, Model.TotalCount))
             of <strong>@Model.TotalCount.ToString("N0")</strong>
         </p>
         <div class="page-btns">
             @* First / Prev — disabled on page 1 *@
-            @if (Model.Page > 1)
+            @if (Model.CurrentPage > 1)
             {
                 <a class="page-btn" asp-page="/RecentlyPlayed" asp-route-page="1" aria-label="First page">«</a>
-                <a class="page-btn" asp-page="/RecentlyPlayed" asp-route-page="@(Model.Page - 1)">‹ Prev</a>
+                <a class="page-btn" asp-page="/RecentlyPlayed" asp-route-page="@(Model.CurrentPage - 1)">‹ Prev</a>
             }
             else
             {
@@ -101,10 +101,10 @@
                 <span class="page-btn disabled" aria-disabled="true">‹ Prev</span>
             }
             @* Numbered page buttons — show a window of ±2 pages around current *@
-            @{ int startPage = Math.Max(1, Model.Page - 2); int endPage = Math.Min(Model.TotalPages, Model.Page + 2); }
+            @{ int startPage = Math.Max(1, Model.CurrentPage - 2); int endPage = Math.Min(Model.TotalPages, Model.CurrentPage + 2); }
             @for (int p = startPage; p <= endPage; p++)
             {
-                if (p == Model.Page)
+                if (p == Model.CurrentPage)
                 {
                     <span class="page-btn active" aria-current="page">@p</span>
                 }
@@ -114,9 +114,9 @@
                 }
             }
             @* Next / Last — disabled on the last page *@
-            @if (Model.Page < Model.TotalPages)
+            @if (Model.CurrentPage < Model.TotalPages)
             {
-                <a class="page-btn" asp-page="/RecentlyPlayed" asp-route-page="@(Model.Page + 1)">Next ›</a>
+                <a class="page-btn" asp-page="/RecentlyPlayed" asp-route-page="@(Model.CurrentPage + 1)">Next ›</a>
                 <a class="page-btn" asp-page="/RecentlyPlayed" asp-route-page="@Model.TotalPages" aria-label="Last page">»</a>
             }
             else

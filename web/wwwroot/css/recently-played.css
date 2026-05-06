@@ -226,17 +226,70 @@
 @media (max-width: 600px) {
     .main { padding: 72px 16px 32px; }
 
-    /* Table-like rows become card-like on mobile */
+    .page-title { font-size: 22px; }
+
+    /* Hide table header on mobile */
+    .table-head { display: none; }
+
+    /* Switch from grid to flex card layout */
     .track-row {
+        display: flex;
         flex-wrap: wrap;
-        gap: 8px;
-        padding: 12px 14px !important;
+        gap: 2px 8px;
+        padding: 10px 14px !important;
+        align-items: flex-start;
     }
 
-    /* Hide the album column on very small screens */
-    .track-album { display: none; }
+    .track-num {
+        width: 20px;
+        flex-shrink: 0;
+        padding-top: 2px;
+    }
 
-    .page-title { font-size: 22px; }
+    .track-song {
+        flex: 1;
+        min-width: 0;
+    }
+
+    .track-name {
+        white-space: normal;
+        font-size: 13px;
+    }
+
+    /* Artist on second line, full width */
+    .track-artist {
+        width: 100%;
+        margin-left: 28px;
+        font-size: 12px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    /* Hide album and country */
+    .track-album,
+    .track-country { display: none; }
+
+    /* Time top-right */
+    .track-time {
+        margin-left: auto;
+        flex-shrink: 0;
+        font-size: 11px;
+    }
+
+    /* Pagination stacks vertically */
+    .pagination {
+        flex-direction: column;
+        gap: 12px;
+        align-items: flex-start;
+    }
+
+    .page-btns { flex-wrap: wrap; }
+
+    .page-btn {
+        padding: 6px 10px;
+        font-size: 12px;
+    }
 }
 
 /* ── Table header: "Played at" column — right-aligned ── */

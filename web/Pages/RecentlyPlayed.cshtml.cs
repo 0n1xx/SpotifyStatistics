@@ -14,7 +14,7 @@ namespace SpotifyStatisticsWebApp.Pages
         public List<RecentTrack> Tracks { get; set; } = new();
         public bool SpotifyConnected { get; set; }
         public int TotalCount { get; set; }
-        public new int Page { get; set; } = 1;
+        public int CurrentPage { get; set; } = 1;
         public int PageSize { get; set; } = 50;
         public int TotalPages { get; set; }
 
@@ -26,7 +26,7 @@ namespace SpotifyStatisticsWebApp.Pages
 
         public async Task OnGetAsync(int page = 1)
         {
-            Page = Math.Max(1, page);
+            CurrentPage = Math.Max(1, page);
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
 
             // Avatar from DB for sidebar
@@ -72,7 +72,7 @@ namespace SpotifyStatisticsWebApp.Pages
                 TotalCount = (int)(await countCmd.ExecuteScalarAsync() ?? 0);
                 TotalPages = (int)Math.Ceiling(TotalCount / (double)PageSize);
 
-                int offset = (Page - 1) * PageSize;
+                int offset = (CurrentPage - 1) * PageSize;
                 using var cmd = new SqlCommand(@"
                     SELECT song, artist, album, country, played_at
                     FROM dbo.music_history
