@@ -79,26 +79,7 @@
 .search-input:focus { border-color: rgba(255,255,255,0.2); }
 .search-input::placeholder { color: #444; }
 
-.filter-group {
-    display: flex;
-    gap: 8px;
-}
 
-.filter-btn {
-    padding: 8px 16px;
-    border-radius: 8px;
-    font-size: 12px;
-    font-weight: 500;
-    font-family: 'DM Sans', sans-serif;
-    border: 1px solid var(--border);
-    background: transparent;
-    color: var(--muted2);
-    cursor: pointer;
-    transition: all 0.15s;
-}
-
-.filter-btn:hover { border-color: rgba(255,255,255,0.2); color: var(--text); }
-.filter-btn.active { background: var(--green); border-color: var(--green); color: #000; font-weight: 600; }
 
 /* Track table */
 .track-table {

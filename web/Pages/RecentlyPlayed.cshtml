@@ -31,12 +31,6 @@
                    placeholder="Search songs, artists, albums…" oninput="filterRows()"
                    aria-label="Search tracks">
         </div>
-        <nav class="filter-group" aria-label="Time range filter">
-            <button class="filter-btn active" onclick="setFilter(this,'all')">All time</button>
-            <button class="filter-btn" onclick="setFilter(this,'7d')">7 days</button>
-            <button class="filter-btn" onclick="setFilter(this,'30d')">30 days</button>
-            <button class="filter-btn" onclick="setFilter(this,'6m')">6 months</button>
-        </nav>
     </div>
 
     @* ── Track table — rows injected by recently-played.js ── *@

@@ -12,7 +12,6 @@ let currentPage   = 0;
 let isLoading     = false;
 let hasMore       = true;
 let allTracks     = [];   // master list for client-side filter
-let activeRange   = 'all';
 let activeSearch  = '';
 let globalIndex   = 0;   // running row number across pages
 
@@ -140,17 +139,7 @@ function filterRows() {
     applyFilters();
 }
 
-function setFilter(btn, range) {
-    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
-    activeRange = range;
-    applyFilters();
-}
-
 function applyFilters() {
-    const now    = new Date();
-    const cutoff = rangeCutoff(activeRange, now);
-
     let visibleCount = 0;
     document.querySelectorAll('.track-row').forEach(row => {
         const matchSearch = !activeSearch
@@ -158,21 +147,11 @@ function applyFilters() {
             || row.dataset.artist.includes(activeSearch)
             || row.dataset.album.includes(activeSearch);
 
-        const matchRange = !cutoff || new Date(row.dataset.played) >= cutoff;
-
-        const show = matchSearch && matchRange;
-        row.style.display = show ? '' : 'none';
-        if (show) visibleCount++;
+        row.style.display = matchSearch ? '' : 'none';
+        if (matchSearch) visibleCount++;
     });
 
     showEmpty(allTracks.length > 0 && visibleCount === 0);
-}
-
-function rangeCutoff(range, now) {
-    if (range === '7d')  return new Date(now - 7   * 86400000);
-    if (range === '30d') return new Date(now - 30  * 86400000);
-    if (range === '6m')  return new Date(now - 182 * 86400000);
-    return null;
 }
 
 // ── UI helpers ────────────────────────────────────────────────────────────────
