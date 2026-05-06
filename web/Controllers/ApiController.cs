@@ -502,18 +502,19 @@ namespace SpotifyStatisticsWebApp.Controllers
                     artist   = reader.IsDBNull(1) ? "" : reader.GetString(1),
                     album    = reader.IsDBNull(2) ? "" : reader.GetString(2),
                     country  = reader.IsDBNull(3) ? "" : reader.GetString(3),
+                    // played_at is stored as Toronto local time.
+                    // We just need to tell iOS what timezone it is so it displays correctly.
+                    // Toronto is EDT (UTC-4) in summer, EST (UTC-5) in winter.
                     playedAt = reader.IsDBNull(4) ? "" : (() => {
                             var dt = reader.GetDateTime(4);
+                            // Use TimeZoneInfo to get correct EDT/EST offset for the date
                             TimeZoneInfo tz;
-                            try {
-                                // Linux (Railway)
-                                tz = TimeZoneInfo.FindSystemTimeZoneById("America/Toronto");
-                            } catch {
-                                // Windows fallback
-                                tz = TimeZoneInfo.FindSystemTimeZoneById("Eastern Standard Time");
-                            }
-                            var off = tz.GetUtcOffset(dt);
-                            var sign = off < TimeSpan.Zero ? "-" : "+";
+                            try { tz = TimeZoneInfo.FindSystemTimeZoneById("America/Toronto"); }
+                            catch { tz = TimeZoneInfo.FindSystemTimeZoneById("Eastern Standard Time"); }
+                            // dt is already Toronto local — convert to UTC first to get correct offset
+                            var dtUtc = TimeZoneInfo.ConvertTimeToUtc(DateTime.SpecifyKind(dt, DateTimeKind.Unspecified), tz);
+                            var off = dt - dtUtc;  // difference = Toronto offset from UTC
+                            var sign = off >= TimeSpan.Zero ? "+" : "-";
                             var abs = off.Duration();
                             return dt.ToString("yyyy-MM-ddTHH:mm:ss") + sign + abs.ToString(@"hh\:mm");
                         })(),
