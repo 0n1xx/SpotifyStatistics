@@ -446,7 +446,7 @@ def spotify_history():
     @task
     def load_mssql():
         result = client.query("SELECT played_at, song, artist, album, date, country, begin_area, user_id FROM music_history")
-        col_names = result.column_names
+        col_names = ['played_at', 'song', 'artist', 'album', 'date', 'country', 'begin_area', 'user_id']
         df_ch = pd.DataFrame(result.result_rows, columns=col_names)
 
         df_ch['played_at'] = pd.to_datetime(df_ch['played_at']).dt.floor('s')
@@ -508,7 +508,7 @@ def spotify_history():
             "SELECT played_at, song, artist, album, date, country, begin_area, user_id "
             "FROM music_history"
         )
-        col_names = result.column_names
+        col_names = ['played_at', 'song', 'artist', 'album', 'date', 'country', 'begin_area', 'user_id']
         df_ch = pd.DataFrame(result.result_rows, columns=col_names)
 
         if df_ch.empty:
