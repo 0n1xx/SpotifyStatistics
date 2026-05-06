@@ -473,29 +473,33 @@ namespace SpotifyStatisticsWebApp.Controllers
             limit = Math.Clamp(limit, 1, 100);
 
             var userId = UserId;
-            await using var conn = await MusicDbAsync();
 
-            // Total count for pagination metadata
-            var totalCount = await ScalarAsync<int>(conn,
-                "SELECT COUNT(*) FROM dbo.music_history WHERE user_id = @uid",
-                ("@uid", userId));
-
-            int totalPages = (int)Math.Ceiling(totalCount / (double)limit);
-            int offset     = (page - 1) * limit;
-
-            var tracks = new List<object>();
-            using var cmd = new SqlCommand(@"
-                SELECT song, artist, album, country, played_at
-                FROM dbo.music_history
-                WHERE user_id = @uid
-                ORDER BY played_at DESC
-                OFFSET @offset ROWS FETCH NEXT @size ROWS ONLY", conn);
-            cmd.Parameters.AddWithValue("@uid", userId);
-            cmd.Parameters.AddWithValue("@offset", offset);
-            cmd.Parameters.AddWithValue("@size", limit);
-
+            // Wrap everything — including connection open — so any DB error
+            // returns a proper 500 JSON instead of an unhandled exception that
+            // causes iOS to show "Failed to load history."
             try
             {
+                await using var conn = await MusicDbAsync();
+
+                // Total count for pagination metadata
+                var totalCount = await ScalarAsync<int>(conn,
+                    "SELECT COUNT(*) FROM dbo.music_history WHERE user_id = @uid",
+                    ("@uid", userId));
+
+                int totalPages = (int)Math.Ceiling(totalCount / (double)limit);
+                int offset     = (page - 1) * limit;
+
+                var tracks = new List<object>();
+                using var cmd = new SqlCommand(@"
+                    SELECT song, artist, album, country, played_at
+                    FROM dbo.music_history
+                    WHERE user_id = @uid
+                    ORDER BY played_at DESC
+                    OFFSET @offset ROWS FETCH NEXT @size ROWS ONLY", conn);
+                cmd.Parameters.AddWithValue("@uid", userId);
+                cmd.Parameters.AddWithValue("@offset", offset);
+                cmd.Parameters.AddWithValue("@size", limit);
+
                 using var reader = await cmd.ExecuteReaderAsync();
                 while (await reader.ReadAsync())
                     tracks.Add(new
@@ -506,21 +510,22 @@ namespace SpotifyStatisticsWebApp.Controllers
                         country  = reader.IsDBNull(3) ? "" : reader.GetString(3),
                         playedAt = reader.IsDBNull(4) ? "" : FormatTorontoTime(reader.GetDateTime(4)),
                     });
+
+                return Ok(new
+                {
+                    page,
+                    limit,
+                    totalCount,
+                    totalPages,
+                    hasNextPage = page < totalPages,
+                    tracks,
+                });
             }
             catch (Exception ex)
             {
+                Console.WriteLine($"GetHistory error: {ex.Message}");
                 return StatusCode(500, new { error = ex.Message });
             }
-
-            return Ok(new
-            {
-                page,
-                limit,
-                totalCount,
-                totalPages,
-                hasNextPage = page < totalPages,
-                tracks,
-            });
         }
 
         // ══════════════════════════════════════════════════════════════════════

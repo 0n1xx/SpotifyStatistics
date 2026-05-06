@@ -70,7 +70,9 @@ namespace SpotifyStatisticsWebApp.Pages
                     "SELECT COUNT(*) FROM dbo.music_history WHERE user_id = @uid", conn);
                 countCmd.Parameters.AddWithValue("@uid", userId);
                 TotalCount = (int)(await countCmd.ExecuteScalarAsync() ?? 0);
-                TotalPages = (int)Math.Ceiling(TotalCount / (double)PageSize);
+                // Math.Max(1, …) ensures TotalPages is never 0, which would
+                // make CurrentPage < TotalPages always false and disable Next.
+                TotalPages = Math.Max(1, (int)Math.Ceiling(TotalCount / (double)PageSize));
 
                 int offset = (CurrentPage - 1) * PageSize;
                 using var cmd = new SqlCommand(@"
