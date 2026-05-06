@@ -8,6 +8,7 @@ from airflow.utils.email import send_email
 from clickhouse_driver import Client
 from urllib.parse import urlparse
 from sqlalchemy import create_engine, text
+import psycopg2
 import requests
 import time
 
@@ -76,6 +77,10 @@ spotify_engine = create_engine(MSSQL_CONN_SPOTIFY, fast_executemany=True)
 
 MSSQL_CONN_MASTER = Variable.get("MSSQL_CONN_MASTER")
 master_engine = create_engine(MSSQL_CONN_MASTER, fast_executemany=True)
+
+# Postgres for Superset — synced from ClickHouse after each run
+PG_SUPERSET_CONN = Variable.get("PG_SUPERSET_CONN")
+pg_engine = create_engine(PG_SUPERSET_CONN)
 
 # ── musicbrainz session ───────────────────────────────────────────────────────
 
@@ -488,6 +493,68 @@ def spotify_history():
             cursor.close()
             conn.close()
 
+    @task
+    def load_postgres():
+        """
+        Syncs music_history from ClickHouse to PostgreSQL (Superset).
+        Uses INSERT ... ON CONFLICT DO NOTHING — equivalent to
+        OPTIMIZE DEDUPLICATE in ClickHouse. Only new rows are inserted.
+        """
+        # Read all rows from ClickHouse
+        rows, columns = client.execute(
+            "SELECT played_at, song, artist, album, date, country, begin_area, user_id "
+            "FROM music_history",
+            with_column_types=True,
+        )
+        col_names = [col[0] for col in columns]
+        df_ch = pd.DataFrame(rows, columns=col_names)
+
+        if df_ch.empty:
+            print("ClickHouse is empty, nothing to sync")
+            return
+
+        df_ch['played_at'] = pd.to_datetime(df_ch['played_at']).dt.floor('s')
+        df_ch['date']      = pd.to_datetime(df_ch['date']).dt.date
+
+        cols = ['played_at', 'song', 'artist', 'album', 'date', 'country', 'begin_area', 'user_id']
+
+        # Read existing keys from Postgres to find new rows
+        with pg_engine.connect() as conn:
+            df_pg = pd.read_sql(
+                "SELECT played_at, song, artist, album, user_id FROM music_history",
+                conn
+            )
+
+        df_pg['played_at'] = pd.to_datetime(df_pg['played_at']).dt.floor('s')
+
+        key_cols = ['played_at', 'song', 'artist', 'album', 'user_id']
+        ch_keys = df_ch[key_cols].astype(str).agg('|'.join, axis=1)
+        pg_keys = df_pg[key_cols].astype(str).agg('|'.join, axis=1)
+
+        new_rows = df_ch[~ch_keys.isin(set(pg_keys))][cols]
+
+        if new_rows.empty:
+            print("Postgres already in sync")
+            return
+
+        # Bulk insert via psycopg2 — faster than pandas .to_sql for large batches
+        raw_conn = pg_engine.raw_connection()
+        cursor = raw_conn.cursor()
+        try:
+            insert_sql = """
+                INSERT INTO music_history
+                    (played_at, song, artist, album, date, country, begin_area, user_id)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                ON CONFLICT (played_at, song, artist, album, user_id) DO NOTHING
+            """
+            data = [tuple(row) for row in new_rows.itertuples(index=False)]
+            cursor.executemany(insert_sql, data)
+            raw_conn.commit()
+            print(f"Inserted {len(data)} new rows into Postgres")
+        finally:
+            cursor.close()
+            raw_conn.close()
+
     # ── pipeline ──────────────────────────────────────────────────────────────
     users = get_users()
     fetched = fetch_user.expand(user=users)
@@ -497,8 +564,9 @@ def spotify_history():
     ch = load_clickhouse(enriched)
     fix = fix_artist_country_conflicts()
     ms = load_mssql()
+    pg = load_postgres()
 
-    ch >> fix >> ms
+    ch >> fix >> [ms, pg]  # ms and pg run in parallel after dedup
 
 
 spotify_dag = spotify_history()
