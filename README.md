@@ -8,7 +8,6 @@
 
 [![Live](https://img.shields.io/badge/Live-spotifystatistics--production.up.railway.app-1DB954?style=flat-square&logo=railway&logoColor=white)](https://spotifystatistics-production.up.railway.app)
 [![Platform](https://img.shields.io/badge/Platform-Web%20%7C%20iOS-1DB954?style=flat-square)](#)
-[![License](https://img.shields.io/badge/License-MIT-1DB954?style=flat-square)](#)
 
 </div>
 
