@@ -1,38 +1,61 @@
-# Statify — web (ASP.NET Core)
+# Statify — Web
 
-Dark-themed web application built with ASP.NET Core and Razor Pages. Deployed on Railway at [spotifystatistics-production.up.railway.app](https://spotifystatistics-production.up.railway.app).
+> Dark-themed web application built with ASP.NET Core and Razor Pages. Continuously synced with the Airflow data pipeline, deployed on Railway at [spotifystatistics-production.up.railway.app](https://spotifystatistics-production.up.railway.app).
 
 ---
 
-## Structure
+## Tech Stack
+
+| Layer | Technology |
+|---|---|
+| Framework | ASP.NET Core 10 |
+| Language | C# |
+| Pages | Razor Pages |
+| ORM | Entity Framework Core |
+| App database | Microsoft SQL Server |
+| Auth | ASP.NET Identity · Google OAuth · GitHub OAuth · Spotify OAuth |
+| Frontend | Vanilla JS · Custom CSS |
+| Maps | D3.js |
+| Email | Resend API (`noreply@statify.one`) |
+| Hosting | Railway |
+
+---
+
+## Project Structure
 
 ```
 web/
-├── Areas/Identity/         # ASP.NET Identity — auth + account management
+├── Areas/Identity/             # ASP.NET Identity — auth + full account management
 │   └── Pages/Account/
-│       ├── Login / Register
+│       ├── Login.cshtml / Register.cshtml
 │       ├── ForgotPassword / ResetPassword
-│       └── Manage/         # Profile, Email, Password, Linked accounts, GDPR
+│       └── Manage/             # Profile, Email, Password, Linked accounts, GDPR
+│
 ├── Controllers/
-│   ├── SpotifyAuthController.cs    # Spotify OAuth flow
-│   └── ApiController.cs
+│   ├── SpotifyAuthController.cs    # Spotify OAuth flow (PKCE)
+│   └── ApiController.cs            # REST endpoints for iOS app
+│
 ├── Data/
-│   ├── ApplicationDbContext.cs
-│   └── Migrations/
-├── Migrations/             # EF Core migrations (UserProfiles, DataProtectionKeys)
-├── Models/                 # Data models
-├── Pages/                  # Razor Pages
-│   ├── Dashboard.cshtml
-│   ├── RecentlyPlayed.cshtml
-│   ├── Worldmap.cshtml
-│   └── Settings.cshtml
+│   └── ApplicationDbContext.cs     # EF Core context
+│
+├── Migrations/                     # EF Core schema migrations
+│
+├── Models/                         # C# data models
+│
+├── Pages/
+│   ├── Dashboard.cshtml            # Top tracks, artists, albums, charts
+│   ├── RecentlyPlayed.cshtml       # Paginated history with search
+│   ├── Worldmap.cshtml             # D3.js geographic visualization
+│   └── Settings.cshtml             # Full account management
+│
 ├── Services/
 │   └── ResendEmailSender.cs        # Transactional email via Resend
+│
 ├── wwwroot/
-│   ├── css/                # Per-page stylesheets
-│   ├── js/                 # Per-page scripts
-│   └── statify_email_logo.png
-└── Program.cs
+│   ├── css/                        # Per-page stylesheets
+│   └── js/                         # Per-page scripts
+│
+└── Program.cs                      # App configuration and service registration
 ```
 
 ---
@@ -41,287 +64,108 @@ web/
 
 | Page | Description |
 |---|---|
-| Dashboard | Top tracks, artists, albums, listening by hour, activity by month |
-| Recently Played | Paginated history with search and time range filter |
-| World Map | D3.js geographic visualization of artists by country |
-| Settings | Profile photo, email, password, linked accounts, GDPR export, account deletion |
+| **Dashboard** | Top tracks, artists, albums · listening activity by hour · monthly heatmap |
+| **Recently Played** | Paginated full listening history with search and time range filter (7d / 30d / 90d / All) |
+| **World Map** | D3.js visualization — artist origins plotted by country with play counts |
+| **Settings** | Profile photo · display name · email · password · linked accounts · GDPR export · account deletion |
 
 ---
 
-## Auth
+## Authentication
 
-- **Google OAuth** and **GitHub OAuth** via ASP.NET Identity
-- **Spotify OAuth** via custom `SpotifyAuthController`
-- Full account management: photo, email, password, linked accounts, phone, GDPR export + deletion
+| Provider | Implementation |
+|---|---|
+| Email / Password | ASP.NET Identity with bcrypt hashing |
+| Google OAuth | `Microsoft.AspNetCore.Authentication.Google` |
+| GitHub OAuth | `AspNet.Security.OAuth.GitHub` |
+| Spotify OAuth | Custom `SpotifyAuthController` with PKCE flow |
+
+All OAuth providers are linked to the same ASP.NET Identity account. Users can connect or disconnect providers from the Settings page.
 
 ---
 
 ## Email
 
-Transactional email via [Resend](https://resend.com) on verified domain `statify.one`:
-- Password reset — forgot password → email → reset link → confirmation
-- Branded dark-theme HTML template with Statify logo
+Transactional email is sent via **Resend** on the verified domain `statify.one`:
+
+- Password reset — forgot password → branded email → reset link → confirmation
+- Sender address: `noreply@statify.one`
+- Branded dark-theme HTML email template with Statify logo
 
 ---
 
 ## Design System
 
-- **Dark theme** — `#080808` base, `#111` cards, `#1DB954` Spotify green accent
-- **No inline styles** — all styles in per-page CSS files
-- **Responsive** — tablet (≤900px) and mobile (≤600px) breakpoints
-- **Fonts** — Syne (headings), DM Sans (body)
+| Token | Value |
+|---|---|
+| Background | `#080808` |
+| Card | `#111111` |
+| Accent | `#1DB954` (Spotify green) |
+| Text primary | `#FFFFFF` |
+| Text secondary | `#999999` |
+| Heading font | Syne |
+| Body font | DM Sans |
+| Responsive breakpoints | 900px (tablet) · 600px (mobile) |
+
+No inline styles — all CSS is organized in per-page files under `wwwroot/css/`.
 
 ---
 
 ## Local Setup
 
+### Prerequisites
+
+- .NET 10 SDK
+- Microsoft SQL Server (local instance or Docker)
+- Spotify Developer App ([create at developer.spotify.com](https://developer.spotify.com))
+- Google OAuth credentials ([console.cloud.google.com](https://console.cloud.google.com))
+- GitHub OAuth App ([github.com/settings/applications](https://github.com/settings/applications))
+- Resend account + verified domain ([resend.com](https://resend.com))
+
+### Install & Run
+
 ```bash
-cd # Statify
-
-> Personal Spotify analytics platform — built to track, enrich, and visualize your listening history at scale.
-
-**Live → [spotifystatistics-production.up.railway.app](https://spotifystatistics-production.up.railway.app)**
-
----
-
-## What it does
-
-Statify automatically pulls your Spotify listening history every 3 minutes, enriches each track with geographic artist data via MusicBrainz, and stores everything across two databases — ClickHouse for fast analytics queries, and SQL Server for the web app. The result is a personal dashboard showing your top tracks, artists, albums, listening patterns by hour and month, and a world map of where your artists come from.
-
----
-
-## Architecture
-
-```
-Spotify API
-    │
-    ▼
-Apache Airflow                  every 3 min
-    ├── fetch    →  last 50 played tracks per user
-    ├── enrich   →  artist country + city (MusicBrainz)
-    ├── dedup    →  deduplication by played_at + user_id
-    ├── load     →  ClickHouse  (analytics)
-    └── sync     →  SQL Server  (web app)
-                         │
-                         ▼
-              ASP.NET Core Web App
-                         │
-                         ▼
-                  iOS App  [planned]
-```
-
----
-
-## Repository
-
-```
-Statify/
-├── web/                # ASP.NET Core (C#) — Razor Pages web application
-├── data_component/     # Python — Apache Airflow DAG
-├── ios/                # Swift — iOS app (planned)
-└── README.md
-```
-
----
-
-## Pages
-
-| Page | Description |
-|---|---|
-| **Dashboard** | Top tracks, artists, albums · listening by hour · activity heatmap by month |
-| **Recently Played** | Paginated full history with search and time range filter |
-| **World Map** | D3.js visualization — artist origins mapped by country |
-| **Settings** | Profile photo · email · password · linked accounts · GDPR data export |
-
----
-
-## Tech Stack
-
-| | |
-|---|---|
-| **Data pipeline** | Python · Apache Airflow · Spotify API · MusicBrainz API |
-| **Storage** | ClickHouse (analytics) · Microsoft SQL Server (app) · PostgreSQL (Airflow metadata) |
-| **Web** | ASP.NET Core · Razor Pages · Vanilla JS · Custom CSS |
-| **Auth** | ASP.NET Identity · Google OAuth · GitHub OAuth · Spotify OAuth |
-| **Email** | Resend API · `noreply@statify.one` |
-| **Hosting** | Railway |
-| **Domain** | statify.one |
-
----
-
-## Data Pipeline
-
-The Airflow DAG (`spotify_history`) runs every 3 minutes and processes all users concurrently:
-
-```
-get_users → fetch_user[] → combine → enrich → load_clickhouse → fix_conflicts → load_mssql
-```
-
-**Normalization at ingest:**
-- Artist names → Title Case (resolves encoding inconsistencies)
-- Song / album → lowercase
-- Timezone UTC → Toronto conversion before deriving `date` (prevents off-by-one bugs)
-- Invalid MusicBrainz codes (`XW`) and country-level `begin_area` → `unknown`
-
----
-
-## Design
-
-- Dark theme — `#080808` base · `#111` cards · `#1DB954` Spotify green accent
-- No inline styles — all CSS in per-page files
-- Fonts — Syne (headings) · DM Sans (body)
-- Responsive — 900px (tablet) · 600px (mobile) breakpoints
-
----
-
-## Roadmap
-
-- [x] Airflow pipeline — fetch · enrich · deduplicate · load
-- [x] ASP.NET web app with full Spotify OAuth
-- [x] Dashboard · Recently Played · World Map
-- [x] Full account management + GDPR export
-- [x] Transactional email via Resend on `statify.one`
-- [x] Custom domain with DNS + SSL
-- [ ] iOS app (Swift)
-
----
-
-*Built to demonstrate end-to-end skills across data engineering, web development, and full-stack system design.*# Statify
-
-> Personal Spotify analytics platform — built to track, enrich, and visualize your listening history at scale.
-
-**Live → [spotifystatistics-production.up.railway.app](https://spotifystatistics-production.up.railway.app)**
-
----
-
-## What it does
-
-Statify automatically pulls your Spotify listening history every 3 minutes, enriches each track with geographic artist data via MusicBrainz, and stores everything across two databases — ClickHouse for fast analytics queries, and SQL Server for the web app. The result is a personal dashboard showing your top tracks, artists, albums, listening patterns by hour and month, and a world map of where your artists come from.
-
----
-
-## Architecture
-
-```
-Spotify API
-    │
-    ▼
-Apache Airflow                  every 3 min
-    ├── fetch    →  last 50 played tracks per user
-    ├── enrich   →  artist country + city (MusicBrainz)
-    ├── dedup    →  deduplication by played_at + user_id
-    ├── load     →  ClickHouse  (analytics)
-    └── sync     →  SQL Server  (web app)
-                         │
-                         ▼
-              ASP.NET Core Web App
-                         │
-                         ▼
-                  iOS App  [planned]
-```
-
----
-
-## Repository
-
-```
-Statify/
-├── web/                # ASP.NET Core (C#) — Razor Pages web application
-├── data_component/     # Python — Apache Airflow DAG
-├── ios/                # Swift — iOS app (planned)
-└── README.md
-```
-
----
-
-## Pages
-
-| Page | Description |
-|---|---|
-| **Dashboard** | Top tracks, artists, albums · listening by hour · activity heatmap by month |
-| **Recently Played** | Paginated full history with search and time range filter |
-| **World Map** | D3.js visualization — artist origins mapped by country |
-| **Settings** | Profile photo · email · password · linked accounts · GDPR data export |
-
----
-
-## Tech Stack
-
-| | |
-|---|---|
-| **Data pipeline** | Python · Apache Airflow · Spotify API · MusicBrainz API |
-| **Storage** | ClickHouse (analytics) · Microsoft SQL Server (app) · PostgreSQL (Airflow metadata) |
-| **Web** | ASP.NET Core · Razor Pages · Vanilla JS · Custom CSS |
-| **Auth** | ASP.NET Identity · Google OAuth · GitHub OAuth · Spotify OAuth |
-| **Email** | Resend API · `noreply@statify.one` |
-| **Hosting** | Railway |
-| **Domain** | statify.one |
-
----
-
-## Data Pipeline
-
-The Airflow DAG (`spotify_history`) runs every 3 minutes and processes all users concurrently:
-
-```
-get_users → fetch_user[] → combine → enrich → load_clickhouse → fix_conflicts → load_mssql
-```
-
-**Normalization at ingest:**
-- Artist names → Title Case (resolves encoding inconsistencies)
-- Song / album → lowercase
-- Timezone UTC → Toronto conversion before deriving `date` (prevents off-by-one bugs)
-- Invalid MusicBrainz codes (`XW`) and country-level `begin_area` → `unknown`
-
----
-
-## Design
-
-- Dark theme — `#080808` base · `#111` cards · `#1DB954` Spotify green accent
-- No inline styles — all CSS in per-page files
-- Fonts — Syne (headings) · DM Sans (body)
-- Responsive — 900px (tablet) · 600px (mobile) breakpoints
-
----
-
-## Roadmap
-
-- [x] Airflow pipeline — fetch · enrich · deduplicate · load
-- [x] ASP.NET web app with full Spotify OAuth
-- [x] Dashboard · Recently Played · World Map
-- [x] Full account management + GDPR export
-- [x] Transactional email via Resend on `statify.one`
-- [x] Custom domain with DNS + SSL
-- [ ] iOS app (Swift)
-
----
-
-*Built to demonstrate end-to-end skills across data engineering, web development, and full-stack system design.*
+cd web
 dotnet restore
 dotnet run
 ```
 
-### Required Environment Variables
+The app will be available at `https://localhost:5001`.
+
+### Environment Variables
+
+Set these in `appsettings.Development.json` or as environment variables:
 
 ```
-ConnectionStrings__DefaultConnection      # SQL Server (app DB)
-ConnectionStrings__MusicHistoryConnection # SQL Server (music history)
+ConnectionStrings__DefaultConnection       # SQL Server — app database (Identity, profiles)
+ConnectionStrings__MusicHistoryConnection  # SQL Server — music history (synced from ClickHouse)
 Authentication__Google__ClientId
 Authentication__Google__ClientSecret
 Authentication__GitHub__ClientId
 Authentication__GitHub__ClientSecret
 Spotify__ClientId
 Spotify__ClientSecret
-Spotify__RedirectUri
+Spotify__RedirectUri                       # e.g. https://localhost:5001/spotify/callback
 RESEND_API_KEY
-JWT_SECRET
+JWT_SECRET                                 # Used for iOS API JWT tokens
+```
+
+### Database Migrations
+
+Apply EF Core migrations to create the schema:
+
+```bash
+cd web
+dotnet ef database update
 ```
 
 ---
 
 ## Railway Deployment
 
-1. Connect GitHub repo in Railway → Settings → Source
-2. Set **Root Directory** to `web`
-3. Add all environment variables above in Railway → Variables
-4. Deploy — Railway builds from `web/` automatically on every `git push`
+1. Connect the GitHub repository in Railway → **Settings → Source**
+2. Set the **Root Directory** to `web`
+3. Add all environment variables listed above under Railway → **Variables**
+4. Deploy — Railway builds and runs the app automatically on every `git push` to `main`
+
+The production build uses `appsettings.Production.json` with Railway's injected environment variables.

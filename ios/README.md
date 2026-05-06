@@ -1,12 +1,102 @@
-# Statify — iOS App (Swift)
+# Statify — iOS
 
-> Native iOS companion to the Statify web platform. Full feature parity with the web app — built in Swift with SwiftUI.
+> Native iOS companion to the Statify web platform. Full feature parity with the web application — built in Swift with SwiftUI.
 
 **Status: In Development**
 
 ---
 
-## Planned Features
+## Overview
+
+The Statify iOS app connects to the existing ASP.NET Core backend via REST API, sharing the same authentication system, data layer, and business logic. The mobile experience is designed to match the Statify web design system exactly — dark theme, Syne headings, DM Sans body, and the `#1DB954` green accent.
+
+---
+
+## Tech Stack
+
+| Layer | Technology |
+|---|---|
+| Language | Swift 6 |
+| UI Framework | SwiftUI |
+| Charts | Swift Charts |
+| Maps | MapKit |
+| Networking | URLSession + async/await |
+| Auth | ASP.NET Identity via REST · Spotify OAuth (`ASWebAuthenticationSession`) |
+| State Management | `@Observable` / `@StateObject` |
+| Token Storage | Keychain |
+| Minimum Target | iOS 17 |
+
+---
+
+## Architecture
+
+```
+Statify iOS
+├── Core/
+│   ├── Auth/
+│   │   ├── AuthManager.swift          # Session lifecycle, token refresh
+│   │   └── OAuthHelper.swift          # Spotify OAuth via ASWebAuthenticationSession
+│   └── Network/
+│       ├── APIClient.swift            # URLSession wrapper with JWT injection
+│       └── KeychainManager.swift      # Secure token storage
+│
+├── DesignSystem/
+│   ├── AppColors.swift                # Color tokens matching web design system
+│   ├── AppFonts.swift                 # Syne + DM Sans font registration
+│   └── AppStyles.swift                # Shared view modifiers and component styles
+│
+└── Features/
+    ├── Auth/
+    │   ├── LoginView.swift
+    │   └── RegisterView.swift
+    │
+    ├── Dashboard/
+    │   ├── DashboardView.swift        # Top tracks, artists, albums
+    │   ├── DashboardViewModel.swift
+    │   └── DashboardModels.swift
+    │
+    ├── RecentlyPlayed/
+    │   ├── RecentlyPlayedView.swift   # Paginated history + search + time filter
+    │   ├── RecentlyPlayedViewModel.swift
+    │   └── RecentlyPlayedModels.swift
+    │
+    ├── WorldMap/
+    │   ├── WorldMapView.swift         # MapKit + country polygons
+    │   ├── WorldMapViewModel.swift
+    │   └── WorldMapModels.swift
+    │
+    ├── Settings/
+    │   └── SettingsView.swift         # Profile, email, password, linked accounts
+    │
+    └── MainTabView.swift              # Root tab navigation
+```
+
+---
+
+## Backend Integration
+
+The iOS app connects to the existing ASP.NET Core backend. The following REST endpoints are consumed:
+
+```
+POST   /api/auth/login
+POST   /api/auth/register
+GET    /api/auth/spotify/connect
+GET    /api/dashboard
+GET    /api/recently-played?page=&q=&range=
+GET    /api/worldmap
+GET    /api/settings/profile
+PUT    /api/settings/profile
+PUT    /api/settings/email
+PUT    /api/settings/password
+GET    /api/settings/export
+DELETE /api/account
+```
+
+All authenticated requests attach a JWT Bearer token from Keychain. Token refresh is handled transparently by `AuthManager`.
+
+---
+
+## Features
 
 | Feature | Web | iOS |
 |---|---|---|
@@ -26,116 +116,32 @@
 
 ---
 
-## Tech Stack
-
-| | |
-|---|---|
-| **Language** | Swift 6 |
-| **UI** | SwiftUI |
-| **Charts** | Swift Charts |
-| **Maps** | MapKit |
-| **Networking** | URLSession + async/await |
-| **Auth** | ASP.NET Identity via REST · Spotify OAuth (ASWebAuthenticationSession) |
-| **State** | `@Observable` / `@StateObject` |
-| **Min target** | iOS 17 |
-
----
-
-## Architecture
-
-```
-Statify iOS
-├── Auth
-│   ├── LoginView
-│   ├── RegisterView
-│   ├── SpotifyConnectView      # Spotify OAuth via ASWebAuthenticationSession
-│   └── AuthViewModel           # Token storage in Keychain
-│
-├── Dashboard
-│   ├── DashboardView
-│   ├── TopTracksSection        # Swift Charts bar chart
-│   ├── TopArtistsSection
-│   ├── TopAlbumsSection
-│   ├── ListeningByHourChart    # Swift Charts
-│   └── ActivityHeatmap         # Custom SwiftUI calendar grid
-│
-├── RecentlyPlayed
-│   ├── RecentlyPlayedView      # Paginated list
-│   ├── SearchBar
-│   ├── TimeRangePicker         # 7d / 30d / 90d / All time
-│   └── TrackRow
-│
-├── WorldMap
-│   ├── WorldMapView            # MapKit + country polygons
-│   ├── CountryAnnotation       # Artist count per country
-│   └── CountryDetailSheet
-│
-├── Settings
-│   ├── SettingsView
-│   ├── ProfileSection          # Photo + display name
-│   ├── AccountSection          # Email · password · phone
-│   ├── LinkedAccountsSection   # Spotify · Google · GitHub
-│   └── DangerZone              # GDPR export · account deletion
-│
-└── Core
-    ├── APIClient               # URLSession wrapper
-    ├── AuthTokenManager        # Keychain JWT storage
-    ├── Models/                 # Codable data models
-    └── Extensions/
-```
-
----
-
-## Backend Integration
-
-The iOS app connects to the existing ASP.NET backend via REST API.
-
-Endpoints to expose from `web/`:
-
-```
-POST   /api/auth/login
-POST   /api/auth/register
-GET    /api/auth/spotify/connect
-GET    /api/dashboard
-GET    /api/recently-played?page=&q=
-GET    /api/worldmap
-GET    /api/settings/profile
-PUT    /api/settings/profile
-PUT    /api/settings/email
-PUT    /api/settings/password
-GET    /api/settings/export
-DELETE /api/account
-```
-
----
-
 ## Build Plan
 
 ### Phase 1 — Foundation
 - [ ] Project setup (SwiftUI, targets, folder structure)
 - [ ] `APIClient` with async/await + JWT injection
-- [ ] Keychain token storage
-- [ ] Login + Register screens
+- [ ] Keychain token storage via `KeychainManager`
+- [ ] Login and Register screens
 - [ ] Spotify OAuth via `ASWebAuthenticationSession`
 
 ### Phase 2 — Core Screens
 - [ ] Dashboard — top tracks, artists, albums
-- [ ] Listening by hour (Swift Charts)
-- [ ] Activity heatmap (custom SwiftUI grid)
-- [ ] Recently Played — paginated + search + time filter
+- [ ] Listening by hour (Swift Charts bar chart)
+- [ ] Activity heatmap (custom SwiftUI calendar grid)
+- [ ] Recently Played — paginated list + search + time range filter
 
-### Phase 3 — Map + Settings
-- [ ] World Map — MapKit with country annotations
-- [ ] Country detail sheet
-- [ ] Settings — profile, email, password
-- [ ] Linked accounts + GDPR export + account deletion
+### Phase 3 — Map & Settings
+- [ ] World Map — MapKit with country annotations and detail sheet
+- [ ] Settings — profile photo, email, password management
+- [ ] Linked accounts, GDPR export, account deletion
 
 ### Phase 4 — Polish
-- [ ] Dark theme matching web design system
-- [ ] Syne + DM Sans fonts
+- [ ] Dark theme aligned with web design system
+- [ ] Syne + DM Sans custom fonts
 - [ ] Skeleton loading states
-- [ ] Error handling + empty states
-- [ ] App icon + launch screen
+- [ ] Error handling and empty states
+- [ ] App icon and launch screen
 - [ ] TestFlight distribution
 
 ---
@@ -158,9 +164,25 @@ Matches the Statify web design exactly:
 
 ## Getting Started
 
+### Requirements
+
+- Xcode 16+
+- iOS 17+ simulator or physical device
+- Access to the Statify backend (local or production)
+
+### Setup
+
 ```bash
 cd ios
-open Statify.xcodeproj
+open StatifyiOS/Statify.xcodeproj
 ```
 
-Requires Xcode 16+ · iOS 17+
+Configure the backend base URL in `APIClient.swift`:
+
+```swift
+private let baseURL = "https://spotifystatistics-production.up.railway.app"
+// or for local development:
+// private let baseURL = "http://localhost:5000"
+```
+
+Build and run on your simulator or device.
