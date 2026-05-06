@@ -502,7 +502,14 @@ namespace SpotifyStatisticsWebApp.Controllers
                     artist   = reader.IsDBNull(1) ? "" : reader.GetString(1),
                     album    = reader.IsDBNull(2) ? "" : reader.GetString(2),
                     country  = reader.IsDBNull(3) ? "" : reader.GetString(3),
-                    playedAt = reader.IsDBNull(4) ? "" : reader.GetDateTimeOffset(4).ToString("o"),
+                    playedAt = reader.IsDBNull(4) ? "" : (() => {
+                            var dt = reader.GetDateTime(4);
+                            var tz = TimeZoneInfo.FindSystemTimeZoneById("America/Toronto");
+                            var offset = tz.GetUtcOffset(dt);
+                            return dt.ToString("yyyy-MM-ddTHH:mm:ss") + (offset < TimeSpan.Zero
+                                ? "-" + offset.ToString(@"hh\:mm")
+                                : "+" + offset.ToString(@"hh\:mm"));
+                        })(),
                 });
 
             return Ok(new
