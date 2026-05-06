@@ -1,105 +1,106 @@
-// recently-played.js — infinite scroll, client-side search + time filter
-// Fetches from GET /api/history (same endpoint as iOS) using the cookie-based
-// session. The endpoint is [Authorize(AuthenticationSchemes="Bearer")] but
-// ASP.NET also accepts the cookie auth for browser requests automatically
-// because Program.cs sets the default scheme to cookie auth.
-// If the server requires the JWT explicitly, we fall back to a dedicated
-// web-facing endpoint — but the shared /api/history works fine for browsers.
+// recently-played.js — pagination (9 tracks per page) + client-side search
 
-const PAGE_LIMIT = 50;
+const PAGE_SIZE = 9;
+const API_LIMIT = 200;
 
-let currentPage   = 0;
-let isLoading     = false;
-let hasMore       = true;
-let allTracks     = [];   // master list for client-side filter
-let activeSearch  = '';
-let globalIndex   = 0;   // running row number across pages
+let allTracks   = [];
+let filtered    = [];
+let currentPage = 1;
 
-// ── Bootstrap ────────────────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => { fetchAll(); });
 
-document.addEventListener('DOMContentLoaded', () => {
-    loadMore();
-    setupIntersectionObserver();
-});
-
-// ── Fetch next page ───────────────────────────────────────────────────────────
-
-async function loadMore() {
-    if (isLoading || !hasMore) return;
-    isLoading = true;
+async function fetchAll() {
     showSpinner(true);
-
     try {
-        const nextPage = currentPage + 1;
-        const res = await fetch(`/api/history?page=${nextPage}&limit=${PAGE_LIMIT}`);
-
-        if (!res.ok) {
-            const body = await res.json().catch(() => ({}));
-            showError(body.error || `Server error ${res.status}`);
-            return;
+        let page = 1, hasMore = true;
+        while (hasMore) {
+            const res = await fetch(`/api/history?page=${page}&limit=${API_LIMIT}`);
+            if (!res.ok) {
+                const body = await res.json().catch(() => ({}));
+                showError(body.error || `Server error ${res.status}`);
+                return;
+            }
+            const data = await res.json();
+            allTracks = allTracks.concat(data.tracks);
+            hasMore   = data.hasNextPage;
+            page++;
         }
-
-        const data = await res.json();
-        currentPage = data.page;
-        hasMore     = data.hasNextPage;
-
-        allTracks = allTracks.concat(data.tracks);
-        appendRows(data.tracks);
-
-        if (allTracks.length === 0) showEmpty(true);
+        filtered = [...allTracks];
+        renderPage(1);
     } catch (err) {
         showError('Failed to load history. Check your connection.');
     } finally {
-        isLoading = false;
         showSpinner(false);
     }
-
-    // If sentinel is still visible after load (content didn't fill the scroll area),
-    // keep loading — IntersectionObserver only fires on transitions, not on stays.
-    requestAnimationFrame(() => {
-        if (!hasMore) return;
-        const scrollBox = document.querySelector('.main');
-        if (!scrollBox) return;
-        // Use scroll-based check: if remaining scrollable distance is within 200px, load more
-        const remaining = scrollBox.scrollHeight - scrollBox.scrollTop - scrollBox.clientHeight;
-        if (remaining < 200) loadMore();
-    });
 }
 
 function retryLoad() {
     showError(null);
-    loadMore();
+    allTracks = []; filtered = [];
+    fetchAll();
 }
 
-// ── Render rows ───────────────────────────────────────────────────────────────
+function renderPage(page) {
+    currentPage = page;
+    const list  = document.getElementById('trackList');
+    list.innerHTML = '';
 
-function appendRows(tracks) {
-    const list = document.getElementById('trackList');
+    const start = (page - 1) * PAGE_SIZE;
+    const slice = filtered.slice(start, start + PAGE_SIZE);
+
+    if (filtered.length === 0) { showEmpty(true); renderPagination(0, 0); return; }
+    showEmpty(false);
+
     const frag = document.createDocumentFragment();
-
-    tracks.forEach(t => {
-        globalIndex++;
-        const li = buildRow(t, globalIndex);
-        frag.appendChild(li);
-    });
-
+    slice.forEach((t, i) => frag.appendChild(buildRow(t, start + i + 1)));
     list.appendChild(frag);
-    applyFilters(); // re-apply active search/range after appending
+
+    const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
+    renderPagination(page, totalPages);
+
+    const main = document.querySelector('.main');
+    if (main) main.scrollTop = 0;
+}
+
+function renderPagination(page, totalPages) {
+    let el = document.getElementById('pagination');
+    if (!el) {
+        el = document.createElement('nav');
+        el.id = 'pagination';
+        el.className = 'pagination';
+        el.setAttribute('aria-label', 'Page navigation');
+        document.querySelector('.main').appendChild(el);
+    }
+    if (totalPages <= 1) { el.innerHTML = ''; return; }
+
+    const pages = buildPageList(page, totalPages);
+    el.innerHTML = `
+        <span class="page-info">Page ${page} of ${totalPages}</span>
+        <div class="page-btns">
+            <button class="page-btn" ${page <= 1 ? 'disabled' : ''} onclick="renderPage(${page - 1})">‹ Prev</button>
+            ${pages.map(p => p === '…'
+                ? `<span class="page-ellipsis">…</span>`
+                : `<button class="page-btn ${p === page ? 'active' : ''}" onclick="renderPage(${p})">${p}</button>`
+            ).join('')}
+            <button class="page-btn" ${page >= totalPages ? 'disabled' : ''} onclick="renderPage(${page + 1})">Next ›</button>
+        </div>`;
+}
+
+function buildPageList(current, total) {
+    const range = [];
+    for (let i = Math.max(2, current - 2); i <= Math.min(total - 1, current + 2); i++) range.push(i);
+    const pages = [1];
+    if (range[0] > 2) pages.push('…');
+    pages.push(...range);
+    if (range[range.length - 1] < total - 1) pages.push('…');
+    if (total > 1) pages.push(total);
+    return pages;
 }
 
 function buildRow(t, idx) {
     const li = document.createElement('li');
     li.className = 'track-row';
-    li.dataset.song   = (t.song   || '').toLowerCase();
-    li.dataset.artist = (t.artist || '').toLowerCase();
-    li.dataset.album  = (t.album  || '').toLowerCase();
-    li.dataset.played = t.playedAt || '';
-
     const country = (!t.country || t.country === 'unknown') ? '—' : t.country;
-    const timeLabel = formatDate(t.playedAt);
-    const delay = ((idx - 1) % PAGE_LIMIT) * 0.012;
-
-    li.style.animationDelay = `${delay}s`;
     li.innerHTML = `
         <span class="track-num">${idx}</span>
         <div class="track-song">
@@ -109,85 +110,30 @@ function buildRow(t, idx) {
         <span class="track-artist" title="${esc(t.artist)}">${esc(t.artist)}</span>
         <span class="track-album"  title="${esc(t.album)}">${esc(t.album)}</span>
         <span class="track-country">${esc(country)}</span>
-        <time class="track-time" datetime="${esc(t.playedAt)}">${timeLabel}</time>
-    `;
+        <time class="track-time" datetime="${esc(t.playedAt)}">${formatDate(t.playedAt)}</time>`;
     return li;
 }
 
-function esc(str) {
-    return (str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-}
-
+function esc(s) { return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 function formatDate(iso) {
     if (!iso) return '';
-    try {
-        const d = new Date(iso);
-        return d.toLocaleString('en-CA', {
-            month: 'short', day: 'numeric',
-            hour: '2-digit', minute: '2-digit'
-        });
-    } catch { return iso; }
+    try { return new Date(iso).toLocaleString('en-CA', { month:'short', day:'numeric', hour:'2-digit', minute:'2-digit' }); }
+    catch { return iso; }
 }
-
-// ── Intersection Observer for infinite scroll ─────────────────────────────────
-
-function setupIntersectionObserver() {
-    const sentinel  = document.getElementById('scroll-sentinel');
-    const scrollBox = document.querySelector('.main');
-    const observer  = new IntersectionObserver(entries => {
-        if (entries[0].isIntersecting) loadMore();
-    }, {
-        root: scrollBox,   // observe relative to the scrolling .main, not the viewport
-        rootMargin: '200px'
-    });
-    observer.observe(sentinel);
-
-    // Fallback: also trigger on scroll so we never miss the sentinel
-    scrollBox.addEventListener('scroll', () => {
-        if (!hasMore || isLoading) return;
-        const remaining = scrollBox.scrollHeight - scrollBox.scrollTop - scrollBox.clientHeight;
-        if (remaining < 300) loadMore();
-    }, { passive: true });
-}
-
-// ── Client-side search & time filter ─────────────────────────────────────────
 
 function filterRows() {
-    activeSearch = document.getElementById('search').value.toLowerCase();
-    applyFilters();
+    const q = document.getElementById('search').value.toLowerCase();
+    filtered = q ? allTracks.filter(t =>
+        (t.song||'').toLowerCase().includes(q) ||
+        (t.artist||'').toLowerCase().includes(q) ||
+        (t.album||'').toLowerCase().includes(q)) : [...allTracks];
+    renderPage(1);
 }
 
-function applyFilters() {
-    let visibleCount = 0;
-    document.querySelectorAll('.track-row').forEach(row => {
-        const matchSearch = !activeSearch
-            || row.dataset.song.includes(activeSearch)
-            || row.dataset.artist.includes(activeSearch)
-            || row.dataset.album.includes(activeSearch);
-
-        row.style.display = matchSearch ? '' : 'none';
-        if (matchSearch) visibleCount++;
-    });
-
-    showEmpty(allTracks.length > 0 && visibleCount === 0);
-}
-
-// ── UI helpers ────────────────────────────────────────────────────────────────
-
-function showSpinner(on) {
-    document.getElementById('load-spinner').style.display = on ? 'flex' : 'none';
-}
-
-function showEmpty(on) {
-    document.getElementById('empty-state').style.display = on ? 'flex' : 'none';
-}
-
-function showError(msg) {
+function showSpinner(on) { document.getElementById('load-spinner').style.display = on ? 'flex' : 'none'; }
+function showEmpty(on)   { document.getElementById('empty-state').style.display  = on ? 'flex' : 'none'; }
+function showError(msg)  {
     const el = document.getElementById('error-state');
-    if (msg) {
-        document.getElementById('error-msg').textContent = msg;
-        el.style.display = 'flex';
-    } else {
-        el.style.display = 'none';
-    }
+    if (msg) { document.getElementById('error-msg').textContent = msg; el.style.display = 'flex'; }
+    else { el.style.display = 'none'; }
 }

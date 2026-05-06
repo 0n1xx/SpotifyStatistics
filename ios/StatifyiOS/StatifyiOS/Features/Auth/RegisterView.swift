@@ -156,9 +156,11 @@ struct RegisterView: View {
                             if authManager.isLoading {
                                 ProgressView()
                                     .tint(.black)
+                                    .frame(maxWidth: .infinity)
                                     .padding(.vertical, 14)
                             } else {
                                 Text("Create Account")
+                                    .frame(maxWidth: .infinity)
                                     .padding(.vertical, 14)
                             }
                         }
@@ -168,14 +170,6 @@ struct RegisterView: View {
                         .cornerRadius(10)
                         .disabled(authManager.isLoading || email.isEmpty || password.isEmpty)
                         .opacity(email.isEmpty || password.isEmpty ? 0.5 : 1)
-                    }
-                            .padding(.vertical, 14)
-                            .foregroundColor(.appTextPrimary)
-                            .background(Color.appCard)
-                            .cornerRadius(10)
-                            .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.appBorder, lineWidth: 1))
-                        }
-
                     }
 
                     // MARK: Back to Login

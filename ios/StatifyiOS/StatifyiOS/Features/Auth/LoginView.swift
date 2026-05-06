@@ -6,7 +6,6 @@
 //
 
 import SwiftUI
-import AuthenticationServices
 
 struct LoginView: View {
 
@@ -129,9 +128,11 @@ struct LoginView: View {
                             if authManager.isLoading {
                                 ProgressView()
                                     .tint(.black)
+                                    .frame(maxWidth: .infinity)
                                     .padding(.vertical, 14)
                             } else {
                                 Text("Log In")
+                                    .frame(maxWidth: .infinity)
                                     .padding(.vertical, 14)
                             }
                         }
@@ -155,14 +156,6 @@ struct LoginView: View {
                                 .foregroundColor(.appAccent)
                         }
                         .font(.dmSans(15))
-                    }
-                            .padding(.vertical, 14)
-                            .foregroundColor(.appTextPrimary)
-                            .background(Color.appCard)
-                            .cornerRadius(10)
-                            .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.appBorder, lineWidth: 1))
-                        }
-
                     }
 
                     Spacer()
