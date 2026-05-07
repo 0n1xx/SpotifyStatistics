@@ -527,11 +527,30 @@ struct ChangePasswordView: View {
     @Environment(\.dismiss) private var dismiss
 
     @State private var currentPassword: String = ""
-    @State private var newPassword: String = ""
+    @State private var newPassword:     String = ""
     @State private var confirmPassword: String = ""
-    @State private var errorMessage: String? = nil
-    @State private var isLoading: Bool = false
+    @State private var errors: [String]  = []   // list of validation messages shown below the button
+    @State private var isLoading: Bool   = false
     @State private var showSuccess: Bool = false
+
+    // MARK: - Password rules (mirrors ASP.NET Identity defaults)
+    // Each rule has a label shown in the checklist and a predicate evaluated live.
+    private struct Rule {
+        let label: String
+        let check: (String) -> Bool
+    }
+
+    private let rules: [Rule] = [
+        Rule(label: "At least 6 characters")          { $0.count >= 6 },
+        Rule(label: "One uppercase letter (A–Z)")      { $0.contains(where: { $0.isUppercase }) },
+        Rule(label: "One lowercase letter (a–z)")      { $0.contains(where: { $0.isLowercase }) },
+        Rule(label: "One digit (0–9)")                 { $0.contains(where: { $0.isNumber }) },
+        Rule(label: "One non-alphanumeric character")  { $0.contains(where: { !$0.isLetter && !$0.isNumber }) },
+    ]
+
+    // True only when every rule passes — used to enable the save button
+    private var newPasswordValid: Bool { rules.allSatisfy { $0.check(newPassword) } }
+    private var passwordsMatch:   Bool { !confirmPassword.isEmpty && newPassword == confirmPassword }
 
     var body: some View {
         NavigationStack {
@@ -541,110 +560,90 @@ struct ChangePasswordView: View {
                 ScrollView {
                     VStack(spacing: 20) {
 
-                        // Current password
-                        VStack(alignment: .leading, spacing: 6) {
-                            Text("Current password")
-                                .font(.dmSans(13, weight: .bold))
-                                .foregroundColor(.appTextSecondary)
+                        // ── Current password ──────────────────────────────────
+                        passwordField(
+                            label: "Current password",
+                            placeholder: "Enter current password",
+                            text: $currentPassword,
+                            borderColor: .appBorder
+                        )
 
-                            SecureField("••••••••", text: $currentPassword)
-                                .font(.dmSans(16))
-                                .foregroundColor(.appTextPrimary)
-                                .padding(14)
-                                .background(Color.appCard)
-                                .cornerRadius(10)
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: 10)
-                                        .stroke(Color.appBorder, lineWidth: 1)
-                                )
-                        }
+                        // ── New password + live requirements list ─────────────
+                        VStack(alignment: .leading, spacing: 8) {
+                            passwordField(
+                                label: "New password",
+                                placeholder: "Enter new password",
+                                text: $newPassword,
+                                borderColor: newPassword.isEmpty ? .appBorder
+                                    : newPasswordValid ? .appAccent : .red.opacity(0.7)
+                            )
 
-                        // New password
-                        VStack(alignment: .leading, spacing: 6) {
-                            Text("New password")
-                                .font(.dmSans(13, weight: .bold))
-                                .foregroundColor(.appTextSecondary)
-
-                            SecureField("••••••••", text: $newPassword)
-                                .font(.dmSans(16))
-                                .foregroundColor(.appTextPrimary)
-                                .padding(14)
-                                .background(Color.appCard)
-                                .cornerRadius(10)
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: 10)
-                                        .stroke(Color.appBorder, lineWidth: 1)
-                                )
-                        }
-
-                        // Confirm new password
-                        VStack(alignment: .leading, spacing: 6) {
-                            Text("Confirm new password")
-                                .font(.dmSans(13, weight: .bold))
-                                .foregroundColor(.appTextSecondary)
-
-                            SecureField("••••••••", text: $confirmPassword)
-                                .font(.dmSans(16))
-                                .foregroundColor(.appTextPrimary)
-                                .padding(14)
-                                .background(Color.appCard)
-                                .cornerRadius(10)
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: 10)
-                                        .stroke(
-                                            confirmPassword.isEmpty ? Color.appBorder :
-                                            newPassword == confirmPassword ? Color.appAccent : Color.red,
-                                            lineWidth: 1
-                                        )
-                                )
-                        }
-
-                        // Error message
-                        if let error = errorMessage {
-                            Text(error)
-                                .font(.dmSans(14))
-                                .foregroundColor(.red)
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                        }
-
-                        // Save button
-                        Button {
-                            guard newPassword == confirmPassword else {
-                                errorMessage = "Passwords do not match."
-                                return
-                            }
-                            guard newPassword.count >= 6 else {
-                                errorMessage = "Password must be at least 6 characters."
-                                return
-                            }
-                            isLoading = true
-                            errorMessage = nil
-                            Task {
-                                defer { isLoading = false }
-                                do {
-                                    struct Body: Encodable {
-                                        let currentPassword: String
-                                        let newPassword: String
+                            // Requirements checklist — appears once user starts typing
+                            if !newPassword.isEmpty {
+                                VStack(alignment: .leading, spacing: 5) {
+                                    ForEach(rules.indices, id: \.self) { i in
+                                        let rule   = rules[i]
+                                        let passed = rule.check(newPassword)
+                                        HStack(spacing: 6) {
+                                            Image(systemName: passed ? "checkmark.circle.fill" : "circle")
+                                                .font(.system(size: 13))
+                                                .foregroundColor(passed ? .appAccent : .appTextSecondary)
+                                            Text(rule.label)
+                                                .font(.dmSans(13))
+                                                .foregroundColor(passed ? .appAccent : .appTextSecondary)
+                                        }
                                     }
-                                    struct Resp: Decodable { let ok: Bool }
-                                    let _: Resp = try await APIClient.shared.put(
-                                        path: "/api/settings/password",
-                                        body: Body(currentPassword: currentPassword, newPassword: newPassword)
-                                    )
-                                    showSuccess = true
-                                } catch APIError.serverError(let code) {
-                                    // 400 = wrong password or complexity violation — show server's message
-                                    // We can't decode the body here from APIError, so give a clear hint
-                                    errorMessage = code == 400
-                                        ? "Incorrect current password or password doesn't meet requirements (min 6 chars)."
-                                        : "Server error (\(code)). Try again."
-                                } catch APIError.decodingFailed {
-                                    // Server returned ok:true but decoding still succeeded — treat as success
-                                    showSuccess = true
-                                } catch {
-                                    errorMessage = "Network error. Check your connection."
+                                }
+                                .padding(.horizontal, 4)
+                                .transition(.opacity)
+                                .animation(.easeInOut(duration: 0.2), value: newPassword)
+                            }
+                        }
+
+                        // ── Confirm new password ──────────────────────────────
+                        passwordField(
+                            label: "Confirm new password",
+                            placeholder: "Repeat new password",
+                            text: $confirmPassword,
+                            borderColor: confirmPassword.isEmpty ? .appBorder
+                                : passwordsMatch ? .appAccent : .red.opacity(0.7)
+                        )
+
+                        // Mismatch hint
+                        if !confirmPassword.isEmpty && !passwordsMatch {
+                            HStack(spacing: 6) {
+                                Image(systemName: "exclamationmark.circle")
+                                    .font(.system(size: 13))
+                                    .foregroundColor(.red)
+                                Text("Passwords do not match")
+                                    .font(.dmSans(13))
+                                    .foregroundColor(.red)
+                            }
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(.horizontal, 4)
+                        }
+
+                        // ── Server-side errors (returned by API) ──────────────
+                        if !errors.isEmpty {
+                            VStack(alignment: .leading, spacing: 5) {
+                                ForEach(errors, id: \.self) { msg in
+                                    HStack(alignment: .top, spacing: 6) {
+                                        Image(systemName: "xmark.circle.fill")
+                                            .font(.system(size: 13))
+                                            .foregroundColor(.red)
+                                        Text(msg)
+                                            .font(.dmSans(13))
+                                            .foregroundColor(.red)
+                                    }
                                 }
                             }
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(.horizontal, 4)
+                        }
+
+                        // ── Save button ───────────────────────────────────────
+                        Button {
+                            submitPasswordChange()
                         } label: {
                             if isLoading {
                                 ProgressView().tint(.black)
@@ -660,10 +659,11 @@ struct ChangePasswordView: View {
                         .foregroundColor(.black)
                         .background(Color.appAccent)
                         .cornerRadius(10)
-                        .disabled(newPassword.isEmpty || confirmPassword.isEmpty)
-                        .opacity(newPassword.isEmpty || confirmPassword.isEmpty ? 0.5 : 1)
+                        .disabled(!newPasswordValid || !passwordsMatch || isLoading)
+                        .opacity(!newPasswordValid || !passwordsMatch ? 0.45 : 1)
                     }
                     .padding(24)
+                    .animation(.easeInOut(duration: 0.2), value: newPassword)
                 }
             }
             .navigationTitle("Change Password")
@@ -677,6 +677,119 @@ struct ChangePasswordView: View {
             .alert("Password changed!", isPresented: $showSuccess) {
                 Button("OK") { dismiss() }
             }
+        }
+    }
+
+    // MARK: - Submit
+
+    private func submitPasswordChange() {
+        errors = []
+        isLoading = true
+
+        Task {
+            defer { isLoading = false }
+            do {
+                struct Body: Encodable {
+                    let currentPassword: String
+                    let newPassword:     String
+                }
+                // Server returns { ok: true } on success
+                struct OkResp: Decodable { let ok: Bool }
+                let _: OkResp = try await APIClient.shared.put(
+                    path: "/api/settings/password",
+                    body: Body(currentPassword: currentPassword, newPassword: newPassword)
+                )
+                showSuccess = true
+
+            } catch APIError.serverError(let code) where code == 400 {
+                // 400 — decode the errors array from the response body.
+                // APIClient doesn't expose the raw Data on error, so we re-fetch
+                // with a raw request and decode manually.
+                await fetchAndShowErrors()
+
+            } catch APIError.serverError(let code) {
+                errors = ["Server error (\(code)). Please try again."]
+            } catch {
+                errors = ["Network error. Check your connection."]
+            }
+        }
+    }
+
+    // Re-fetches the failed response body to extract the errors array.
+    // This is needed because APIClient throws before returning data on non-2xx responses.
+    private func fetchAndShowErrors() async {
+        struct ErrorItem: Decodable { let code: String; let description: String }
+        struct ErrorResp: Decodable { let errors: [ErrorItem] }
+
+        struct Body: Encodable {
+            let currentPassword: String
+            let newPassword:     String
+        }
+
+        // Build the request manually to read the 400 body
+        guard let url = URL(string: "https://spotifystatistics-production.up.railway.app/api/settings/password") else { return }
+        var req = URLRequest(url: url)
+        req.httpMethod = "PUT"
+        req.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        if let token = KeychainManager.shared.getToken() {
+            req.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        }
+        req.httpBody = try? JSONEncoder().encode(Body(currentPassword: currentPassword, newPassword: newPassword))
+
+        guard let (data, _) = try? await URLSession.shared.data(for: req),
+              let resp = try? JSONDecoder().decode(ErrorResp.self, from: data) else {
+            // Fallback — couldn't decode, show generic messages
+            errors = ["Incorrect current password, or new password doesn't meet the requirements."]
+            return
+        }
+
+        // Map Identity error codes to friendlier messages
+        errors = resp.errors.map { friendlyMessage(code: $0.code, description: $0.description) }
+    }
+
+    // Translates ASP.NET Identity error codes into plain English hints
+    private func friendlyMessage(code: String, description: String) -> String {
+        switch code {
+        case "PasswordTooShort":
+            return "Password must be at least 6 characters."
+        case "PasswordRequiresNonAlphanumeric":
+            return "Add at least one special character (e.g. !, @, #, $)."
+        case "PasswordRequiresDigit":
+            return "Add at least one digit (0–9)."
+        case "PasswordRequiresLower":
+            return "Add at least one lowercase letter (a–z)."
+        case "PasswordRequiresUpper":
+            return "Add at least one uppercase letter (A–Z)."
+        case "PasswordRequiresUniqueChars":
+            return "Use more unique characters in your password."
+        case "PasswordMismatch":
+            return "Current password is incorrect."
+        case "UserAlreadyHasPassword":
+            return "Account already has a password — use Change password."
+        default:
+            return description  // fall back to whatever Identity says
+        }
+    }
+
+    // MARK: - Helpers
+
+    @ViewBuilder
+    private func passwordField(label: String, placeholder: String, text: Binding<String>, borderColor: Color) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text(label)
+                .font(.dmSans(13, weight: .bold))
+                .foregroundColor(.appTextSecondary)
+
+            SecureField(placeholder, text: text)
+                .font(.dmSans(16))
+                .foregroundColor(.appTextPrimary)
+                .padding(14)
+                .background(Color.appCard)
+                .cornerRadius(10)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 10)
+                        .stroke(borderColor, lineWidth: 1)
+                )
         }
     }
 }

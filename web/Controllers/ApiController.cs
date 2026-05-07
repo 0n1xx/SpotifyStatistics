@@ -369,8 +369,15 @@ namespace SpotifyStatisticsWebApp.Controllers
 
             if (!result.Succeeded)
             {
-                var error = result.Errors.FirstOrDefault()?.Description ?? "Password change failed";
-                return BadRequest(new { error });
+                // Return ALL validation errors so the client can show each one.
+                // Identity error codes are stable strings (e.g. "PasswordTooShort") —
+                // we send both the code and the default English description so the
+                // iOS client can map codes to friendlier messages while keeping
+                // the description as a fallback.
+                var errors = result.Errors
+                    .Select(e => new { code = e.Code, description = e.Description })
+                    .ToList();
+                return BadRequest(new { errors });
             }
 
             return Ok(new { ok = true });
