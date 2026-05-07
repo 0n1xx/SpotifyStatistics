@@ -1,0 +1,9 @@
+# Data & parsing
+pandas==2.2.2
+
+# Databases & drivers
+psycopg2-binary==2.9.9
+clickhouse-driver==0.2.9
+
+# Networking & APIs
+spotipy==2.25.1

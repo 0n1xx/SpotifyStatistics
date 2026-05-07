@@ -396,17 +396,3 @@
 }
 
 .btn-danger:hover { opacity: 0.85; }
-
-/* ── Status message — inline feedback next to save buttons ── */
-.save-status {
-    font-size: 12px;
-    margin-left: 4px;
-    transition: opacity 0.3s;
-}
-
-/* Status modifier colours — applied by settings.js via classList */
-.save-status--success { color: #1DB954; }
-.save-status--error   { color: #e74c3c; }
-
-/* Hidden avatar preview — shown after successful upload */
-.avatar-preview-hidden { display: none; }

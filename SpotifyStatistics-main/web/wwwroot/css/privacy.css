@@ -1,0 +1,339 @@
+/* privacy.css — Privacy policy page styles */
+
+:root {
+    --green: #1DB954;
+    --black: #080808;
+    --card: #111111;
+    --border: rgba(255,255,255,0.07);
+    --text: #f0f0f0;
+    --muted: #666;
+    --muted2: #888;
+}
+
+*, *::before, *::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+html, body {
+    background: var(--black);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    min-height: 100%;
+}
+
+/* ── Background effects ── */
+
+.bg {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    overflow: hidden;
+    pointer-events: none;
+}
+
+.bg-orb {
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(80px);
+    opacity: 0.1;
+    animation: drift 12s ease-in-out infinite alternate;
+}
+
+.bg-orb:nth-child(1) {
+    width: 500px;
+    height: 500px;
+    background: #1DB954;
+    top: -200px;
+    right: -100px;
+}
+
+.bg-orb:nth-child(2) {
+    width: 400px;
+    height: 400px;
+    background: #0d7a38;
+    bottom: -100px;
+    left: -100px;
+    animation-delay: -6s;
+}
+
+.grid-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    background-image:
+        linear-gradient(rgba(255,255,255,0.015) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.015) 1px, transparent 1px);
+    background-size: 60px 60px;
+    pointer-events: none;
+}
+
+/* ── Navigation ── */
+
+.site-header {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 24px 48px;
+    background: rgba(8,8,8,0.8);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+}
+
+.logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    text-decoration: none;
+}
+
+.logo-icon {
+    width: 32px;
+    height: 32px;
+    background: var(--green);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.logo-icon svg {
+    width: 18px;
+    height: 18px;
+    fill: #000;
+}
+
+.logo-text {
+    font-family: 'Syne', sans-serif;
+    font-size: 18px;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+    color: var(--text);
+}
+
+.nav-back {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    color: var(--muted2);
+    text-decoration: none;
+    transition: color 0.2s;
+}
+
+.nav-back:hover {
+    color: var(--green);
+}
+
+.nav-back svg {
+    width: 16px;
+    height: 16px;
+}
+
+/* ── Main content ── */
+
+.page-content {
+    position: relative;
+    z-index: 1;
+    max-width: 760px;
+    margin: 0 auto;
+    padding: 64px 24px 100px;
+}
+
+/* ── Page header ── */
+
+.page-header {
+    margin-bottom: 56px;
+    animation: fadeUp 0.5s ease both;
+}
+
+.page-eyebrow {
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--green);
+    margin-bottom: 16px;
+}
+
+.page-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 48px;
+    font-weight: 800;
+    letter-spacing: -2px;
+    line-height: 1;
+    margin-bottom: 16px;
+}
+
+.page-date {
+    font-size: 13px;
+    color: var(--muted);
+}
+
+/* ── Policy sections ── */
+
+.policy-section {
+    margin-bottom: 48px;
+    animation: fadeUp 0.5s ease both;
+}
+
+.section-num {
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--green);
+    margin-bottom: 10px;
+}
+
+.section-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 20px;
+    font-weight: 700;
+    margin-bottom: 16px;
+}
+
+.section-body {
+    font-size: 15px;
+    color: var(--muted2);
+    line-height: 1.8;
+}
+
+.section-body p {
+    margin-bottom: 12px;
+}
+
+.section-body p:last-child {
+    margin-bottom: 0;
+}
+
+.section-body a {
+    color: var(--green);
+    text-decoration: none;
+}
+
+.section-body a:hover {
+    text-decoration: underline;
+}
+
+/* ── Highlight box (list of items) ── */
+
+.highlight-box {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px 24px;
+    margin: 16px 0;
+}
+
+.highlight-box ul {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.highlight-box ul li {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    font-size: 14px;
+    color: var(--muted2);
+    line-height: 1.6;
+}
+
+.highlight-box ul li::before {
+    content: '';
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--green);
+    flex-shrink: 0;
+    margin-top: 8px;
+}
+
+/* ── Divider ── */
+
+.section-divider {
+    height: 1px;
+    background: var(--border);
+    margin: 48px 0;
+    border: none;
+}
+
+/* ── Contact card ── */
+
+.contact-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+}
+
+.contact-card-text {
+    font-size: 15px;
+    color: var(--muted2);
+    line-height: 1.6;
+}
+
+.contact-card-text strong {
+    color: var(--text);
+    display: block;
+    font-size: 16px;
+    margin-bottom: 4px;
+}
+
+.btn-green {
+    padding: 11px 24px;
+    background: var(--green);
+    border: none;
+    border-radius: 10px;
+    font-size: 14px;
+    font-weight: 600;
+    color: #000;
+    text-decoration: none;
+    white-space: nowrap;
+    font-family: 'DM Sans', sans-serif;
+}
+
+/* ── Animations ── */
+
+@keyframes drift {
+    from { transform: translate(0,0); }
+    to   { transform: translate(30px,20px); }
+}
+
+@keyframes fadeUp {
+    from { opacity: 0; transform: translateY(16px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ══════════════════════════════════════════════════════════
+   RESPONSIVE — Privacy page
+   ══════════════════════════════════════════════════════════ */
+
+@media (max-width: 900px) {
+    .main { padding: 72px 28px 40px; }
+}
+
+@media (max-width: 600px) {
+    .main { padding: 72px 16px 32px; }
+    .page-title { font-size: 22px; }
+}
+
+/* Staggered fade-in for each policy section via nth-child — replaces inline animation-delay */
+.policy-section:nth-child(1) { animation-delay: 0.1s; }
+.policy-section:nth-child(2) { animation-delay: 0.15s; }
+.policy-section:nth-child(3) { animation-delay: 0.2s; }
+.policy-section:nth-child(4) { animation-delay: 0.25s; }
+.policy-section:nth-child(5) { animation-delay: 0.3s; }
+.policy-section:nth-child(6) { animation-delay: 0.35s; }
+.policy-section:nth-child(7) { animation-delay: 0.4s; }

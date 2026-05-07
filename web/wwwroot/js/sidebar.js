@@ -1,16 +1,15 @@
 // sidebar.js — Mobile sidebar drawer toggle
+// Used by both _AppLayout.cshtml and _ManageLayout.cshtml.
 //
-// Works with _AppLayout.cshtml and _ManageLayout.cshtml.
-// Required DOM elements:
-//   #hamburger-btn   — the burger button in the layout
-//   #sidebar         — the <aside> navigation element
-//   #sidebar-overlay — dark backdrop behind the open drawer
+// Requires the following elements in the DOM:
+//   #hamburger-btn   — the burger button (defined in the layout)
+//   #sidebar         — the <aside> element
+//   #sidebar-overlay — the dark overlay behind the open drawer
 //
-// State is driven purely through CSS classes (no inline style manipulation):
-//   .sidebar.open          — slides the drawer into view (see app.css)
-//   .sidebar-overlay.active — makes the backdrop visible
-//   .hamburger.open        — morphs burger icon into ×
-//   body.sidebar-open      — locks background scroll and hides the hamburger button
+// CSS classes toggled:
+//   .sidebar.open         — slides the drawer into view (see app.css)
+//   .sidebar-overlay.active — shows the overlay
+//   .hamburger.open       — animates burger → × icon
 
 (function () {
     'use strict';
@@ -19,41 +18,47 @@
     const sidebar = document.getElementById('sidebar');
     const overlay = document.getElementById('sidebar-overlay');
 
-    // Nothing to wire up on desktop — elements may not exist in some layouts
-    if (!btn || !sidebar || !overlay) return;
+    if (!btn || !sidebar || !overlay) return; // Guard — desktop has no hamburger
 
+    /** Open the sidebar drawer and lock background scroll */
     function openSidebar() {
         sidebar.classList.add('open');
         overlay.classList.add('active');
         btn.classList.add('open');
         btn.setAttribute('aria-expanded', 'true');
-        // body.sidebar-open: disables scroll and hides the hamburger while the
-        // drawer is visible so it doesn't overlap the sidebar logo (see app.css)
-        document.body.classList.add('sidebar-open');
+        document.body.style.overflow = 'hidden';
+        // Hide the floating X when sidebar slides in — prevents it
+        // from overlapping the sidebar logo. User closes via overlay tap or Escape.
+        btn.style.opacity = '0';
+        btn.style.pointerEvents = 'none';
     }
 
+    /** Close the sidebar drawer and restore scroll */
     function closeSidebar() {
         sidebar.classList.remove('open');
         overlay.classList.remove('active');
         btn.classList.remove('open');
         btn.setAttribute('aria-expanded', 'false');
-        document.body.classList.remove('sidebar-open');
+        document.body.style.overflow = '';
+        btn.style.opacity = '';
+        btn.style.pointerEvents = '';
     }
 
-    btn.addEventListener('click', () => {
+    // Toggle on hamburger click
+    btn.addEventListener('click', function () {
         sidebar.classList.contains('open') ? closeSidebar() : openSidebar();
     });
 
-    // Tap the backdrop to close
+    // Close when the overlay (dim background) is tapped
     overlay.addEventListener('click', closeSidebar);
 
-    // Keyboard accessibility — Escape closes the drawer
-    document.addEventListener('keydown', e => {
+    // Close on Escape key (accessibility)
+    document.addEventListener('keydown', function (e) {
         if (e.key === 'Escape') closeSidebar();
     });
 
-    // Auto-close when resizing to desktop so state doesn't get stuck
-    window.addEventListener('resize', () => {
+    // Close drawer automatically when resizing back to desktop
+    window.addEventListener('resize', function () {
         if (window.innerWidth > 900) closeSidebar();
     });
 })();

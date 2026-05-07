@@ -1,0 +1,91 @@
+@page
+@model ExternalLoginsModel
+@{
+    ViewData["Title"] = "Linked Accounts";
+    ViewData["ActivePage"] = ManageNavPages.ExternalLogins;
+}
+
+@* External logins page — shows connected OAuth providers (Google, GitHub) *@
+
+@if (Model.CurrentLogins?.Count > 0)
+{
+    <section class="m-section" aria-labelledby="connected-accounts-heading">
+        <h2 id="connected-accounts-heading" class="m-section-title">Connected accounts</h2>
+        <article class="m-card">
+            @foreach (var login in Model.CurrentLogins)
+            {
+                <div class="m-row">
+                    <div class="m-row-info">
+                        <p class="m-row-label">@login.ProviderDisplayName</p>
+                        <p class="m-row-desc">Connected via @login.LoginProvider</p>
+                    </div>
+                    <div class="m-row-action">
+                        @* Allow remove only if user has a password or another login *@
+                        @if (Model.ShowRemoveButton)
+                        {
+                            <form asp-page-handler="RemoveLogin" method="post">
+                                <input asp-for="@login.LoginProvider" name="LoginProvider" type="hidden">
+                                <input asp-for="@login.ProviderKey"   name="ProviderKey"   type="hidden">
+                                <button type="submit" class="m-btn m-btn-red" title="Remove @login.ProviderDisplayName login">
+                                    Remove
+                                </button>
+                            </form>
+                        }
+                        else
+                        {
+                            @* Can't remove — it's the only login method *@
+                            <span class="m-badge m-badge-green">
+                                <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/></svg>
+                                Connected
+                            </span>
+                        }
+                    </div>
+                </div>
+            }
+        </article>
+    </section>
+}
+
+@if (Model.OtherLogins?.Count > 0)
+{
+    <section class="m-section m-section--delay-sm" aria-labelledby="add-account-heading">
+        <h2 id="add-account-heading" class="m-section-title">Add another account</h2>
+        <article class="m-card">
+            <div class="m-row m-row--gap">
+                <div class="m-row-info">
+                    <p class="m-row-label">Link a new provider</p>
+                    <p class="m-row-desc">Sign in faster by connecting an additional account.</p>
+                </div>
+                <div class="m-row-action m-row-action--wrap">
+                    <form asp-page-handler="LinkLogin" method="post">
+                        @foreach (var provider in Model.OtherLogins)
+                        {
+                            <button type="submit" name="provider" value="@provider.Name"
+                                    class="m-btn m-btn-outline"
+                                    title="Link @provider.DisplayName account">
+                                Link @provider.DisplayName
+                            </button>
+                        }
+                    </form>
+                </div>
+            </div>
+        </article>
+    </section>
+}
+
+@if (Model.CurrentLogins?.Count == 0 && Model.OtherLogins?.Count == 0)
+{
+    <section class="m-info-box" aria-label="No external logins">
+        <div class="m-info-icon">
+            <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/>
+            </svg>
+        </div>
+        <p class="m-info-title">No external logins available</p>
+        <p class="m-info-desc">No third-party login providers are configured for this application.</p>
+    </section>
+}
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

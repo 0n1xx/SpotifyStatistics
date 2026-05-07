@@ -48,8 +48,7 @@ function initTodBars() {
 
         const bar = document.createElement('div');
         bar.className = 'tod-bar';
-        // CSS reads --bar-height to set the bar's height — keeps sizing logic out of the stylesheet
-        bar.style.setProperty('--bar-height', `${Math.max((val / maxTod) * 70, 4)}px`);
+        bar.style.height = `${Math.max((val / maxTod) * 70, 4)}px`; // min 4px so empty hours still show
         bar.title = `${i}:00 — ${val} plays`;
 
         wrap.appendChild(bar);

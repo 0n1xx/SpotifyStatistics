@@ -122,8 +122,6 @@
 
 .tod-bar {
     width: 100%;
-    /* Height is set per-bar via --bar-height custom property (written by dashboard.js) */
-    height: var(--bar-height, 4px);
     background: var(--green-glow);
     border-radius: 4px 4px 0 0;
     transition: background 0.2s;

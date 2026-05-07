@@ -127,15 +127,11 @@
     padding: 10px 14px;
     font-size: 12px;
     pointer-events: none;
-    /* Hidden by default — worldmap.js removes .is-hidden on mousemove */
     display: none;
     z-index: 20;
     backdrop-filter: blur(8px);
     white-space: nowrap;
 }
-
-/* Shown state — JS toggles this class on mousemove/mouseleave */
-#map-tooltip:not(.is-hidden) { display: block; }
 
 #map-tooltip .tt-name { color: var(--green); font-size: 13px; font-weight: 600; margin-bottom: 3px; }
 #map-tooltip .tt-plays { color: var(--muted2); }

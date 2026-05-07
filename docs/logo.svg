@@ -1,19 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width="120" height="120">
-  <!-- Background circle -->
-  <circle cx="60" cy="60" r="60" fill="#111111"/>
-  
-  <!-- Spotify-style equalizer bars representing music stats -->
-  <!-- Bar 1 -->
-  <rect x="22" y="52" width="12" height="32" rx="6" fill="#1DB954"/>
-  <!-- Bar 2 -->
-  <rect x="40" y="36" width="12" height="48" rx="6" fill="#1DB954"/>
-  <!-- Bar 3 -->
-  <rect x="58" y="44" width="12" height="40" rx="6" fill="#1DB954"/>
-  <!-- Bar 4 -->
-  <rect x="76" y="28" width="12" height="56" rx="6" fill="#1DB954"/>
-  <!-- Bar 5 -->
-  <rect x="94" y="48" width="12" height="36" rx="6" fill="#1DB954" opacity="0.6"/>
-  
-  <!-- Subtle top highlight arc -->
-  <path d="M 20 60 Q 60 20 100 60" stroke="#1DB954" stroke-width="1.5" fill="none" opacity="0.2"/>
+  <!-- Black square background matching the iOS app icon -->
+  <rect width="120" height="120" rx="26" fill="#000000"/>
+  <!-- Spotify logo — same as the app icon, scaled to fit -->
+  <path fill="#1DB954" d="M60 24C40.1 24 24 40.1 24 60s16.1 36 36 36 36-16.1 36-36S79.9 24 60 24zm16.5 51.9c-.6.9-1.9 1.2-2.9.5-7.8-4.8-17.7-5.9-29.3-3.2-1.1.3-2.2-.4-2.5-1.5-.3-1.1.4-2.2 1.5-2.5 12.7-2.9 23.6-1.6 32.4 3.7 1 .7 1.3 2 .8 3zm4.4-8.6c-.8 1.2-2.4 1.6-3.6.8-8.9-5.5-22.5-7.1-33-3.9-1.4.4-2.8-.4-3.2-1.7-.4-1.4.4-2.8 1.7-3.2 12.1-3.7 27.2-1.9 37.4 4.4 1.2.8 1.5 2.4.7 3.6zm.4-8.9C73.2 52.5 54.5 51.9 43.7 55c-1.6.5-3.4-.4-3.9-2-.5-1.6.4-3.4 2-3.9 12.5-3.8 33.3-3 46.4 4.6 1.5.9 2 2.8 1.1 4.3-.9 1.5-2.8 2-4.4 1l-.6-.6z"/>
 </svg>

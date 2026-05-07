@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width="120" height="120">
+  <!-- Background circle -->
+  <circle cx="60" cy="60" r="60" fill="#111111"/>
+  
+  <!-- Spotify-style equalizer bars representing music stats -->
+  <!-- Bar 1 -->
+  <rect x="22" y="52" width="12" height="32" rx="6" fill="#1DB954"/>
+  <!-- Bar 2 -->
+  <rect x="40" y="36" width="12" height="48" rx="6" fill="#1DB954"/>
+  <!-- Bar 3 -->
+  <rect x="58" y="44" width="12" height="40" rx="6" fill="#1DB954"/>
+  <!-- Bar 4 -->
+  <rect x="76" y="28" width="12" height="56" rx="6" fill="#1DB954"/>
+  <!-- Bar 5 -->
+  <rect x="94" y="48" width="12" height="36" rx="6" fill="#1DB954" opacity="0.6"/>
+  
+  <!-- Subtle top highlight arc -->
+  <path d="M 20 60 Q 60 20 100 60" stroke="#1DB954" stroke-width="1.5" fill="none" opacity="0.2"/>
+</svg>

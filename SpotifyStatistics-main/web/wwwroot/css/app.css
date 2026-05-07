@@ -1,0 +1,497 @@
+/* app.css — Global styles shared across all pages
+   Loaded by every page via _AppLayout.cshtml */
+
+/* ── Reset ── */
+*, *::before, *::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+/* ── Design tokens (CSS variables) ──
+   Change a value here and it updates everywhere */
+:root {
+    --green: #1DB954;           /* Spotify brand green */
+    --green-dim: #17a349;       /* Darker green for hover states */
+    --green-glow: rgba(29,185,84,0.15); /* Transparent green for backgrounds */
+    --black: #080808;           /* Page background */
+    --card: #111111;            /* Card / panel background */
+    --card2: #161616;           /* Slightly lighter card (hover states) */
+    --border: rgba(255,255,255,0.07); /* Subtle divider lines */
+    --text: #f0f0f0;            /* Primary text */
+    --muted: #555;              /* Disabled / placeholder text */
+    --muted2: #888;             /* Secondary text */
+    --sidebar: 240px;           /* Sidebar width — also used in .app grid */
+    --red: #e74c3c;             /* Danger / destructive actions */
+    --red-glow: rgba(231,76,60,0.15);
+}
+
+html, body {
+    height: 100%;
+    background: var(--black);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    overflow-y: auto;
+}
+
+/* ── Two-column app shell: sidebar | content ── */
+/* NOTE: overflow:hidden here is essential — without it the 240px sidebar
+   can push the total grid width past 100vw and create a horizontal scrollbar.
+   The actual vertical scrolling happens inside .main, not on the page. */
+.app {
+    display: grid;
+    grid-template-columns: var(--sidebar) 1fr;
+    height: 100vh;
+    width: 100%;
+    overflow: hidden; /* prevent horizontal overflow from the grid itself */
+    max-width: 100vw;
+}
+
+/* Content area — fills the right grid column and scrolls vertically.
+   Each page adds its own padding/layout on top of this via page-specific CSS. */
+.main {
+    overflow-y: scroll;
+    height: 100vh;
+    min-height: 0; /* required: grid children don't shrink below content size by default */
+    box-sizing: border-box;
+}
+
+/* SideBar */
+
+.sidebar {
+    background: #0c0c0c;
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    padding: 28px 0;
+    overflow-y: auto;
+}
+
+/* Logo link at the top of the sidebar */
+.sidebar-logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 0 24px 28px;
+    border-bottom: 1px solid var(--border);
+    text-decoration: none;
+    color: var(--text);
+}
+
+.logo-icon {
+    width: 34px;
+    height: 34px;
+    background: var(--green);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.logo-icon svg {
+    width: 18px;
+    height: 18px;
+    fill: #000;
+}
+
+.logo-text {
+    font-family: 'Syne', sans-serif;
+    font-size: 18px;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+}
+
+/* Navigation list */
+.nav {
+    padding: 20px 12px;
+    flex: 1;
+}
+
+/* Small uppercase label above a group of nav items */
+.nav-label {
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--muted);
+    padding: 0 12px;
+    margin-bottom: 8px;
+    margin-top: 20px;
+}
+
+/* Individual nav link */
+.nav-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    border-radius: 8px;
+    font-size: 14px;
+    color: var(--muted2);
+    cursor: pointer;
+    transition: all 0.15s;
+    text-decoration: none;
+    margin-bottom: 2px;
+}
+
+.nav-item svg {
+    width: 16px;
+    height: 16px;
+    flex-shrink: 0;
+    opacity: 0.6;
+}
+
+.nav-item:hover {
+    background: var(--card);
+    color: var(--text);
+}
+
+.nav-item:hover svg { opacity: 1; }
+
+/* Active page highlight */
+.nav-item.active {
+    background: var(--green-glow);
+    color: var(--green);
+    font-weight: 500;
+}
+
+.nav-item.active svg { opacity: 1; }
+
+/* Read-only "connected" indicator — no hover state needed */
+.nav-connected {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    border-radius: 8px;
+    font-size: 14px;
+    color: var(--green);
+    margin-bottom: 2px;
+}
+
+.nav-connected svg {
+    width: 16px;
+    height: 16px;
+    flex-shrink: 0;
+}
+
+/* User card at the bottom of the sidebar */
+.sidebar-user {
+    margin: 0 12px;
+    padding: 12px;
+    background: var(--card);
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    text-decoration: none;
+    cursor: pointer;
+    transition: border-color 0.15s;
+}
+
+.sidebar-user:hover { border-color: rgba(255,255,255,0.15); }
+
+/* Circular avatar — shows initial letter or profile photo */
+.user-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: var(--green);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    font-weight: 600;
+    color: #000;
+    flex-shrink: 0;
+    overflow: hidden;
+}
+
+.user-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.user-name {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text);
+}
+
+.user-sub { font-size: 11px; color: var(--muted2); }
+
+/* Shared components */
+
+/* Animated green dot — used in the sidebar and connected banners */
+.pulse-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--green);
+    flex-shrink: 0;
+    animation: pulse 2s ease-in-out infinite;
+}
+
+/* Generic content card */
+.card {
+    background: var(--card);
+    border-radius: 14px;
+    border: 1px solid var(--border);
+    padding: 22px;
+    animation: fadeUp 0.4s ease both;
+}
+
+.card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 20px;
+}
+
+.card-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 15px;
+    font-weight: 700;
+}
+
+/* Primary CTA button (green) — used on the Spotify connect banners */
+.connect-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--green);
+    color: #000;
+    border: none;
+    border-radius: 10px;
+    padding: 11px 20px;
+    font-size: 14px;
+    font-weight: 600;
+    font-family: 'DM Sans', sans-serif;
+    text-decoration: none;
+    transition: background 0.2s;
+    white-space: nowrap;
+    cursor: pointer;
+}
+
+.connect-btn:hover { background: var(--green-dim); }
+
+/* Scrollbars */
+.main,
+.sidebar {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255,255,255,0.3) rgba(255,255,255,0.05);
+}
+
+.main::-webkit-scrollbar,
+.sidebar::-webkit-scrollbar {
+    width: 8px;
+}
+
+.main::-webkit-scrollbar-track,
+.sidebar::-webkit-scrollbar-track {
+    background: rgba(255,255,255,0.05);
+}
+
+.main::-webkit-scrollbar-thumb,
+.sidebar::-webkit-scrollbar-thumb {
+    background: rgba(255,255,255,0.3);
+    border-radius: 4px;
+    min-height: 40px;
+}
+
+.main::-webkit-scrollbar-thumb:hover,
+.sidebar::-webkit-scrollbar-thumb:hover {
+    background: rgba(255,255,255,0.5);
+}
+
+
+/* Animations part */
+
+/* Cards slide up and fade in on page load */
+@keyframes fadeUp {
+    from { opacity: 0; transform: translateY(12px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Pulsing dot for Spotify connected indicator */
+@keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50%       { opacity: 0.5; transform: scale(0.85); }
+}
+
+/* Subtle breathing animation on icon elements */
+@keyframes iconPulse {
+    0%, 100% { transform: scale(1); }
+    50%       { transform: scale(0.92); }
+}
+
+/* ══════════════════════════════════════════════════════════
+   RESPONSIVE — Tablet & Mobile
+   Breakpoints:
+     ≤ 900px  → tablet  (sidebar collapses, hamburger appears)
+     ≤ 600px  → mobile  (full-width, bottom nav or drawer)
+   ══════════════════════════════════════════════════════════ */
+
+/* ── Hamburger button — hidden on desktop ── */
+.hamburger {
+    display: none;
+    position: fixed;
+    top: 16px;
+    left: 16px;
+    z-index: 200;
+    width: 40px;
+    height: 40px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    flex-direction: column;
+    gap: 5px;
+    padding: 8px;
+    transition: background 0.15s;
+}
+
+.hamburger:hover { background: var(--card2); }
+
+.hamburger span {
+    display: block;
+    width: 18px;
+    height: 2px;
+    background: var(--text);
+    border-radius: 2px;
+    transition: transform 0.25s, opacity 0.25s;
+}
+
+/* Hamburger → X when sidebar open */
+.hamburger.open span:nth-child(1) { transform: translateY(7px) rotate(45deg); }
+.hamburger.open span:nth-child(2) { opacity: 0; }
+.hamburger.open span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
+
+/* ── Overlay — covers content when mobile sidebar is open ── */
+.sidebar-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.6);
+    z-index: 150;
+    backdrop-filter: blur(2px);
+}
+
+.sidebar-overlay.active { display: block; }
+
+/* ══════ TABLET ≤ 900px ══════ */
+@media (max-width: 900px) {
+
+    /* Switch from grid to single column — sidebar becomes an overlay drawer */
+    .app {
+        grid-template-columns: 1fr;
+    }
+
+    /* Hamburger visible on tablet */
+    .hamburger { display: flex; }
+
+    /* Sidebar transforms into a fixed left drawer */
+    .sidebar {
+        position: fixed;
+        top: 0;
+        left: 0;
+        height: 100%;
+        width: 260px;
+        z-index: 160;
+        transform: translateX(-100%);
+        transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    /* .sidebar.open added by JS — slides the drawer in */
+    .sidebar.open { transform: translateX(0); }
+
+    /* Main content takes full width with top padding for hamburger */
+    .main {
+        padding-top: 72px;
+    }
+}
+
+/* ══════ MOBILE ≤ 600px ══════ */
+@media (max-width: 600px) {
+
+    /* Sidebar slightly narrower on small phones */
+    .sidebar { width: 240px; }
+
+    /* Reduce main padding on small screens */
+    .main {
+        padding: 72px 20px 32px;
+    }
+
+    /* Page header stacks nicely */
+    .page-header {
+        padding-bottom: 20px;
+    }
+
+    /* Generic card — reduce padding */
+    .card { padding: 16px; }
+
+    /* Card header wraps on small screens */
+    .card-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+    }
+}
+
+/* ── Sidebar new classes (no inline styles) ── */
+
+.nav-item--spotify-connect {
+    color: #1DB954;
+    border: 1px solid rgba(29,185,84,0.2);
+    background: rgba(29,185,84,0.05);
+}
+
+.nav-item--btn {
+    width: 100%;
+    border: none;
+    background: none;
+    text-align: left;
+    cursor: pointer;
+}
+
+.nav-connected__label { font-size: 13px; }
+.nav-connected__dot   { margin-left: auto; }
+
+.user-avatar__img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 50%;
+}
+
+.user-info { display: flex; flex-direction: column; }
+
+.sidebar-avatar-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 50%;
+}
+
+/* ── Page header text group (title + subtitle) ──
+   Semantic wrapper replacing bare <div> inside <header class="page-header"> */
+.page-header-text {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+/* ── Sidebar open state — set on <body> by sidebar.js ── */
+/* Locks scroll and hides the hamburger button while the drawer is open */
+body.sidebar-open {
+    overflow: hidden;
+}
+
+body.sidebar-open #hamburger-btn {
+    opacity: 0;
+    pointer-events: none;
+}

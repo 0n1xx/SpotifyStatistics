@@ -335,10 +335,11 @@ struct SettingsView: View {
     }
 
     // MARK: - Connected Accounts Section
-    // Spotify, Google, GitHub — matches web Connected accounts section
+    // Shows Spotify connection status and sign out button
     private var connectedAccountsSection: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("Connected accounts").sectionHeader()
+            // Google and GitHub OAuth are web-only — not surfaced in the iOS app
 
             VStack(spacing: 0) {
 
@@ -366,66 +367,6 @@ struct SettingsView: View {
                         .padding(.vertical, 6)
                         .background(Color.appAccent)
                         .cornerRadius(8)
-                    }
-                }
-
-                Divider().background(Color.appBorder).padding(.horizontal, 16)
-
-                // Google — web-only OAuth, show info only
-                SettingRow(label: "Google", description: "Sign in with your Google account") {
-                    HStack(spacing: 8) {
-                        Circle()
-                            .fill(Color.red.opacity(0.6))
-                            .frame(width: 8, height: 8)
-                        Text("Not connected")
-                            .font(.dmSans(13))
-                            .foregroundColor(.appTextSecondary)
-
-                        Spacer()
-
-                        Button("Connect") {
-                            startOAuth(provider: "Google")
-                        }
-                        .font(.dmSans(13, weight: .bold))
-                        .foregroundColor(.appTextPrimary)
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 6)
-                        .background(Color.appBackground)
-                        .cornerRadius(8)
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 8)
-                                .stroke(Color.appBorder, lineWidth: 1)
-                        )
-                    }
-                }
-
-                Divider().background(Color.appBorder).padding(.horizontal, 16)
-
-                // GitHub
-                SettingRow(label: "GitHub", description: "Sign in with your GitHub account") {
-                    HStack(spacing: 8) {
-                        Circle()
-                            .fill(Color.red.opacity(0.6))
-                            .frame(width: 8, height: 8)
-                        Text("Not connected")
-                            .font(.dmSans(13))
-                            .foregroundColor(.appTextSecondary)
-
-                        Spacer()
-
-                        Button("Connect") {
-                            startOAuth(provider: "GitHub")
-                        }
-                        .font(.dmSans(13, weight: .bold))
-                        .foregroundColor(.appTextPrimary)
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 6)
-                        .background(Color.appBackground)
-                        .cornerRadius(8)
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 8)
-                                .stroke(Color.appBorder, lineWidth: 1)
-                        )
                     }
                 }
 
@@ -616,8 +557,25 @@ struct ChangePasswordView: View {
                                 errorMessage = "Password must be at least 6 characters."
                                 return
                             }
-                            // TODO: PUT /api/settings/password
-                            showSuccess = true
+                            isLoading = true
+                            errorMessage = nil
+                            Task {
+                                defer { isLoading = false }
+                                do {
+                                    struct Body: Encodable {
+                                        let currentPassword: String
+                                        let newPassword: String
+                                    }
+                                    struct Resp: Decodable { let ok: Bool }
+                                    let _: Resp = try await APIClient.shared.put(
+                                        path: "/api/settings/password",
+                                        body: Body(currentPassword: currentPassword, newPassword: newPassword)
+                                    )
+                                    showSuccess = true
+                                } catch {
+                                    errorMessage = "Incorrect current password or server error."
+                                }
+                            }
                         } label: {
                             if isLoading {
                                 ProgressView().tint(.black)

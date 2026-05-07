@@ -121,8 +121,7 @@ function initMap() {
             .on('mousemove', function(event, d) {
                 const iso   = numToAlpha2[parseInt(d.id, 10)];
                 const plays = iso ? (countryData[iso] || 0) : 0;
-                // No data for this country — hide tooltip and bail early
-                if (!plays) { tooltip.classList.add('is-hidden'); return; }
+                if (!plays) { tooltip.style.display = 'none'; return; } // no data — hide tooltip
 
                 const name = (iso && alpha2ToName[iso]) ? alpha2ToName[iso] : (iso || 'Unknown');
                 ttName.textContent  = name;
@@ -134,12 +133,11 @@ function initMap() {
                 let ty = event.clientY - rect.top  - 12;
                 if (tx + 170 > rect.width)  tx = event.clientX - rect.left - 170;
                 if (ty + 60  > rect.height) ty = event.clientY - rect.top  - 60;
-                // Tooltip position is genuinely dynamic (follows cursor), so inline style is correct here
-                tooltip.style.left = tx + 'px';
-                tooltip.style.top  = ty + 'px';
-                tooltip.classList.remove('is-hidden');
+                tooltip.style.left    = tx + 'px';
+                tooltip.style.top     = ty + 'px';
+                tooltip.style.display = 'block';
             })
-            .on('mouseleave', () => { tooltip.classList.add('is-hidden'); });
+            .on('mouseleave', () => { tooltip.style.display = 'none'; });
 
         // Country border mesh — drawn on top of fill paths so borders are always visible
         mapGroup.append('path')

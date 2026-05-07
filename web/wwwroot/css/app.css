@@ -484,14 +484,3 @@ html, body {
     flex-direction: column;
     gap: 4px;
 }
-
-/* ── Sidebar open state — set on <body> by sidebar.js ── */
-/* Locks scroll and hides the hamburger button while the drawer is open */
-body.sidebar-open {
-    overflow: hidden;
-}
-
-body.sidebar-open #hamburger-btn {
-    opacity: 0;
-    pointer-events: none;
-}

@@ -47,18 +47,18 @@
     </section>
 
     @* ── Loading spinner ── *@
-    <div id="load-spinner" class="spinner-wrap is-hidden">
+    <div id="load-spinner" class="spinner-wrap" style="display:none">
         <div class="spinner"></div>
     </div>
 
     @* ── Empty / error states (hidden until needed) ── *@
-    <div id="empty-state" class="empty-state is-hidden">
+    <div id="empty-state" class="empty-state" style="display:none">
         <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3"/></svg>
         <p>No tracks found</p>
     </div>
-    <div id="error-state" class="empty-state is-hidden">
+    <div id="error-state" class="empty-state" style="display:none">
         <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M1 6s4-2 11-2 11 2 11 2"/><path d="M1 18s4-2 11-2 11 2 11 2"/><line x1="1" y1="12" x2="23" y2="12"/></svg>
         <p id="error-msg">Failed to load history</p>
-        <button class="retry-btn" onclick="retryLoad()">Retry</button>
+        <button class="filter-btn active" onclick="retryLoad()" style="margin-top:8px">Retry</button>
     </div>
 </main>
