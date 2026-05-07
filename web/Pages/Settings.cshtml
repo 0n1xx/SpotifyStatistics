@@ -147,9 +147,7 @@
                     else
                     {
                         <span class="connected-badge no">Not connected</span>
-                        <form method="post" asp-page-handler="LinkLogin" asp-antiforgery="true" style="display:inline">
-                            <button type="submit" name="provider" value="Google" class="btn btn-outline">Connect</button>
-                        </form>
+                        <a class="btn btn-outline" href="/account/link-login?provider=Google">Connect</a>
                     }
                 </div>
             </div>
@@ -166,9 +164,7 @@
                     else
                     {
                         <span class="connected-badge no">Not connected</span>
-                        <form method="post" asp-page-handler="LinkLogin" asp-antiforgery="true" style="display:inline">
-                            <button type="submit" name="provider" value="GitHub" class="btn btn-outline">Connect</button>
-                        </form>
+                        <a class="btn btn-outline" href="/account/link-login?provider=GitHub">Connect</a>
                     }
                 </div>
             </div>
