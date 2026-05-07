@@ -8,8 +8,7 @@
 
 ## Demo
 
-https://github.com/user-attachments/assets/YOUR_VIDEO_ID_HERE
-
+https://github.com/user-attachments/assets/dbe9da7e-1eba-482b-bacb-de784a5cd004
 <!-- To add your screencast: drag the video file into any GitHub Issue comment box, wait for the upload link to appear, then paste it here in place of the URL above. -->
 
 ---
