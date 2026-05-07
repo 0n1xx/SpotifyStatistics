@@ -129,6 +129,44 @@ namespace SpotifyStatisticsWebApp.Pages
             return new JsonResult(new { success = true });
         }
 
+        // ── Link external OAuth provider to existing account ─────────────────────
+        // Called when user clicks Connect for Google/GitHub on Settings page.
+        // Uses the same ASP.NET Identity LinkLogin flow as /Manage/ExternalLogins
+        // but returns to /Settings instead of /Manage/ExternalLogins.
+        public async Task<IActionResult> OnPostLinkLoginAsync(string provider)
+        {
+            await HttpContext.SignOutAsync(IdentityConstants.ExternalScheme);
+            var userId = _userManager.GetUserId(User);
+            var redirectUrl = Url.Page("./Settings", pageHandler: "LinkLoginCallback");
+            var properties = _signInManager.ConfigureExternalAuthenticationProperties(provider, redirectUrl, userId);
+            return new ChallengeResult(provider, properties);
+        }
+
+        public async Task<IActionResult> OnGetLinkLoginCallbackAsync()
+        {
+            var user = await _userManager.GetUserAsync(User);
+            if (user == null) return NotFound();
+
+            var userId = await _userManager.GetUserIdAsync(user);
+            var info   = await _signInManager.GetExternalLoginInfoAsync(userId);
+            if (info == null)
+            {
+                TempData["StatusMessage"] = "Error: Could not load external login info.";
+                return RedirectToPage();
+            }
+
+            var result = await _userManager.AddLoginAsync(user, info);
+            if (!result.Succeeded)
+            {
+                TempData["StatusMessage"] = "Error: That account is already linked to another user.";
+                return RedirectToPage();
+            }
+
+            await HttpContext.SignOutAsync(IdentityConstants.ExternalScheme);
+            TempData["StatusMessage"] = $"{info.LoginProvider} account connected successfully.";
+            return RedirectToPage();
+        }
+
         public async Task<IActionResult> OnPostDeleteAccountAsync()
         {
             var user = await _userManager.GetUserAsync(User);

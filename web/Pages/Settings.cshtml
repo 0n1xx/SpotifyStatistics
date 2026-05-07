@@ -147,8 +147,8 @@
                     else
                     {
                         <span class="connected-badge no">Not connected</span>
-                        <form method="post" asp-area="Identity" asp-page="/Account/ExternalLogin"
-                              asp-route-returnUrl="/Settings" style="display:inline">
+                        <form method="post" asp-page-handler="LinkLogin" style="display:inline">
+                            @Html.AntiForgeryToken()
                             <button type="submit" name="provider" value="Google" class="btn btn-outline">Connect</button>
                         </form>
                     }
@@ -167,8 +167,8 @@
                     else
                     {
                         <span class="connected-badge no">Not connected</span>
-                        <form method="post" asp-area="Identity" asp-page="/Account/ExternalLogin"
-                              asp-route-returnUrl="/Settings" style="display:inline">
+                        <form method="post" asp-page-handler="LinkLogin" style="display:inline">
+                            @Html.AntiForgeryToken()
                             <button type="submit" name="provider" value="GitHub" class="btn btn-outline">Connect</button>
                         </form>
                     }
