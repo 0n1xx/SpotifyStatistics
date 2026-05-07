@@ -348,34 +348,41 @@ struct SettingsView: View {
     }
 
     // MARK: - Connected Accounts Section
-    // Spotify, Google, GitHub — status loaded from GET /api/profile on appear
+    // Shows real connection status for each provider.
+    // Connecting/disconnecting accounts is web-only — OAuth redirects don't return
+    // to a native app context, so we show a clear hint instead of a broken button.
     private var connectedAccountsSection: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("Connected accounts").sectionHeader()
+
+            // Web-only notice — shown only when at least one account is not connected
+            if !spotifyConnected || !googleConnected || !githubConnected {
+                HStack(spacing: 8) {
+                    Image(systemName: "globe")
+                        .font(.system(size: 12))
+                        .foregroundColor(.appTextSecondary)
+                    Text("To connect accounts, visit Settings on the web app")
+                        .font(.dmSans(12))
+                        .foregroundColor(.appTextSecondary)
+                    Spacer()
+                    Link("Open", destination: URL(string: "https://spotifystatistics-production.up.railway.app/Settings")!)
+                        .font(.dmSans(12, weight: .bold))
+                        .foregroundColor(.appAccent)
+                }
+                .padding(.horizontal, 4)
+            }
 
             VStack(spacing: 0) {
 
                 // Spotify
                 SettingRow(label: "Spotify", description: "Access your listening history and stats") {
-                    HStack(spacing: 8) {
+                    HStack(spacing: 6) {
                         Circle()
                             .fill(spotifyConnected ? Color.appAccent : Color.red.opacity(0.6))
                             .frame(width: 8, height: 8)
                         Text(spotifyConnected ? "Connected" : "Not connected")
                             .font(.dmSans(13))
                             .foregroundColor(spotifyConnected ? .appAccent : .appTextSecondary)
-                        Spacer()
-                        if !spotifyConnected {
-                            Button("Connect") {
-                                openURL("https://spotifystatistics-production.up.railway.app/SpotifyAuth/login")
-                            }
-                            .font(.dmSans(13, weight: .bold))
-                            .foregroundColor(.black)
-                            .padding(.horizontal, 12)
-                            .padding(.vertical, 6)
-                            .background(Color.appAccent)
-                            .cornerRadius(8)
-                        }
                     }
                 }
 
@@ -383,26 +390,13 @@ struct SettingsView: View {
 
                 // Google
                 SettingRow(label: "Google", description: "Sign in with your Google account") {
-                    HStack(spacing: 8) {
+                    HStack(spacing: 6) {
                         Circle()
                             .fill(googleConnected ? Color.appAccent : Color.red.opacity(0.6))
                             .frame(width: 8, height: 8)
                         Text(googleConnected ? "Connected" : "Not connected")
                             .font(.dmSans(13))
                             .foregroundColor(googleConnected ? .appAccent : .appTextSecondary)
-                        Spacer()
-                        if !googleConnected {
-                            Button("Connect") {
-                                startOAuth(provider: "Google")
-                            }
-                            .font(.dmSans(13, weight: .bold))
-                            .foregroundColor(.appTextPrimary)
-                            .padding(.horizontal, 12)
-                            .padding(.vertical, 6)
-                            .background(Color.appBackground)
-                            .cornerRadius(8)
-                            .overlay(RoundedRectangle(cornerRadius: 8).stroke(Color.appBorder, lineWidth: 1))
-                        }
                     }
                 }
 
@@ -410,26 +404,13 @@ struct SettingsView: View {
 
                 // GitHub
                 SettingRow(label: "GitHub", description: "Sign in with your GitHub account") {
-                    HStack(spacing: 8) {
+                    HStack(spacing: 6) {
                         Circle()
                             .fill(githubConnected ? Color.appAccent : Color.red.opacity(0.6))
                             .frame(width: 8, height: 8)
                         Text(githubConnected ? "Connected" : "Not connected")
                             .font(.dmSans(13))
                             .foregroundColor(githubConnected ? .appAccent : .appTextSecondary)
-                        Spacer()
-                        if !githubConnected {
-                            Button("Connect") {
-                                startOAuth(provider: "GitHub")
-                            }
-                            .font(.dmSans(13, weight: .bold))
-                            .foregroundColor(.appTextPrimary)
-                            .padding(.horizontal, 12)
-                            .padding(.vertical, 6)
-                            .background(Color.appBackground)
-                            .cornerRadius(8)
-                            .overlay(RoundedRectangle(cornerRadius: 8).stroke(Color.appBorder, lineWidth: 1))
-                        }
                     }
                 }
 
