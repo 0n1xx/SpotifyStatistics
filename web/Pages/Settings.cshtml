@@ -10,21 +10,23 @@
 <main class="main">
 
     @* ── OAuth link status banner ── *@
-    @if (Context.Request.Query["linked"].Count > 0)
+    @{ var linked = ViewContext.HttpContext.Request.Query["linked"].ToString(); }
+    @{ var oauthError = ViewContext.HttpContext.Request.Query["error"].ToString(); }
+    @if (!string.IsNullOrEmpty(linked))
     {
         <div class="alert alert--success" role="alert">
-            ✓ @Context.Request.Query["linked"] account connected successfully.
+            ✓ @linked account connected successfully.
         </div>
     }
-    @if (Context.Request.Query["error"] == "already-linked")
+    @if (oauthError == "already-linked")
     {
         <div class="alert alert--error" role="alert">
-            This @Context.Request.Query["provider"] account is already connected to a different Statify account.
+            This account is already connected to a different Statify user.
             To link it here, first remove it from the other account via
             <a href="/Identity/Account/Manage/ExternalLogins">Linked accounts</a>.
         </div>
     }
-    @if (Context.Request.Query["error"] == "oauth-failed")
+    @if (oauthError == "oauth-failed")
     {
         <div class="alert alert--error" role="alert">
             OAuth sign-in failed. Please try again.
