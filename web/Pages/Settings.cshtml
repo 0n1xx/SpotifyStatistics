@@ -8,6 +8,29 @@
     Layout = "~/Pages/Shared/_AppLayout.cshtml";
 }
 <main class="main">
+
+    @* ── OAuth link status banner ── *@
+    @if (Context.Request.Query["linked"].Count > 0)
+    {
+        <div class="alert alert--success" role="alert">
+            ✓ @Context.Request.Query["linked"] account connected successfully.
+        </div>
+    }
+    @if (Context.Request.Query["error"] == "already-linked")
+    {
+        <div class="alert alert--error" role="alert">
+            This @Context.Request.Query["provider"] account is already connected to a different Statify account.
+            To link it here, first remove it from the other account via
+            <a href="/Identity/Account/Manage/ExternalLogins">Linked accounts</a>.
+        </div>
+    }
+    @if (Context.Request.Query["error"] == "oauth-failed")
+    {
+        <div class="alert alert--error" role="alert">
+            OAuth sign-in failed. Please try again.
+        </div>
+    }
+
     <header class="page-header">
         <h1 class="page-title">Settings</h1>
         <p class="page-sub">Manage your account, connections and preferences</p>

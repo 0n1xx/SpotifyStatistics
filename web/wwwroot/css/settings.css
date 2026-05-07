@@ -410,3 +410,29 @@
 
 /* Hidden avatar preview — shown after successful upload */
 .avatar-preview-hidden { display: none; }
+
+/* ── OAuth status banners ── */
+.alert {
+    padding: 14px 18px;
+    border-radius: 10px;
+    font-size: 14px;
+    font-family: 'DM Sans', sans-serif;
+    line-height: 1.5;
+}
+
+.alert--success {
+    background: rgba(29, 185, 84, 0.1);
+    border: 1px solid rgba(29, 185, 84, 0.3);
+    color: #1DB954;
+}
+
+.alert--error {
+    background: rgba(231, 76, 60, 0.1);
+    border: 1px solid rgba(231, 76, 60, 0.3);
+    color: #e74c3c;
+}
+
+.alert--error a {
+    color: #e74c3c;
+    text-decoration: underline;
+}
