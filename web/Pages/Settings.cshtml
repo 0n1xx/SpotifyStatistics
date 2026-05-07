@@ -78,7 +78,7 @@
         <h2 id="account-heading" class="section-title">Account</h2>
         <article class="setting-card">
 
-            @* Display name — shown in sidebar and profile header, falls back to email *@
+            @* Display name *@
             <div class="setting-row">
                 <div class="setting-info">
                     <p class="setting-label">Display name</p>
@@ -92,13 +92,7 @@
                 </div>
             </div>
 
-            <div class="setting-row">
-                <div class="setting-info">
-                    <p class="setting-label">Email address</p>
-                    <p class="setting-desc">Your login email — contact support to change it</p>
-                </div>
-                <span class="setting-email-display">@User.Identity?.Name</span>
-            </div>
+            @* Phone number *@
             <div class="setting-row">
                 <div class="setting-info">
                     <p class="setting-label">Phone number</p>
@@ -111,6 +105,17 @@
                     <button class="btn btn-green" onclick="savePhone()">Save</button>
                 </div>
             </div>
+
+            @* Email — read-only, shown last *@
+            <div class="setting-row">
+                <div class="setting-info">
+                    <p class="setting-label">Email address</p>
+                    <p class="setting-desc">Your login email — contact support to change it</p>
+                </div>
+                <span class="setting-email-display">@User.Identity?.Name</span>
+            </div>
+
+            @* Password *@
             <div class="setting-row">
                 <div class="setting-info">
                     <p class="setting-label">Password</p>

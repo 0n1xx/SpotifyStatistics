@@ -249,7 +249,6 @@ struct SettingsView: View {
                                         path: "/api/settings/profile",
                                         body: Body(displayName: displayName)
                                     )
-                                    // Reflect new display name in cached user so other screens update
                                     if let u = authManager.currentUser {
                                         authManager.currentUser = User(id: u.id, email: u.email, displayName: displayName)
                                     }
@@ -262,15 +261,6 @@ struct SettingsView: View {
                         .font(.dmSans(13, weight: .bold))
                         .foregroundColor(isSaving ? .appTextSecondary : .appAccent)
                     }
-                }
-
-                Divider().background(Color.appBorder).padding(.horizontal, 16)
-
-                // Email — read-only, shown for reference only
-                SettingRow(label: "Email address", description: "Contact support to change your email") {
-                    Text(email)
-                        .font(.dmSans(15))
-                        .foregroundColor(.appTextSecondary)
                 }
 
                 Divider().background(Color.appBorder).padding(.horizontal, 16)
@@ -305,6 +295,15 @@ struct SettingsView: View {
                         .font(.dmSans(13, weight: .bold))
                         .foregroundColor(isSaving ? .appTextSecondary : .appAccent)
                     }
+                }
+
+                Divider().background(Color.appBorder).padding(.horizontal, 16)
+
+                // Email — read-only, shown last
+                SettingRow(label: "Email address", description: "Contact support to change your email") {
+                    Text(email)
+                        .font(.dmSans(15))
+                        .foregroundColor(.appTextSecondary)
                 }
 
                 Divider().background(Color.appBorder).padding(.horizontal, 16)
