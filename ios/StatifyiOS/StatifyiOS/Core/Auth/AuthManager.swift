@@ -32,10 +32,32 @@ final class AuthManager {
     var currentUser: User? = nil
 
     // MARK: - Init
-    // On app launch we check Keychain to restore session.
-    // If a token exists the user doesn't need to log in again.
+    // On app launch: restore session from Keychain.
+    // If a token exists, decode the email from the JWT payload so Settings
+    // can pre-fill the email field immediately — without waiting for /api/profile.
     init() {
         self.isLoggedIn = KeychainManager.shared.isLoggedIn
+        if isLoggedIn, let token = KeychainManager.shared.getToken() {
+            self.currentUser = User(id: "", email: Self.emailFromJWT(token) ?? "", displayName: nil)
+        }
+    }
+
+    // Decodes the email claim from a JWT without verifying the signature.
+    // Safe here because we only use it for display — the server still validates
+    // the full token on every API call.
+    private static func emailFromJWT(_ token: String) -> String? {
+        let parts = token.components(separatedBy: ".")
+        guard parts.count == 3 else { return nil }
+        // JWT payload is base64url encoded — pad to multiple of 4
+        var base64 = parts[1]
+            .replacingOccurrences(of: "-", with: "+")
+            .replacingOccurrences(of: "_", with: "/")
+        let remainder = base64.count % 4
+        if remainder > 0 { base64 += String(repeating: "=", count: 4 - remainder) }
+        guard let data = Data(base64Encoded: base64),
+              let json  = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let email = json["email"] as? String else { return nil }
+        return email
     }
 
     // MARK: - Login
