@@ -36,10 +36,10 @@ struct SettingsView: View {
     @State private var isSaving: Bool = false               // Prevents double-tap while saving
 
     // MARK: - Connection State
-    // Populated from GET /api/profile on appear — reflects real server state
+    // Loaded from GET /api/profile on every appear — reflects real server state
     @State private var spotifyConnected: Bool = false
-    @State private var googleConnected: Bool = false
-    @State private var githubConnected: Bool = false
+    @State private var googleConnected:  Bool = false
+    @State private var githubConnected:  Bool = false
 
     var body: some View {
         NavigationStack {
@@ -73,13 +73,13 @@ struct SettingsView: View {
                     let email: String?
                     let avatarBase64: String?
                     let spotifyConnected: Bool?
-                    let googleConnected: Bool?
-                    let githubConnected: Bool?
+                    let googleConnected:  Bool?
+                    let githubConnected:  Bool?
                 }
                 if let profile: ProfileResp = try? await APIClient.shared.get(path: "/api/profile") {
                     if let n = profile.displayName { displayName = n }
                     if let e = profile.email        { email = e }
-                    // Reflect real connection status from server
+                    // Update connection badges from server — the source of truth
                     spotifyConnected = profile.spotifyConnected ?? false
                     googleConnected  = profile.googleConnected  ?? false
                     githubConnected  = profile.githubConnected  ?? false
@@ -348,8 +348,7 @@ struct SettingsView: View {
     }
 
     // MARK: - Connected Accounts Section
-    // Shows real connection status fetched from GET /api/profile on appear.
-    // Spotify uses the app's own OAuth flow. Google/GitHub open via ASWebAuthenticationSession.
+    // Spotify, Google, GitHub — status loaded from GET /api/profile on appear
     private var connectedAccountsSection: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("Connected accounts").sectionHeader()
@@ -362,13 +361,10 @@ struct SettingsView: View {
                         Circle()
                             .fill(spotifyConnected ? Color.appAccent : Color.red.opacity(0.6))
                             .frame(width: 8, height: 8)
-
                         Text(spotifyConnected ? "Connected" : "Not connected")
                             .font(.dmSans(13))
                             .foregroundColor(spotifyConnected ? .appAccent : .appTextSecondary)
-
                         Spacer()
-
                         if !spotifyConnected {
                             Button("Connect") {
                                 openURL("https://spotifystatistics-production.up.railway.app/SpotifyAuth/login")
@@ -385,19 +381,16 @@ struct SettingsView: View {
 
                 Divider().background(Color.appBorder).padding(.horizontal, 16)
 
-                // Google — uses ASWebAuthenticationSession
+                // Google
                 SettingRow(label: "Google", description: "Sign in with your Google account") {
                     HStack(spacing: 8) {
                         Circle()
                             .fill(googleConnected ? Color.appAccent : Color.red.opacity(0.6))
                             .frame(width: 8, height: 8)
-
                         Text(googleConnected ? "Connected" : "Not connected")
                             .font(.dmSans(13))
                             .foregroundColor(googleConnected ? .appAccent : .appTextSecondary)
-
                         Spacer()
-
                         if !googleConnected {
                             Button("Connect") {
                                 startOAuth(provider: "Google")
@@ -408,29 +401,23 @@ struct SettingsView: View {
                             .padding(.vertical, 6)
                             .background(Color.appBackground)
                             .cornerRadius(8)
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 8)
-                                    .stroke(Color.appBorder, lineWidth: 1)
-                            )
+                            .overlay(RoundedRectangle(cornerRadius: 8).stroke(Color.appBorder, lineWidth: 1))
                         }
                     }
                 }
 
                 Divider().background(Color.appBorder).padding(.horizontal, 16)
 
-                // GitHub — uses ASWebAuthenticationSession
+                // GitHub
                 SettingRow(label: "GitHub", description: "Sign in with your GitHub account") {
                     HStack(spacing: 8) {
                         Circle()
                             .fill(githubConnected ? Color.appAccent : Color.red.opacity(0.6))
                             .frame(width: 8, height: 8)
-
                         Text(githubConnected ? "Connected" : "Not connected")
                             .font(.dmSans(13))
                             .foregroundColor(githubConnected ? .appAccent : .appTextSecondary)
-
                         Spacer()
-
                         if !githubConnected {
                             Button("Connect") {
                                 startOAuth(provider: "GitHub")
@@ -441,10 +428,7 @@ struct SettingsView: View {
                             .padding(.vertical, 6)
                             .background(Color.appBackground)
                             .cornerRadius(8)
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 8)
-                                    .stroke(Color.appBorder, lineWidth: 1)
-                            )
+                            .overlay(RoundedRectangle(cornerRadius: 8).stroke(Color.appBorder, lineWidth: 1))
                         }
                     }
                 }
@@ -468,14 +452,11 @@ struct SettingsView: View {
             }
             .background(Color.appCard)
             .cornerRadius(12)
-            .overlay(
-                RoundedRectangle(cornerRadius: 12)
-                    .stroke(Color.appBorder, lineWidth: 1)
-            )
+            .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.appBorder, lineWidth: 1))
         }
     }
 
-    // MARK: - Danger Zone
+        // MARK: - Danger Zone
     // Delete account — matches web danger zone section
     private var dangerZoneSection: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -652,6 +633,7 @@ struct ChangePasswordView: View {
                                     )
                                     showSuccess = true
                                 } catch APIError.serverError(let code) {
+                                    // 400 = wrong current password / complexity rules
                                     errorMessage = code == 400
                                         ? "Incorrect current password."
                                         : "Server error (\(code)). Try again."

@@ -218,18 +218,20 @@ namespace SpotifyStatisticsWebApp.Controllers
 
             await using var defaultDb = await DefaultDbAsync();
 
-            // Check Spotify token exists
+            // Check whether a Spotify token row exists for this user
             var spotifyConnected = await ScalarAsync<int>(defaultDb,
                 "SELECT COUNT(*) FROM SpotifyTokens WHERE UserId = @uid",
                 ("@uid", userId)) > 0;
 
-            // Check Google / GitHub OAuth logins linked to this account
+            // Read linked OAuth providers from ASP.NET Identity's login table.
+            // LoginProvider values are set by the OAuth middleware — "Google" and "GitHub"
+            // match the scheme names registered in Program.cs via .AddGoogle() / .AddGitHub().
             var googleConnected = false;
             var githubConnected = false;
-            using var cmd = new Microsoft.Data.SqlClient.SqlCommand(
+            using var loginCmd = new Microsoft.Data.SqlClient.SqlCommand(
                 "SELECT LoginProvider FROM AspNetUserLogins WHERE UserId = @uid", defaultDb);
-            cmd.Parameters.AddWithValue("@uid", userId);
-            using var reader = await cmd.ExecuteReaderAsync();
+            loginCmd.Parameters.AddWithValue("@uid", userId);
+            using var reader = await loginCmd.ExecuteReaderAsync();
             while (await reader.ReadAsync())
             {
                 var provider = reader.GetString(0);
@@ -331,8 +333,9 @@ namespace SpotifyStatisticsWebApp.Controllers
 
         /// <summary>
         /// PUT /api/settings/password
-        /// Verifies the current password then updates it via ASP.NET Identity.
-        /// Returns 400 if currentPassword is wrong or the new password fails Identity rules.
+        /// Verifies currentPassword via ASP.NET Identity then sets the new one.
+        /// Returns 400 with a human-readable error if the current password is wrong
+        /// or the new password fails Identity's complexity rules.
         /// </summary>
         [HttpPut("settings/password")]
         [Authorize(AuthenticationSchemes = "Bearer")]
@@ -347,6 +350,7 @@ namespace SpotifyStatisticsWebApp.Controllers
             var result = await _userManager.ChangePasswordAsync(user, req.CurrentPassword, req.NewPassword);
             if (!result.Succeeded)
             {
+                // Return the first Identity validation error (e.g. "Incorrect password", complexity rules)
                 var error = result.Errors.FirstOrDefault()?.Description ?? "Password change failed";
                 return BadRequest(new { error });
             }
