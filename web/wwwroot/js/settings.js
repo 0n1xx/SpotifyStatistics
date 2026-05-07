@@ -113,12 +113,7 @@ function confirmDelete() {
     document.getElementById('delete-modal').showModal();
 }
 
-// ── Save email (stub) ──────────────────────────────────────────────────────────
 
-function saveEmail() {
-    const email = document.getElementById('email-input').value;
-    alert('Email update coming soon: ' + email);
-}
 
 // ── Save display name ──────────────────────────────────────────────────────────
 
@@ -203,10 +198,13 @@ function showInlineStatus(inputEl, message, type) {
     // Remove old state classes before applying the new one
     status.classList.remove('save-status--success', 'save-status--error', 'is-hidden');
     status.classList.add(`save-status--${type}`);
-    status.textContent  = message;
-    status.style.opacity = '1'; // trigger the CSS transition on re-show
+    status.textContent   = message;
+    status.style.display = 'inline';
+    status.style.opacity = '1';
 
+    // Fade out after 2.5s, then hide completely so it doesn't take up space
     setTimeout(() => { status.style.opacity = '0'; }, 2500);
+    setTimeout(() => { status.style.display  = 'none'; }, 2800);
 }
 
 // ── Shared helpers ─────────────────────────────────────────────────────────────

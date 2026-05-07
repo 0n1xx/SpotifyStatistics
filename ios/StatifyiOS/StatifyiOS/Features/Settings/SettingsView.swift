@@ -266,25 +266,11 @@ struct SettingsView: View {
 
                 Divider().background(Color.appBorder).padding(.horizontal, 16)
 
-                // Email
-                SettingRow(label: "Email address", description: "Your login email and where we send notifications") {
-                    HStack(spacing: 8) {
-                        TextField("Email", text: $email)
-                            .font(.dmSans(15))
-                            .foregroundColor(.appTextPrimary)
-                            .keyboardType(.emailAddress)
-                            .autocapitalization(.none)
-                            .autocorrectionDisabled()
-                            .submitLabel(.done)
-                            .onSubmit { hideKeyboard() }
-
-                        Button("Save") {
-                            hideKeyboard()
-                            // TODO: PUT /api/settings/email { email }
-                        }
-                        .font(.dmSans(13, weight: .bold))
-                        .foregroundColor(.appAccent)
-                    }
+                // Email — read-only, shown for reference only
+                SettingRow(label: "Email address", description: "Contact support to change your email") {
+                    Text(email)
+                        .font(.dmSans(15))
+                        .foregroundColor(.appTextSecondary)
                 }
 
                 Divider().background(Color.appBorder).padding(.horizontal, 16)

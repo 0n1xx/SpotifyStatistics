@@ -436,3 +436,10 @@
     color: #e74c3c;
     text-decoration: underline;
 }
+
+/* Read-only email display */
+.setting-email-display {
+    font-size: 14px;
+    color: var(--muted2);
+    padding: 10px 0;
+}

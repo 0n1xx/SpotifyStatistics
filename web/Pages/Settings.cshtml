@@ -95,13 +95,9 @@
             <div class="setting-row">
                 <div class="setting-info">
                     <p class="setting-label">Email address</p>
-                    <p class="setting-desc">Your login email and where we send notifications</p>
+                    <p class="setting-desc">Your login email — contact support to change it</p>
                 </div>
-                <div class="setting-actions">
-                    <input class="input-field" type="email" id="email-input"
-                           value="@User.Identity?.Name" aria-label="Email address">
-                    <button class="btn btn-green" onclick="saveEmail()">Save</button>
-                </div>
+                <span class="setting-email-display">@User.Identity?.Name</span>
             </div>
             <div class="setting-row">
                 <div class="setting-info">
