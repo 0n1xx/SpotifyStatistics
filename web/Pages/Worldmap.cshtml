@@ -42,7 +42,7 @@
                     <li class="country-row">
                         <span class="country-name">@c.Country</span>
                         <div class="country-bar-wrap" aria-hidden="true">
-                            <div class="country-bar" style="width:@pct.ToString("F0")%"></div>
+                            <div class="country-bar" style="width:@pct.ToString("F0")%" data-pct="@pct.ToString("F0")"></div>
                         </div>
                         <span class="country-plays">@c.Count</span>
                     </li>

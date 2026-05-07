@@ -313,3 +313,24 @@
 .empty-state svg {
     color: var(--muted);
 }
+
+/* ── Hidden by default — JS toggles these with classList ── */
+.is-hidden { display: none !important; }
+.is-visible-flex { display: flex !important; }
+.is-visible-block { display: block !important; }
+.is-visible-inline { display: inline !important; }
+
+/* Retry button inside error state */
+.retry-btn {
+    margin-top: 8px;
+    padding: 8px 18px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--text);
+    font-size: 13px;
+    font-family: 'DM Sans', sans-serif;
+    cursor: pointer;
+    transition: border-color 0.15s;
+}
+.retry-btn:hover { border-color: rgba(255,255,255,0.25); }

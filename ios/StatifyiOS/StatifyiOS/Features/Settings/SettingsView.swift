@@ -35,6 +35,12 @@ struct SettingsView: View {
     @State private var saveStatus: String? = nil            // "Saved!" feedback message
     @State private var isSaving: Bool = false               // Prevents double-tap while saving
 
+    // MARK: - Connection State
+    // Populated from GET /api/profile on appear — reflects real server state
+    @State private var spotifyConnected: Bool = false
+    @State private var googleConnected: Bool = false
+    @State private var githubConnected: Bool = false
+
     var body: some View {
         NavigationStack {
             ZStack {
@@ -66,10 +72,17 @@ struct SettingsView: View {
                     let displayName: String?
                     let email: String?
                     let avatarBase64: String?
+                    let spotifyConnected: Bool?
+                    let googleConnected: Bool?
+                    let githubConnected: Bool?
                 }
                 if let profile: ProfileResp = try? await APIClient.shared.get(path: "/api/profile") {
                     if let n = profile.displayName { displayName = n }
                     if let e = profile.email        { email = e }
+                    // Reflect real connection status from server
+                    spotifyConnected = profile.spotifyConnected ?? false
+                    googleConnected  = profile.googleConnected  ?? false
+                    githubConnected  = profile.githubConnected  ?? false
                     // Load saved avatar if user hasn't picked a new one this session
                     if avatarImage == nil, let b64 = profile.avatarBase64,
                        let url = URL(string: b64),
@@ -335,38 +348,104 @@ struct SettingsView: View {
     }
 
     // MARK: - Connected Accounts Section
-    // Shows Spotify connection status and sign out button
+    // Shows real connection status fetched from GET /api/profile on appear.
+    // Spotify uses the app's own OAuth flow. Google/GitHub open via ASWebAuthenticationSession.
     private var connectedAccountsSection: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("Connected accounts").sectionHeader()
-            // Google and GitHub OAuth are web-only — not surfaced in the iOS app
 
             VStack(spacing: 0) {
 
                 // Spotify
                 SettingRow(label: "Spotify", description: "Access your listening history and stats") {
                     HStack(spacing: 8) {
-                        // Status dot
                         Circle()
-                            .fill(Color.red.opacity(0.6))
+                            .fill(spotifyConnected ? Color.appAccent : Color.red.opacity(0.6))
                             .frame(width: 8, height: 8)
 
-                        Text("Not connected")
+                        Text(spotifyConnected ? "Connected" : "Not connected")
                             .font(.dmSans(13))
-                            .foregroundColor(.appTextSecondary)
+                            .foregroundColor(spotifyConnected ? .appAccent : .appTextSecondary)
 
                         Spacer()
 
-                        // Opens Spotify OAuth in Safari
-                        Button("Connect") {
-                            openURL("https://spotifystatistics-production.up.railway.app/SpotifyAuth/login")
+                        if !spotifyConnected {
+                            Button("Connect") {
+                                openURL("https://spotifystatistics-production.up.railway.app/SpotifyAuth/login")
+                            }
+                            .font(.dmSans(13, weight: .bold))
+                            .foregroundColor(.black)
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 6)
+                            .background(Color.appAccent)
+                            .cornerRadius(8)
                         }
-                        .font(.dmSans(13, weight: .bold))
-                        .foregroundColor(.black)
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 6)
-                        .background(Color.appAccent)
-                        .cornerRadius(8)
+                    }
+                }
+
+                Divider().background(Color.appBorder).padding(.horizontal, 16)
+
+                // Google — uses ASWebAuthenticationSession
+                SettingRow(label: "Google", description: "Sign in with your Google account") {
+                    HStack(spacing: 8) {
+                        Circle()
+                            .fill(googleConnected ? Color.appAccent : Color.red.opacity(0.6))
+                            .frame(width: 8, height: 8)
+
+                        Text(googleConnected ? "Connected" : "Not connected")
+                            .font(.dmSans(13))
+                            .foregroundColor(googleConnected ? .appAccent : .appTextSecondary)
+
+                        Spacer()
+
+                        if !googleConnected {
+                            Button("Connect") {
+                                startOAuth(provider: "Google")
+                            }
+                            .font(.dmSans(13, weight: .bold))
+                            .foregroundColor(.appTextPrimary)
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 6)
+                            .background(Color.appBackground)
+                            .cornerRadius(8)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 8)
+                                    .stroke(Color.appBorder, lineWidth: 1)
+                            )
+                        }
+                    }
+                }
+
+                Divider().background(Color.appBorder).padding(.horizontal, 16)
+
+                // GitHub — uses ASWebAuthenticationSession
+                SettingRow(label: "GitHub", description: "Sign in with your GitHub account") {
+                    HStack(spacing: 8) {
+                        Circle()
+                            .fill(githubConnected ? Color.appAccent : Color.red.opacity(0.6))
+                            .frame(width: 8, height: 8)
+
+                        Text(githubConnected ? "Connected" : "Not connected")
+                            .font(.dmSans(13))
+                            .foregroundColor(githubConnected ? .appAccent : .appTextSecondary)
+
+                        Spacer()
+
+                        if !githubConnected {
+                            Button("Connect") {
+                                startOAuth(provider: "GitHub")
+                            }
+                            .font(.dmSans(13, weight: .bold))
+                            .foregroundColor(.appTextPrimary)
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 6)
+                            .background(Color.appBackground)
+                            .cornerRadius(8)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 8)
+                                    .stroke(Color.appBorder, lineWidth: 1)
+                            )
+                        }
                     }
                 }
 
@@ -572,8 +651,12 @@ struct ChangePasswordView: View {
                                         body: Body(currentPassword: currentPassword, newPassword: newPassword)
                                     )
                                     showSuccess = true
+                                } catch APIError.serverError(let code) {
+                                    errorMessage = code == 400
+                                        ? "Incorrect current password."
+                                        : "Server error (\(code)). Try again."
                                 } catch {
-                                    errorMessage = "Incorrect current password or server error."
+                                    errorMessage = "Network error. Check your connection."
                                 }
                             }
                         } label: {

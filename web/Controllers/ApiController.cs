@@ -217,9 +217,25 @@ namespace SpotifyStatisticsWebApp.Controllers
             var profile = await _db.UserProfiles.FirstOrDefaultAsync(p => p.UserId == userId);
 
             await using var defaultDb = await DefaultDbAsync();
+
+            // Check Spotify token exists
             var spotifyConnected = await ScalarAsync<int>(defaultDb,
                 "SELECT COUNT(*) FROM SpotifyTokens WHERE UserId = @uid",
                 ("@uid", userId)) > 0;
+
+            // Check Google / GitHub OAuth logins linked to this account
+            var googleConnected = false;
+            var githubConnected = false;
+            using var cmd = new Microsoft.Data.SqlClient.SqlCommand(
+                "SELECT LoginProvider FROM AspNetUserLogins WHERE UserId = @uid", defaultDb);
+            cmd.Parameters.AddWithValue("@uid", userId);
+            using var reader = await cmd.ExecuteReaderAsync();
+            while (await reader.ReadAsync())
+            {
+                var provider = reader.GetString(0);
+                if (provider == "Google") googleConnected = true;
+                if (provider == "GitHub") githubConnected = true;
+            }
 
             return Ok(new
             {
@@ -227,6 +243,8 @@ namespace SpotifyStatisticsWebApp.Controllers
                 email            = User.FindFirstValue(JwtRegisteredClaimNames.Email),
                 avatarBase64     = profile?.AvatarBase64,
                 spotifyConnected,
+                googleConnected,
+                githubConnected,
             });
         }
 
@@ -307,6 +325,35 @@ namespace SpotifyStatisticsWebApp.Controllers
             await _db.SaveChangesAsync();
             return Ok(new { ok = true });
         }
+        // ── Change Password ───────────────────────────────────────────────────
+
+        public record ChangePasswordRequest(string CurrentPassword, string NewPassword);
+
+        /// <summary>
+        /// PUT /api/settings/password
+        /// Verifies the current password then updates it via ASP.NET Identity.
+        /// Returns 400 if currentPassword is wrong or the new password fails Identity rules.
+        /// </summary>
+        [HttpPut("settings/password")]
+        [Authorize(AuthenticationSchemes = "Bearer")]
+        public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordRequest req)
+        {
+            if (string.IsNullOrWhiteSpace(req.CurrentPassword) || string.IsNullOrWhiteSpace(req.NewPassword))
+                return BadRequest(new { error = "Both current and new password are required" });
+
+            var user = await _userManager.FindByIdAsync(UserId);
+            if (user == null) return Unauthorized();
+
+            var result = await _userManager.ChangePasswordAsync(user, req.CurrentPassword, req.NewPassword);
+            if (!result.Succeeded)
+            {
+                var error = result.Errors.FirstOrDefault()?.Description ?? "Password change failed";
+                return BadRequest(new { error });
+            }
+
+            return Ok(new { ok = true });
+        }
+
         // ══════════════════════════════════════════════════════════════════════
         // DASHBOARD STATS
         // ══════════════════════════════════════════════════════════════════════
