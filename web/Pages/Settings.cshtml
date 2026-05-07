@@ -147,8 +147,7 @@
                     else
                     {
                         <span class="connected-badge no">Not connected</span>
-                        <form method="post" asp-page-handler="LinkLogin" style="display:inline">
-                            @Html.AntiForgeryToken()
+                        <form method="post" asp-page-handler="LinkLogin" asp-antiforgery="true" style="display:inline">
                             <button type="submit" name="provider" value="Google" class="btn btn-outline">Connect</button>
                         </form>
                     }
@@ -167,8 +166,7 @@
                     else
                     {
                         <span class="connected-badge no">Not connected</span>
-                        <form method="post" asp-page-handler="LinkLogin" style="display:inline">
-                            @Html.AntiForgeryToken()
+                        <form method="post" asp-page-handler="LinkLogin" asp-antiforgery="true" style="display:inline">
                             <button type="submit" name="provider" value="GitHub" class="btn btn-outline">Connect</button>
                         </form>
                     }
