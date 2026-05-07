@@ -341,16 +341,34 @@ namespace SpotifyStatisticsWebApp.Controllers
         [Authorize(AuthenticationSchemes = "Bearer")]
         public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordRequest req)
         {
-            if (string.IsNullOrWhiteSpace(req.CurrentPassword) || string.IsNullOrWhiteSpace(req.NewPassword))
-                return BadRequest(new { error = "Both current and new password are required" });
+            if (string.IsNullOrWhiteSpace(req.NewPassword))
+                return BadRequest(new { error = "New password is required" });
 
             var user = await _userManager.FindByIdAsync(UserId);
             if (user == null) return Unauthorized();
 
-            var result = await _userManager.ChangePasswordAsync(user, req.CurrentPassword, req.NewPassword);
+            // Check whether the account has a local password set.
+            // OAuth-only accounts (Google/GitHub) have no password hash — ChangePasswordAsync
+            // would always fail for them. Use AddPasswordAsync instead.
+            var hasPassword = await _userManager.HasPasswordAsync(user);
+
+            IdentityResult result;
+            if (hasPassword)
+            {
+                // Account has a local password — verify current before updating
+                if (string.IsNullOrWhiteSpace(req.CurrentPassword))
+                    return BadRequest(new { error = "Current password is required" });
+
+                result = await _userManager.ChangePasswordAsync(user, req.CurrentPassword, req.NewPassword);
+            }
+            else
+            {
+                // OAuth-only account — just set a new password without requiring the old one
+                result = await _userManager.AddPasswordAsync(user, req.NewPassword);
+            }
+
             if (!result.Succeeded)
             {
-                // Return the first Identity validation error (e.g. "Incorrect password", complexity rules)
                 var error = result.Errors.FirstOrDefault()?.Description ?? "Password change failed";
                 return BadRequest(new { error });
             }

@@ -1,9 +1,21 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width="120" height="120">
-  <!-- Black rounded square background — matches iOS app icon shape -->
-  <rect width="120" height="120" rx="27" fill="#000000"/>
-  <!-- Spotify logo paths scaled to 120x120 canvas (original viewBox 0 0 24 24 → scale 3.5, offset to center) -->
-  <!-- Three arcs: bottom (widest), middle, top (narrowest) — all Spotify green -->
-  <g transform="translate(12, 12) scale(4)">
-    <path fill="#1DB954" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.65 14.4c-.2.3-.6.4-.9.2-2.5-1.53-5.63-1.87-9.33-1.03-.36.08-.72-.15-.8-.5-.08-.36.15-.72.5-.8 4.05-.92 7.52-.53 10.33 1.2.3.18.4.58.2.93zm1.24-2.75c-.25.38-.75.5-1.13.25-2.85-1.75-7.2-2.26-10.57-1.23-.43.13-.9-.1-1.03-.53-.13-.43.1-.9.53-1.03 3.85-1.17 8.63-.6 11.93 1.41.37.23.5.73.27 1.13zm.1-2.86C14.5 8.9 8.68 8.7 5.2 9.73c-.52.16-1.07-.14-1.23-.65-.16-.52.14-1.07.65-1.23 4-.22 10.35.43 14.43 2.85.46.27.62.86.35 1.32-.27.45-.87.6-1.32.34l-.09-.07z"/>
-  </g>
+  <!-- Black rounded square — matches iOS app icon -->
+  <rect width="120" height="120" rx="26" fill="#0a0a0a"/>
+
+  <!-- Equalizer bars — 5 bars of varying heights, centered -->
+  <!-- Bar 1 -->
+  <rect x="18" y="54" width="13" height="30" rx="6.5" fill="#1DB954"/>
+  <!-- Bar 2 -->
+  <rect x="36" y="36" width="13" height="48" rx="6.5" fill="#1DB954"/>
+  <!-- Bar 3 -->
+  <rect x="54" y="44" width="13" height="40" rx="6.5" fill="#1DB954"/>
+  <!-- Bar 4 -->
+  <rect x="72" y="28" width="13" height="56" rx="6.5" fill="#1DB954"/>
+  <!-- Bar 5 -->
+  <rect x="90" y="48" width="13" height="36" rx="6.5" fill="#1DB954" opacity="0.55"/>
+
+  <!-- Subtle arc above bars — Spotify-inspired wave -->
+  <path d="M 14 52 Q 60 18 106 52"
+        stroke="#1DB954" stroke-width="2.5" fill="none" opacity="0.18"
+        stroke-linecap="round"/>
 </svg>

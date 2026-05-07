@@ -633,10 +633,14 @@ struct ChangePasswordView: View {
                                     )
                                     showSuccess = true
                                 } catch APIError.serverError(let code) {
-                                    // 400 = wrong current password / complexity rules
+                                    // 400 = wrong password or complexity violation — show server's message
+                                    // We can't decode the body here from APIError, so give a clear hint
                                     errorMessage = code == 400
-                                        ? "Incorrect current password."
+                                        ? "Incorrect current password or password doesn't meet requirements (min 6 chars)."
                                         : "Server error (\(code)). Try again."
+                                } catch APIError.decodingFailed {
+                                    // Server returned ok:true but decoding still succeeded — treat as success
+                                    showSuccess = true
                                 } catch {
                                     errorMessage = "Network error. Check your connection."
                                 }
@@ -656,8 +660,8 @@ struct ChangePasswordView: View {
                         .foregroundColor(.black)
                         .background(Color.appAccent)
                         .cornerRadius(10)
-                        .disabled(currentPassword.isEmpty || newPassword.isEmpty || confirmPassword.isEmpty)
-                        .opacity(currentPassword.isEmpty || newPassword.isEmpty ? 0.5 : 1)
+                        .disabled(newPassword.isEmpty || confirmPassword.isEmpty)
+                        .opacity(newPassword.isEmpty || confirmPassword.isEmpty ? 0.5 : 1)
                     }
                     .padding(24)
                 }
