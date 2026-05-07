@@ -243,6 +243,7 @@ namespace SpotifyStatisticsWebApp.Controllers
             {
                 displayName      = profile?.DisplayName,
                 email            = User.FindFirstValue(JwtRegisteredClaimNames.Email),
+                phoneNumber      = profile?.PhoneNumber,
                 avatarBase64     = profile?.AvatarBase64,
                 spotifyConnected,
                 googleConnected,

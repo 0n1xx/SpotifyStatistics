@@ -71,6 +71,7 @@ struct SettingsView: View {
                 struct ProfileResp: Decodable {
                     let displayName: String?
                     let email: String?
+                    let phoneNumber: String?
                     let avatarBase64: String?
                     let spotifyConnected: Bool?
                     let googleConnected:  Bool?
@@ -79,6 +80,7 @@ struct SettingsView: View {
                 if let profile: ProfileResp = try? await APIClient.shared.get(path: "/api/profile") {
                     if let n = profile.displayName { displayName = n }
                     if let e = profile.email        { email = e }
+                    if let p = profile.phoneNumber  { phoneNumber = p }
                     // Update connection badges from server — the source of truth
                     spotifyConnected = profile.spotifyConnected ?? false
                     googleConnected  = profile.googleConnected  ?? false
