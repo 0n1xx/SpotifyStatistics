@@ -6,7 +6,7 @@
 
 **Personal Spotify analytics platform — built to track, enrich, and visualize your listening history at scale.**
 
-[![Live](https://img.shields.io/badge/Live-spotifystatistics--production.up.railway.app-1DB954?style=flat-square&logo=railway&logoColor=white)](https://spotifystatistics-production.up.railway.app)
+[![Live](https://img.shields.io/badge/Live-statify.one-1DB954?style=flat-square&logo=railway&logoColor=white)](https://statify.one/)
 [![Platform](https://img.shields.io/badge/Platform-Web%20%7C%20iOS-1DB954?style=flat-square)](#)
 
 </div>
