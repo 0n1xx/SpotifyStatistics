@@ -5,10 +5,7 @@ from datetime import datetime, timedelta
 from airflow.decorators import dag, task
 from airflow.models import Variable
 from airflow.utils.email import send_email
-import clickhouse_connect
-from urllib.parse import urlparse
 from sqlalchemy import create_engine, text
-import psycopg2
 import requests
 import time
 
@@ -61,28 +58,14 @@ schedule_interval = "*/3 * * * *"
 
 # ── connections ───────────────────────────────────────────────────────────────
 
-conn_string = Variable.get("CLICKHOUSE_CONN")
-url = urlparse(conn_string)
-
-# clickhouse_connect uses HTTP (port 8123) — compatible with Railway TCP proxy
-client = clickhouse_connect.get_client(
-    host=url.hostname,
-    port=url.port or 8123,
-    username=url.username,
-    password=url.password,
-    database=url.path.lstrip("/") or "default",
-    secure=False,
-)
-
 MSSQL_CONN_SPOTIFY = Variable.get("MSSQL_CONN_SPOTIFY")
 spotify_engine = create_engine(MSSQL_CONN_SPOTIFY, fast_executemany=True)
 
 MSSQL_CONN_MASTER = Variable.get("MSSQL_CONN_MASTER")
 master_engine = create_engine(MSSQL_CONN_MASTER, fast_executemany=True)
 
-# Postgres for Superset — synced from ClickHouse after each run
-PG_SUPERSET_CONN = Variable.get("PG_SUPERSET_CONN")
-pg_engine = create_engine(PG_SUPERSET_CONN)
+PG_CONN = Variable.get("PG_CONN")
+pg_engine = create_engine(PG_CONN)
 
 # ── musicbrainz session ───────────────────────────────────────────────────────
 
@@ -108,6 +91,10 @@ COUNTRY_LEVEL_AREAS = {
 INVALID_COUNTRY_CODES = {'XW'}
 
 TORONTO_TZ = 'America/Toronto'
+
+MUSIC_HISTORY_COLS = [
+    'played_at', 'song', 'artist', 'album', 'date', 'country', 'begin_area', 'user_id'
+]
 
 # ── normalization helpers ─────────────────────────────────────────────────────
 
@@ -217,6 +204,29 @@ def get_all_users() -> list:
         return [{"user_id": row[0], "refresh_token": row[1]} for row in result.fetchall()]
 
 
+def prepare_music_history_df(records: list) -> pd.DataFrame:
+    """Normalize timestamps and text fields before loading into Postgres."""
+    df = pd.DataFrame(records)
+
+    # Timezone fix: convert first, then derive date
+    df['played_at'] = (
+        pd.to_datetime(df['played_at'], utc=True)
+        .dt.tz_convert(TORONTO_TZ)
+        .dt.tz_localize(None)
+        .dt.floor('s')  # strip milliseconds for consistent dedup
+    )
+    # date derived AFTER timezone conversion
+    df['date'] = df['played_at'].dt.date
+
+    # Normalization guard
+    df['song'] = df['song'].astype(str).str.strip().str.lower()
+    df['album'] = df['album'].astype(str).str.strip().str.lower()
+    df['artist'] = df['artist'].astype(str).str.strip().str.lower().str.title()
+    df.loc[df['country'] == 'XW', 'country'] = 'unknown'
+
+    return df[MUSIC_HISTORY_COLS]
+
+
 # ── DAG ───────────────────────────────────────────────────────────────────────
 
 @dag(
@@ -240,7 +250,7 @@ def spotify_history():
         Normalization happens here so data is clean before touching storage:
         - song / album -> lowercase
         - artist -> Title Case (merges encoding artifacts via .lower().title())
-        - date excluded — derived after timezone conversion in load_clickhouse
+        - date excluded — derived after timezone conversion in load_postgres
           to avoid UTC vs Toronto day mismatch bug
         """
         user_id = user["user_id"]
@@ -323,41 +333,22 @@ def spotify_history():
         return df.to_dict(orient="records")
 
     @task
-    def load_clickhouse(records):
+    def load_postgres(records):
         """
-        Insert enriched records into ClickHouse.
+        Insert enriched records into PostgreSQL (Superset analytics store).
 
         Fixes:
         - played_at converted UTC -> Toronto BEFORE deriving date
           (prevents late-night Toronto plays showing as the next UTC day)
         - Normalization guard re-applies cleanup in case anything slipped through
         - XW country -> unknown
-        - Dedup before insert + OPTIMIZE DEDUPLICATE after
+        - Dedup before insert + ON CONFLICT DO NOTHING after
         """
         if not records:
             print("No new data to load.")
             return
 
-        df = pd.DataFrame(records)
-
-        # Timezone fix: convert first, then derive date
-        df['played_at'] = (
-            pd.to_datetime(df['played_at'], utc=True)
-            .dt.tz_convert(TORONTO_TZ)
-            .dt.tz_localize(None)
-            .dt.floor('s')  # strip milliseconds for consistent dedup
-        )
-        # date derived AFTER timezone conversion
-        df['date'] = df['played_at'].dt.date
-
-        # Normalization guard
-        df['song'] = df['song'].astype(str).str.strip().str.lower()
-        df['album'] = df['album'].astype(str).str.strip().str.lower()
-        df['artist'] = df['artist'].astype(str).str.strip().str.lower().str.title()
-        df.loc[df['country'] == 'XW', 'country'] = 'unknown'
-
-        # Column order to match DB schema
-        df = df[['played_at', 'song', 'artist', 'album', 'date', 'country', 'begin_area', 'user_id']]
+        df = prepare_music_history_df(records)
 
         # Dedup before insert
         before = len(df)
@@ -365,13 +356,22 @@ def spotify_history():
         if before != len(df):
             print(f"Dropped {before - len(df)} duplicates before insert")
 
-        client.insert_df("music_history", df[['played_at', 'song', 'artist', 'album', 'date', 'country', 'begin_area', 'user_id']])
-        print(f"Inserted {len(df)} rows into ClickHouse")
-
-        client.command("""
-            OPTIMIZE TABLE default.music_history
-            DEDUPLICATE BY song, album, artist, played_at, user_id
-        """)
+        raw_conn = pg_engine.raw_connection()
+        cursor = raw_conn.cursor()
+        try:
+            insert_sql = """
+                INSERT INTO music_history
+                    (played_at, song, artist, album, date, country, begin_area, user_id)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                ON CONFLICT (played_at, song, artist, album, user_id) DO NOTHING
+            """
+            data = [tuple(row) for row in df.itertuples(index=False)]
+            cursor.executemany(insert_sql, data)
+            raw_conn.commit()
+            print(f"Inserted up to {len(data)} rows into Postgres")
+        finally:
+            cursor.close()
+            raw_conn.close()
 
     @task
     def fix_artist_country_conflicts():
@@ -379,78 +379,72 @@ def spotify_history():
         Fix artists that have multiple countries / begin_area.
         Updates them using majority (most frequent value).
         """
-
-        # --- STEP 1: find conflicted artists ---
-        query_conflicts = """
-                          SELECT artist
-                          FROM music_history
-                          WHERE country != 'unknown'
-                          GROUP BY artist
-                          HAVING countDistinct(country) \
-                               > 1
-                              OR countDistinct(begin_area) \
-                               > 1 \
-                          """
-
-        result = client.query(query_conflicts)
-        artists = [row[0] for row in result.result_rows]
-
-        if not artists:
-            return
-
-        print(f"Found {len(artists)} artists with conflicts")
-
-        artist_list = ", ".join([f"'{a}'" for a in artists])
-
-        # --- STEP 2: compute majority ---
-        query_majority = f"""
-            SELECT
-                artist,
-                argMax(country, cnt) AS country,
-                argMax(begin_area, cnt) AS begin_area
-            FROM
-            (
-                SELECT
-                    artist,
-                    country,
-                    begin_area,
-                    count() AS cnt
+        raw_conn = pg_engine.raw_connection()
+        cursor = raw_conn.cursor()
+        try:
+            cursor.execute("""
+                SELECT artist
                 FROM music_history
-                WHERE artist IN ({artist_list})
-                  AND country != 'unknown'
-                GROUP BY artist, country, begin_area
-            )
-            GROUP BY artist
-        """
+                WHERE country != 'unknown'
+                GROUP BY artist
+                HAVING COUNT(DISTINCT country) > 1
+                    OR COUNT(DISTINCT begin_area) > 1
+            """)
+            artists = [row[0] for row in cursor.fetchall()]
 
-        result_majority = client.query(query_majority)
-        majority_rows = result_majority.result_rows
+            if not artists:
+                return
 
-        print(f"Computed majority for {len(majority_rows)} artists")
+            print(f"Found {len(artists)} artists with conflicts")
 
-        for artist, country, begin_area in majority_rows:
-            update_query = f"""
-                ALTER TABLE music_history
-                UPDATE
-                    country = '{country}',
-                    begin_area = '{begin_area}'
-                WHERE artist = '{artist}'
-            """
-            client.command(update_query)
+            cursor.execute("""
+                WITH counts AS (
+                    SELECT artist, country, begin_area, COUNT(*) AS cnt
+                    FROM music_history
+                    WHERE artist = ANY(%s)
+                      AND country != 'unknown'
+                    GROUP BY artist, country, begin_area
+                ),
+                ranked AS (
+                    SELECT artist, country, begin_area,
+                           ROW_NUMBER() OVER (PARTITION BY artist ORDER BY cnt DESC) AS rn
+                    FROM counts
+                )
+                SELECT artist, country, begin_area
+                FROM ranked
+                WHERE rn = 1
+            """, (artists,))
+            majority_rows = cursor.fetchall()
 
-        print("Update queries executed")
+            print(f"Computed majority for {len(majority_rows)} artists")
 
-        # --- STEP 4: optimize (apply mutations) ---
-        client.command("OPTIMIZE TABLE music_history FINAL")
+            for artist, country, begin_area in majority_rows:
+                cursor.execute("""
+                    UPDATE music_history
+                    SET country = %s, begin_area = %s
+                    WHERE artist = %s
+                """, (country, begin_area, artist))
+
+            raw_conn.commit()
+            print("Artist country conflicts resolved")
+        finally:
+            cursor.close()
+            raw_conn.close()
 
     @task
     def load_mssql():
-        result = client.query("SELECT played_at, song, artist, album, date, country, begin_area, user_id FROM music_history")
-        col_names = ['played_at', 'song', 'artist', 'album', 'date', 'country', 'begin_area', 'user_id']
-        df_ch = pd.DataFrame(result.result_rows, columns=col_names)
+        with pg_engine.connect() as conn:
+            df_pg = pd.read_sql(
+                f"SELECT {', '.join(MUSIC_HISTORY_COLS)} FROM music_history",
+                conn
+            )
 
-        df_ch['played_at'] = pd.to_datetime(df_ch['played_at']).dt.floor('s')
-        df_ch['date'] = pd.to_datetime(df_ch['date']).dt.date
+        if df_pg.empty:
+            print("Postgres is empty, nothing to sync")
+            return
+
+        df_pg['played_at'] = pd.to_datetime(df_pg['played_at']).dt.floor('s')
+        df_pg['date'] = pd.to_datetime(df_pg['date']).dt.date
 
         df_ms = pd.read_sql(
             "SELECT played_at, song, artist, album, user_id FROM dbo.music_history",
@@ -458,21 +452,19 @@ def spotify_history():
         )
 
         # played_at in MSSQL is stored as UTC — convert to Toronto for comparison
-        # ClickHouse data is already in Toronto time (converted in load_clickhouse)
+        # Postgres data is already in Toronto time (converted in load_postgres)
         # MSSQL stores played_at as Toronto local time (no tz info).
-        # ClickHouse also returns Toronto local time (converted in load_clickhouse).
         # Parse both as naive datetimes so the keys match without any shift.
         df_ms['played_at'] = pd.to_datetime(df_ms['played_at']).dt.floor('s')
 
         key_cols = ['played_at', 'song', 'artist', 'album', 'user_id']
 
-        ch_keys = df_ch[key_cols].astype(str).agg('|'.join, axis=1)
+        pg_keys = df_pg[key_cols].astype(str).agg('|'.join, axis=1)
         ms_keys = df_ms[key_cols].astype(str).agg('|'.join, axis=1)
 
-        only_in_ch = df_ch[~ch_keys.isin(set(ms_keys))]
+        only_in_pg = df_pg[~pg_keys.isin(set(ms_keys))]
 
-
-        if only_in_ch.empty:
+        if only_in_pg.empty:
             print("MSSQL already in sync")
             return
         conn = master_engine.raw_connection()
@@ -485,8 +477,8 @@ def spotify_history():
                            VALUES (?, ?, ?, ?, ?, ?, ?, ?) \
                            """
             data = [
-                tuple(row) for row in only_in_ch[
-                    ['played_at', 'song', 'artist', 'album', 'date', 'country', 'begin_area', 'user_id']
+                tuple(row) for row in only_in_pg[
+                    MUSIC_HISTORY_COLS
                 ].itertuples(index=False)
             ]
             cursor.fast_executemany = True
@@ -496,79 +488,17 @@ def spotify_history():
             cursor.close()
             conn.close()
 
-    @task
-    def load_postgres():
-        """
-        Syncs music_history from ClickHouse to PostgreSQL (Superset).
-        Uses INSERT ... ON CONFLICT DO NOTHING — equivalent to
-        OPTIMIZE DEDUPLICATE in ClickHouse. Only new rows are inserted.
-        """
-        # Read all rows from ClickHouse
-        result = client.query(
-            "SELECT played_at, song, artist, album, date, country, begin_area, user_id "
-            "FROM music_history"
-        )
-        col_names = ['played_at', 'song', 'artist', 'album', 'date', 'country', 'begin_area', 'user_id']
-        df_ch = pd.DataFrame(result.result_rows, columns=col_names)
-
-        if df_ch.empty:
-            print("ClickHouse is empty, nothing to sync")
-            return
-
-        df_ch['played_at'] = pd.to_datetime(df_ch['played_at']).dt.floor('s')
-        df_ch['date']      = pd.to_datetime(df_ch['date']).dt.date
-
-        cols = ['played_at', 'song', 'artist', 'album', 'date', 'country', 'begin_area', 'user_id']
-
-        # Read existing keys from Postgres to find new rows
-        with pg_engine.connect() as conn:
-            df_pg = pd.read_sql(
-                "SELECT played_at, song, artist, album, user_id FROM music_history",
-                conn
-            )
-
-        df_pg['played_at'] = pd.to_datetime(df_pg['played_at']).dt.floor('s')
-
-        key_cols = ['played_at', 'song', 'artist', 'album', 'user_id']
-        ch_keys = df_ch[key_cols].astype(str).agg('|'.join, axis=1)
-        pg_keys = df_pg[key_cols].astype(str).agg('|'.join, axis=1)
-
-        new_rows = df_ch[~ch_keys.isin(set(pg_keys))][cols]
-
-        if new_rows.empty:
-            print("Postgres already in sync")
-            return
-
-        # Bulk insert via psycopg2 — faster than pandas .to_sql for large batches
-        raw_conn = pg_engine.raw_connection()
-        cursor = raw_conn.cursor()
-        try:
-            insert_sql = """
-                INSERT INTO music_history
-                    (played_at, song, artist, album, date, country, begin_area, user_id)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
-                ON CONFLICT (played_at, song, artist, album, user_id) DO NOTHING
-            """
-            data = [tuple(row) for row in new_rows.itertuples(index=False)]
-            cursor.executemany(insert_sql, data)
-            raw_conn.commit()
-            print(f"Inserted {len(data)} new rows into Postgres")
-        finally:
-            cursor.close()
-            raw_conn.close()
-
     # ── pipeline ──────────────────────────────────────────────────────────────
     users = get_users()
     fetched = fetch_user.expand(user=users)
     combined = combine(fetched)
     enriched = enrich(combined)
 
-    ch = load_clickhouse(enriched)
+    pg = load_postgres(enriched)
     fix = fix_artist_country_conflicts()
     ms = load_mssql()
-    pg = load_postgres()
 
-    ch >> fix >> [ms, pg]  # ms and pg run in parallel after dedup
+    pg >> fix >> ms
 
 
 spotify_dag = spotify_history()

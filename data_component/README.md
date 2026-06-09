@@ -1,6 +1,6 @@
 # Statify — Data Component
 
-> Python-based data pipeline built on Apache Airflow. Fetches Spotify listening history every 3 minutes, enriches each track with geographic artist metadata via MusicBrainz, and distributes records across ClickHouse and SQL Server.
+> Python-based data pipeline built on Apache Airflow. Fetches Spotify listening history every 3 minutes, enriches each track with geographic artist metadata via MusicBrainz, and distributes records across PostgreSQL and SQL Server.
 
 ---
 
@@ -26,7 +26,7 @@ The data pipeline feeds directly into an **Apache Superset** analytics dashboard
 Runs every **3 minutes**. Processes all registered users in parallel via dynamic task mapping.
 
 ```
-get_users → fetch_user[] → combine → enrich → load_clickhouse → fix_artist_country_conflicts → load_mssql
+get_users → fetch_user[] → combine → enrich → load_postgres → fix_artist_country_conflicts → load_mssql
 ```
 
 | Task | Description |
@@ -35,9 +35,9 @@ get_users → fetch_user[] → combine → enrich → load_clickhouse → fix_ar
 | `fetch_user` | Pulls the last 50 played tracks per user from the Spotify API |
 | `combine` | Flattens per-user results into a single unified list |
 | `enrich` | Resolves artist country and city via MusicBrainz API |
-| `load_clickhouse` | Deduplicates by `played_at + user_id` and inserts new records into ClickHouse |
+| `load_postgres` | Deduplicates by `played_at + user_id` and inserts new records into PostgreSQL |
 | `fix_artist_country_conflicts` | Resolves conflicting country data for the same artist using majority vote |
-| `load_mssql` | Syncs new ClickHouse records to SQL Server for the web application layer |
+| `load_mssql` | Syncs new Postgres records to SQL Server for the web application layer |
 
 ---
 
@@ -68,7 +68,6 @@ data_component/
 ```
 pandas==2.2.2
 psycopg2-binary==2.9.9
-clickhouse-driver==0.2.9
 spotipy==2.25.1
 ```
 
@@ -80,7 +79,7 @@ spotipy==2.25.1
 
 - Python 3.10+
 - A running Apache Airflow instance (local or remote)
-- Access to ClickHouse, SQL Server, and PostgreSQL (Airflow metadata DB)
+- Access to PostgreSQL (analytics + Airflow metadata), and SQL Server
 
 ### Install
 
@@ -105,13 +104,9 @@ Airflow will auto-discover the DAG on the next scheduler heartbeat.
 
 The DAG reads all credentials from **Airflow Variables** (not environment variables). Set these in the Airflow UI under **Admin → Variables**, or via the CLI:
 
-```bash
-airflow variables set CLICKHOUSE_CONN "clickhouse://user:pass@host:9000/default"
-```
-
 | Variable | Description |
 |---|---|
-| `CLICKHOUSE_CONN` | ClickHouse connection string — `clickhouse://user:pass@host:9000/default` |
+| `PG_CONN` | PostgreSQL connection — music history (Superset analytics) |
 | `MSSQL_CONN_SPOTIFY` | SQL Server connection — Spotify OAuth tokens |
 | `MSSQL_CONN_MASTER` | SQL Server connection — music history |
 | `VLAD_SPOTIFY_CLIENT_ID` | Spotify Developer App — Client ID |
@@ -150,14 +145,5 @@ The admin analytics dashboard runs on a separate **custom Superset Docker image*
 
 Key customizations in the Superset image:
 
-- ClickHouse SQLAlchemy driver (`clickhouse-sqlalchemy`) installed at build time
 - Default admin credentials configured via environment variables
-- ClickHouse database connection pre-registered in `superset_config.py`
-- PostgreSQL used as the Superset metadata database
-
-To connect Superset to ClickHouse manually:
-
-1. Navigate to **Data → Databases → + Database**
-2. Select **ClickHouse** as the database type
-3. Enter the connection URI: `clickhouse+native://user:pass@host:9000/default`
-4. Test connection and save
+- PostgreSQL database connection pre-registered in `superset_config.py` (analytics + metadata)

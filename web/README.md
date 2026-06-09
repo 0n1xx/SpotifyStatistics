@@ -138,7 +138,7 @@ Set these in `appsettings.Development.json` or as environment variables:
 
 ```
 ConnectionStrings__DefaultConnection       # SQL Server — app database (Identity, profiles)
-ConnectionStrings__MusicHistoryConnection  # SQL Server — music history (synced from ClickHouse)
+ConnectionStrings__MusicHistoryConnection  # SQL Server — music history (synced from PostgreSQL)
 Authentication__Google__ClientId
 Authentication__Google__ClientSecret
 Authentication__GitHub__ClientId

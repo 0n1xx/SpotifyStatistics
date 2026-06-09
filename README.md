@@ -17,7 +17,7 @@
 
 Statify is an end-to-end analytics platform that continuously ingests your Spotify listening history, enriches each track with geographic artist metadata, and surfaces insights across a web application and a native iOS companion app.
 
-The data pipeline runs every **3 minutes**, pulling the latest 50 played tracks per user via the Spotify API, resolving artist origins through MusicBrainz, and distributing records across two purpose-built databases — **ClickHouse** for fast analytic queries and **SQL Server** for the web application layer.
+The data pipeline runs every **3 minutes**, pulling the latest 50 played tracks per user via the Spotify API, resolving artist origins through MusicBrainz, and distributing records across two purpose-built databases — **PostgreSQL** for fast analytic queries (Superset) and **SQL Server** for the web application layer.
 
 ---
 
@@ -31,7 +31,7 @@ Apache Airflow  ─────────────────────�
     ├── fetch_user      →  last 50 played tracks per user
     ├── enrich          →  artist country + city (MusicBrainz)
     ├── dedup           →  deduplication by played_at + user_id
-    ├── load_clickhouse →  ClickHouse (analytics store)
+    ├── load_postgres   →  PostgreSQL (analytics store)
     └── load_mssql      →  SQL Server (web app store)
                                     │
                                     ▼
@@ -62,7 +62,7 @@ Statify/
 | Layer | Technology |
 |---|---|
 | Orchestration | Apache Airflow (custom Docker image) |
-| Analytics DB | ClickHouse |
+| Analytics DB | PostgreSQL |
 | App DB | Microsoft SQL Server |
 | Airflow metadata | PostgreSQL |
 | Analytics UI | Apache Superset (custom Docker image) |
@@ -108,7 +108,7 @@ Statify/
 
 ### Admin Dashboard (Superset)
 
-Internal analytics dashboard powered by **Apache Superset**, connected directly to ClickHouse. Provides platform-wide visibility into listening activity with the following charts:
+Internal analytics dashboard powered by **Apache Superset**, connected directly to PostgreSQL. Provides platform-wide visibility into listening activity with the following charts:
 
 - **KPI cards** — total plays, unique artists, unique songs, countries
 - **Daily activity line chart** — streams, albums, and artists over time
@@ -144,7 +144,7 @@ Consistent visual identity across web and iOS:
 - [x] Full account management + GDPR export
 - [x] Transactional email via Resend on `statify.one`
 - [x] Custom domain with DNS + SSL
-- [x] Admin analytics dashboard (Superset + ClickHouse)
+- [x] Admin analytics dashboard (Superset + PostgreSQL)
 - [x] iOS app — Phase 1: Auth + Dashboard
 - [x] iOS app — Phase 2: Recently Played + World Map
 - [x] iOS app — Phase 3: Settings + Polish
