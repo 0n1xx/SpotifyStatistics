@@ -352,7 +352,7 @@ struct SettingsView: View {
                         .font(.dmSans(12))
                         .foregroundColor(.appTextSecondary)
                     Spacer()
-                    Link("Open", destination: URL(string: "https://spotifystatistics-production.up.railway.app/Settings")!)
+                    Link("Open", destination: URL(string: "\(AppConfig.apiBaseURL)/Settings")!)
                         .font(.dmSans(12, weight: .bold))
                         .foregroundColor(.appAccent)
                 }
@@ -695,7 +695,7 @@ struct ChangePasswordView: View {
         }
 
         // Build the request manually to read the 400 body
-        guard let url = URL(string: "https://spotifystatistics-production.up.railway.app/api/settings/password") else { return }
+        guard let url = URL(string: "\(AppConfig.apiBaseURL)/api/settings/password") else { return }
         var req = URLRequest(url: url)
         req.httpMethod = "PUT"
         req.setValue("application/json", forHTTPHeaderField: "Content-Type")

@@ -1,6 +1,6 @@
 # Statify — Data Component
 
-> Python-based data pipeline built on Apache Airflow. Fetches Spotify listening history every 3 minutes, enriches each track with geographic artist metadata via MusicBrainz, and distributes records across PostgreSQL and SQL Server.
+> Python-based data pipeline built on Apache Airflow. Fetches Spotify listening history every 30 minutes, enriches each track with geographic artist metadata via MusicBrainz, and distributes records across PostgreSQL and SQL Server.
 
 ---
 
@@ -23,7 +23,7 @@ The data pipeline feeds directly into an **Apache Superset** analytics dashboard
 
 ## DAG: `spotify_history`
 
-Runs every **3 minutes**. Processes all registered users in parallel via dynamic task mapping.
+Runs every **30 minutes**. Processes all registered users in parallel via dynamic task mapping.
 
 ```
 get_users → fetch_user[] → combine → enrich → load_postgres → fix_artist_country_conflicts → load_mssql

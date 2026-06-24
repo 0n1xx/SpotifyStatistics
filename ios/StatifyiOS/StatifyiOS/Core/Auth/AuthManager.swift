@@ -20,6 +20,9 @@ final class AuthManager {
     // When this changes → UI automatically re-renders.
     var isLoggedIn: Bool = false
 
+    // False until we finish checking Keychain token against /api/profile on launch.
+    var isSessionReady: Bool = false
+
     // True while a login/register request is in flight.
     // Used to show a loading spinner on the button.
     var isLoading: Bool = false
@@ -31,15 +34,57 @@ final class AuthManager {
     // The currently logged in user — populated after login/register.
     var currentUser: User? = nil
 
+    private var unauthorizedObserver: (any NSObjectProtocol)?
+
     // MARK: - Init
-    // On app launch: restore session from Keychain.
-    // If a token exists, decode the email from the JWT payload so Settings
-    // can pre-fill the email field immediately — without waiting for /api/profile.
+    // On app launch: restore cached user info from Keychain, then validate the token.
     init() {
-        self.isLoggedIn = KeychainManager.shared.isLoggedIn
-        if isLoggedIn, let token = KeychainManager.shared.getToken() {
+        if let token = KeychainManager.shared.getToken() {
             self.currentUser = User(id: "", email: Self.emailFromJWT(token) ?? "", displayName: nil)
         }
+
+        unauthorizedObserver = NotificationCenter.default.addObserver(
+            forName: .apiUnauthorized,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            self?.handleUnauthorized()
+        }
+    }
+
+    // MARK: - Session
+    // Called once on app launch before showing Login or MainTabView.
+    func validateSession() async {
+        defer { isSessionReady = true }
+
+        guard KeychainManager.shared.isLoggedIn else {
+            isLoggedIn = false
+            return
+        }
+
+        do {
+            let profile: ProfileCheckResponse = try await APIClient.shared.get(path: "/api/profile")
+            if let email = profile.email, !email.isEmpty {
+                currentUser = User(
+                    id: "",
+                    email: email,
+                    displayName: profile.displayName
+                )
+            }
+            isLoggedIn = true
+        } catch APIError.unauthorized {
+            logout()
+            errorMessage = "Session expired. Please log in again."
+        } catch {
+            // Offline or transient error — keep the cached token so the user can retry.
+            isLoggedIn = true
+        }
+    }
+
+    private func handleUnauthorized() {
+        guard isLoggedIn else { return }
+        errorMessage = "Session expired. Please log in again."
+        logout()
     }
 
     // Decodes the email claim from a JWT without verifying the signature.
@@ -185,4 +230,9 @@ struct User: Decodable {
     let id: String
     let email: String
     let displayName: String?  // Optional — user may not have set one yet
+}
+
+struct ProfileCheckResponse: Decodable {
+    let displayName: String?
+    let email: String?
 }

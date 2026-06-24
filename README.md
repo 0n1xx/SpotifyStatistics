@@ -17,7 +17,7 @@
 
 Statify is an end-to-end analytics platform that continuously ingests your Spotify listening history, enriches each track with geographic artist metadata, and surfaces insights across a web application and a native iOS companion app.
 
-The data pipeline runs every **3 minutes**, pulling the latest 50 played tracks per user via the Spotify API, resolving artist origins through MusicBrainz, and distributing records across two purpose-built databases — **PostgreSQL** for fast analytic queries (Superset) and **SQL Server** for the web application layer.
+The data pipeline runs every **30 minutes**, pulling the latest 50 played tracks per user via the Spotify API, resolving artist origins through MusicBrainz, and distributing records across two purpose-built databases — **PostgreSQL** for fast analytic queries (Superset) and **SQL Server** for the web application layer.
 
 ---
 
@@ -27,7 +27,7 @@ The data pipeline runs every **3 minutes**, pulling the latest 50 played tracks 
 Spotify API
     │
     ▼
-Apache Airflow  ──────────────────────────  every 3 min
+Apache Airflow  ──────────────────────────  every 30 min
     ├── fetch_user      →  last 50 played tracks per user
     ├── enrich          →  artist country + city (MusicBrainz)
     ├── dedup           →  deduplication by played_at + user_id

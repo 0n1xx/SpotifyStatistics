@@ -12,13 +12,22 @@ struct ContentView: View {
 
     var body: some View {
         Group {
-            if authManager.isLoggedIn {
+            if !authManager.isSessionReady {
+                ZStack {
+                    Color.appBackground.ignoresSafeArea()
+                    ProgressView()
+                        .tint(.appAccent)
+                }
+            } else if authManager.isLoggedIn {
                 MainTabView()
             } else {
                 LoginView()
             }
         }
         .preferredColorScheme(.dark)
+        .task {
+            await authManager.validateSession()
+        }
     }
 }
 

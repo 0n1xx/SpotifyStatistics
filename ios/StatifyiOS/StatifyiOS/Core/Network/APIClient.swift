@@ -7,6 +7,10 @@
 
 import Foundation
 
+extension Notification.Name {
+    static let apiUnauthorized = Notification.Name("statify.apiUnauthorized")
+}
+
 // MARK: - API Error
 // All possible errors that APIClient can return.
 // enum is ideal here because the number of error types is fixed and each one has a specific, well-defined meaning.
@@ -41,8 +45,8 @@ final class APIClient {
     static let shared = APIClient()
 
     // Base URL of the ASP.NET backend deployed on Railway.
-    // Change it here and it updates everywhere.
-    private let baseURL = "https://spotifystatistics-production.up.railway.app"
+    // Change AppConfig.apiBaseURL to update everywhere.
+    private let baseURL = AppConfig.apiBaseURL
 
     // URLSession is iOS's built-in HTTP client.
     // .shared is the default configuration — suitable for most use cases.
@@ -116,7 +120,8 @@ final class APIClient {
                 // Success — continue to decoding
                 break
             case 401:
-                // Token expired or invalid — caller should log the user out
+                // Token expired or invalid — AuthManager listens and logs the user out.
+                NotificationCenter.default.post(name: .apiUnauthorized, object: nil)
                 throw APIError.unauthorized
             default:
                 throw APIError.serverError(httpResponse.statusCode)

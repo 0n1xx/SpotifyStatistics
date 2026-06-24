@@ -29,7 +29,7 @@ final class WindowProvider: NSObject, ASWebAuthenticationPresentationContextProv
 private var _activeSession: ASWebAuthenticationSession?
 
 func startOAuth(provider: String, authManager: AuthManager) {
-    let base = "https://spotifystatistics-production.up.railway.app"
+    let base = AppConfig.apiBaseURL
     let urlString = "\(base)/Identity/Account/ExternalLogin?provider=\(provider)&mobile=true"
     guard let url = URL(string: urlString) else { return }
 

@@ -53,8 +53,8 @@ default_args = {
     'start_date': datetime(2026, 3, 25),
 }
 
-# Schedule: every 3 minutes
-schedule_interval = "*/3 * * * *"
+# Schedule: every 30 minutes
+schedule_interval = "*/30 * * * *"
 
 # ── connections ───────────────────────────────────────────────────────────────
 
