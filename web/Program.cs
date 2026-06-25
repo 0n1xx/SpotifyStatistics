@@ -12,6 +12,10 @@ using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Railway injects PORT — listen on the same port the proxy targets
+var port = Environment.GetEnvironmentVariable("PORT") ?? "8080";
+builder.WebHost.UseUrls($"http://0.0.0.0:{port}");
+
 // DB — external hosts (e.g. databaseasp.net) use a self-signed TLS cert
 var connectionString = SqlConnectionFactory.DefaultConnection(builder.Configuration);
 
