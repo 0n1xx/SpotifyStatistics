@@ -14,6 +14,7 @@ public static class SqlConnectionFactory
         {
             Encrypt = true,
             TrustServerCertificate = true,
+            ConnectTimeout = 60,
         }.ConnectionString;
     }
 }
