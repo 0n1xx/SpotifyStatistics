@@ -6,6 +6,7 @@ using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using SpotifyStatisticsWebApp.Models;
+using SpotifyStatisticsWebApp.Services;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
@@ -49,7 +50,7 @@ namespace SpotifyStatisticsWebApp.Controllers
         /// <summary>Opens a connection to the SQL Server database.</summary>
         private async Task<SqlConnection> DbAsync()
         {
-            var conn = new SqlConnection(_config.GetConnectionString("DefaultConnection"));
+            var conn = new SqlConnection(SqlConnectionFactory.DefaultConnection(_config));
             await conn.OpenAsync();
             return conn;
         }

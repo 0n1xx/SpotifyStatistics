@@ -12,9 +12,8 @@ using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// DB
-var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
-    ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
+// DB — external hosts (e.g. databaseasp.net) use a self-signed TLS cert
+var connectionString = SqlConnectionFactory.DefaultConnection(builder.Configuration);
 
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(connectionString)

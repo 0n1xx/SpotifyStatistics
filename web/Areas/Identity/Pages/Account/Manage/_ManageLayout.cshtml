@@ -11,6 +11,7 @@
    - Shows the correct tab as active using the current Razor route
    - Two-factor tab is intentionally removed (not supported in this app)
    ============================================================= *@
+@using SpotifyStatisticsWebApp.Services
 @inject Microsoft.AspNetCore.Identity.SignInManager<Microsoft.AspNetCore.Identity.IdentityUser> SignInManager
 @inject Microsoft.AspNetCore.Identity.UserManager<Microsoft.AspNetCore.Identity.IdentityUser> UserManager
 @{
@@ -21,7 +22,7 @@
        page still renders even if the DB is unreachable. */
     var hasSpotify = false;
     var config     = ViewContext.HttpContext.RequestServices.GetRequiredService<IConfiguration>();
-    var connStr    = config.GetConnectionString("DefaultConnection");
+    var connStr    = SqlConnectionFactory.DefaultConnection(config);
     try
     {
         using var sc = new Microsoft.Data.SqlClient.SqlConnection(connStr);

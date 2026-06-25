@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.Data.SqlClient;
 using SpotifyStatisticsWebApp.Models;
+using SpotifyStatisticsWebApp.Services;
 using System.Security.Claims;
 
 namespace SpotifyStatisticsWebApp.Pages
@@ -30,7 +31,7 @@ namespace SpotifyStatisticsWebApp.Pages
             ViewData["AvatarDataUrl"] = profile?.AvatarBase64;
             ViewData["DisplayName"]   = profile?.DisplayName;
 
-            var connStr = _config.GetConnectionString("DefaultConnection");
+            var connStr = SqlConnectionFactory.DefaultConnection(_config);
             using var spotifyDb = new SqlConnection(connStr);
             await spotifyDb.OpenAsync();
             using var checkCmd = new SqlCommand("SELECT COUNT(*) FROM SpotifyTokens WHERE UserId = @uid", spotifyDb);

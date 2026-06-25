@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.Data.SqlClient;
+using SpotifyStatisticsWebApp.Services;
 using System.Security.Claims;
 
 namespace SpotifyStatisticsWebApp.Pages
@@ -42,7 +43,7 @@ namespace SpotifyStatisticsWebApp.Pages
             }
 
             // Spotify connection status + history count (same database)
-            var connStr = _config.GetConnectionString("DefaultConnection");
+            var connStr = SqlConnectionFactory.DefaultConnection(_config);
             if (string.IsNullOrEmpty(connStr)) return;
 
             try

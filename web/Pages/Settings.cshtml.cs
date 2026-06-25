@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using SpotifyStatisticsWebApp.Models;
+using SpotifyStatisticsWebApp.Services;
 using System.Security.Claims;
 
 namespace SpotifyStatisticsWebApp.Pages
@@ -37,7 +38,7 @@ namespace SpotifyStatisticsWebApp.Pages
         public async Task OnGetAsync()
         {
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            var connStr = _config.GetConnectionString("DefaultConnection");
+            var connStr = SqlConnectionFactory.DefaultConnection(_config);
 
             // Load profile from DB (avatar + phone persist across deploys)
             var profile = await _db.UserProfiles.FirstOrDefaultAsync(p => p.UserId == userId);
@@ -142,7 +143,7 @@ namespace SpotifyStatisticsWebApp.Pages
             if (profile != null) _db.UserProfiles.Remove(profile);
 
             // Delete SpotifyTokens
-            var connStr = _config.GetConnectionString("DefaultConnection");
+            var connStr = SqlConnectionFactory.DefaultConnection(_config);
             using var conn = new SqlConnection(connStr);
             await conn.OpenAsync();
             using var cmd = new SqlCommand("DELETE FROM SpotifyTokens WHERE UserId = @uid", conn);
