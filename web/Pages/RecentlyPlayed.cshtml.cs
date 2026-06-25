@@ -41,11 +41,13 @@ namespace SpotifyStatisticsWebApp.Pages
                 Console.WriteLine($"Profile fetch error: {ex.Message}");
             }
 
-            // Spotify connection status for sidebar badge
+            // Spotify connection status + history count (same database)
+            var connStr = _config.GetConnectionString("DefaultConnection");
+            if (string.IsNullOrEmpty(connStr)) return;
+
             try
             {
-                var defaultConn = _config.GetConnectionString("DefaultConnection");
-                using var spotifyDb = new SqlConnection(defaultConn);
+                using var spotifyDb = new SqlConnection(connStr);
                 await spotifyDb.OpenAsync();
                 using var checkCmd = new SqlCommand(
                     "SELECT COUNT(*) FROM SpotifyTokens WHERE UserId = @uid", spotifyDb);
@@ -56,10 +58,6 @@ namespace SpotifyStatisticsWebApp.Pages
             {
                 Console.WriteLine($"SpotifyTokens check error: {ex.Message}");
             }
-
-            // Total count for the page header — lightweight COUNT(*) only
-            var connStr = _config.GetConnectionString("MusicHistoryConnection");
-            if (string.IsNullOrEmpty(connStr)) return;
 
             try
             {

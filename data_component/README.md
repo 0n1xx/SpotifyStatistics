@@ -107,11 +107,16 @@ The DAG reads all credentials from **Airflow Variables** (not environment variab
 | Variable | Description |
 |---|---|
 | `PG_CONN` | PostgreSQL connection — music history (Superset analytics) |
-| `MSSQL_CONN_SPOTIFY` | SQL Server connection — Spotify OAuth tokens |
-| `MSSQL_CONN_MASTER` | SQL Server connection — music history |
+| `MSSQL_CONN` | SQL Server — `SpotifyTokens`, `music_history`, and related app tables |
 | `VLAD_SPOTIFY_CLIENT_ID` | Spotify Developer App — Client ID |
 | `VLAD_SPOTIFY_SECRET_KEY` | Spotify Developer App — Client Secret |
 | `SERVER_LOOPBACK` | Spotify OAuth redirect URI (must match app settings) |
+
+`MSSQL_CONN` example (databaseasp.net — URL-encode `#` → `%23`, `!` → `%21`, `@` → `%40`):
+
+```
+mssql+pyodbc://db44161:PASSWORD@db44161.public.databaseasp.net:1433/db44161?driver=ODBC+Driver+18+for+SQL+Server&Encrypt=yes&TrustServerCertificate=yes
+```
 
 ---
 

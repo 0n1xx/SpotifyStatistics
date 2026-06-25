@@ -43,16 +43,14 @@ namespace SpotifyStatisticsWebApp.Pages
             ViewData["DisplayName"]   = profile?.DisplayName;
 
             // Check Spotify connection
-            var spotifyConn = _config.GetConnectionString("DefaultConnection");
-            using var spotifyDb = new SqlConnection(spotifyConn);
+            var connStr = _config.GetConnectionString("DefaultConnection");
+            using var spotifyDb = new SqlConnection(connStr);
             await spotifyDb.OpenAsync();
             using var checkCmd = new SqlCommand(
                 "SELECT COUNT(*) FROM SpotifyTokens WHERE UserId = @uid", spotifyDb);
             checkCmd.Parameters.AddWithValue("@uid", userId);
             SpotifyConnected = (int)(await checkCmd.ExecuteScalarAsync() ?? 0) > 0;
 
-            // Music history queries
-            var connStr = _config.GetConnectionString("MusicHistoryConnection");
             using var conn = new SqlConnection(connStr);
             await conn.OpenAsync();
 

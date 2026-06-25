@@ -58,11 +58,8 @@ schedule_interval = "*/30 * * * *"
 
 # ── connections ───────────────────────────────────────────────────────────────
 
-MSSQL_CONN_SPOTIFY = Variable.get("MSSQL_CONN_SPOTIFY")
-spotify_engine = create_engine(MSSQL_CONN_SPOTIFY, fast_executemany=True)
-
-MSSQL_CONN_MASTER = Variable.get("MSSQL_CONN_MASTER")
-master_engine = create_engine(MSSQL_CONN_MASTER, fast_executemany=True)
+MSSQL_CONN = Variable.get("MSSQL_CONN")
+mssql_engine = create_engine(MSSQL_CONN, fast_executemany=True)
 
 PG_CONN = Variable.get("PG_CONN")
 pg_engine = create_engine(PG_CONN)
@@ -199,7 +196,7 @@ def get_artist_info(artist_name: str) -> dict:
 
 def get_all_users() -> list:
     """Fetch all Spotify users (user_id + refresh_token) from MSSQL."""
-    with spotify_engine.connect() as conn:
+    with mssql_engine.connect() as conn:
         result = conn.execute(text("SELECT UserId, RefreshToken FROM dbo.SpotifyTokens"))
         return [{"user_id": row[0], "refresh_token": row[1]} for row in result.fetchall()]
 
@@ -448,7 +445,7 @@ def spotify_history():
 
         df_ms = pd.read_sql(
             "SELECT played_at, song, artist, album, user_id FROM dbo.music_history",
-            master_engine.raw_connection()
+            mssql_engine.raw_connection()
         )
 
         # played_at in MSSQL is stored as UTC — convert to Toronto for comparison
@@ -467,7 +464,7 @@ def spotify_history():
         if only_in_pg.empty:
             print("MSSQL already in sync")
             return
-        conn = master_engine.raw_connection()
+        conn = mssql_engine.raw_connection()
         cursor = conn.cursor()
         try:
             cursor.execute("TRUNCATE TABLE dbo.music_history")

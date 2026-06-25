@@ -137,8 +137,9 @@ The app will be available at `https://localhost:5001`.
 Set these in `appsettings.Development.json` or as environment variables:
 
 ```
-ConnectionStrings__DefaultConnection       # SQL Server — app database (Identity, profiles)
-ConnectionStrings__MusicHistoryConnection  # SQL Server — music history (synced from PostgreSQL)
+ConnectionStrings__DefaultConnection       # SQL Server — Identity, profiles, Spotify tokens, music history
+# Example (databaseasp.net):
+# Server=db44161.public.databaseasp.net;Database=db44161;User Id=db44161;Password=...;Encrypt=True;TrustServerCertificate=True;MultipleActiveResultSets=True;
 Authentication__Google__ClientId
 Authentication__Google__ClientSecret
 Authentication__GitHub__ClientId

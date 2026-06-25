@@ -46,16 +46,8 @@ namespace SpotifyStatisticsWebApp.Controllers
 
         // ── Helpers ───────────────────────────────────────────────────────────
 
-        /// <summary>Opens a connection to the music history SQL Server database.</summary>
-        private async Task<SqlConnection> MusicDbAsync()
-        {
-            var conn = new SqlConnection(_config.GetConnectionString("MusicHistoryConnection"));
-            await conn.OpenAsync();
-            return conn;
-        }
-
-        /// <summary>Opens a connection to the main (Identity / Spotify tokens) database.</summary>
-        private async Task<SqlConnection> DefaultDbAsync()
+        /// <summary>Opens a connection to the SQL Server database.</summary>
+        private async Task<SqlConnection> DbAsync()
         {
             var conn = new SqlConnection(_config.GetConnectionString("DefaultConnection"));
             await conn.OpenAsync();
@@ -216,7 +208,7 @@ namespace SpotifyStatisticsWebApp.Controllers
             var userId = UserId;
             var profile = await _db.UserProfiles.FirstOrDefaultAsync(p => p.UserId == userId);
 
-            await using var defaultDb = await DefaultDbAsync();
+            await using var defaultDb = await DbAsync();
 
             // Check whether a Spotify token row exists for this user
             var spotifyConnected = await ScalarAsync<int>(defaultDb,
@@ -401,7 +393,7 @@ namespace SpotifyStatisticsWebApp.Controllers
             var userId = UserId;
             var df = DateFilter(range);
 
-            await using var conn = await MusicDbAsync();
+            await using var conn = await DbAsync();
 
             var totalTracks    = await ScalarAsync<int>(conn, $"SELECT COUNT(*) FROM dbo.music_history WHERE user_id = @uid {df}", ("@uid", userId));
             var uniqueArtists  = await ScalarAsync<int>(conn, $"SELECT COUNT(DISTINCT artist) FROM dbo.music_history WHERE user_id = @uid {df}", ("@uid", userId));
@@ -479,7 +471,7 @@ namespace SpotifyStatisticsWebApp.Controllers
             // Initialise all 24 hours to 0 so iOS doesn't have to handle missing hours
             var hours = new int[24];
 
-            await using var conn = await MusicDbAsync();
+            await using var conn = await DbAsync();
             using var cmd = new SqlCommand($@"
                 SELECT DATEPART(HOUR, played_at) as hr, COUNT(*) as cnt
                 FROM music_history WHERE user_id = @uid {df}
@@ -516,7 +508,7 @@ namespace SpotifyStatisticsWebApp.Controllers
 
             var months = new List<object>();
 
-            await using var conn = await MusicDbAsync();
+            await using var conn = await DbAsync();
             using var cmd = new SqlCommand($@"
                 SELECT FORMAT(played_at, 'MMM yyyy') as mo, COUNT(*) as cnt
                 FROM music_history WHERE user_id = @uid {df}
@@ -556,7 +548,7 @@ namespace SpotifyStatisticsWebApp.Controllers
             // causes iOS to show "Failed to load history."
             try
             {
-                await using var conn = await MusicDbAsync();
+                await using var conn = await DbAsync();
 
                 // Total count for pagination metadata
                 var totalCount = await ScalarAsync<int>(conn,
@@ -626,7 +618,7 @@ namespace SpotifyStatisticsWebApp.Controllers
             var userId = UserId;
             var countries = new List<object>();
 
-            await using var conn = await MusicDbAsync();
+            await using var conn = await DbAsync();
             using var cmd = new SqlCommand(@"
                 SELECT country, COUNT(*) as cnt
                 FROM music_history
