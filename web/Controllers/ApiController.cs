@@ -578,12 +578,7 @@ namespace SpotifyStatisticsWebApp.Controllers
                         artist   = reader.IsDBNull(1) ? "" : reader.GetString(1),
                         album    = reader.IsDBNull(2) ? "" : reader.GetString(2),
                         country  = reader.IsDBNull(3) ? "" : reader.GetString(3),
-                        // The DB stores played_at as the Toronto local wall-clock time
-                        // but with offset +00:00 (written without a timezone offset).
-                        // GetDateTimeOffset returns e.g. 2026-05-06T10:11:00+00:00 which
-                        // iOS would display as 06:11 Toronto time (−4h EDT). Fix: strip
-                        // the bogus +00:00 offset and re-attach the real Toronto offset.
-                        playedAt = reader.IsDBNull(4) ? "" : TorontoIso(reader.GetDateTimeOffset(4)),
+                        playedAt = ReadPlayedAtIso(reader, 4),
                     });
 
                 return Ok(new
@@ -642,6 +637,20 @@ namespace SpotifyStatisticsWebApp.Controllers
     // ── Helpers ───────────────────────────────────────────────────────────────
 
     /// <summary>
+    /// Read played_at from MSSQL (DATETIME2) or Postgres-synced datetimeoffset.
+    /// </summary>
+    private static string ReadPlayedAtIso(SqlDataReader reader, int ordinal)
+    {
+        if (reader.IsDBNull(ordinal)) return "";
+
+        DateTime localDt = reader.GetFieldType(ordinal) == typeof(DateTimeOffset)
+            ? reader.GetDateTimeOffset(ordinal).DateTime
+            : reader.GetDateTime(ordinal);
+
+        return TorontoIso(DateTime.SpecifyKind(localDt, DateTimeKind.Unspecified));
+    }
+
+    /// <summary>
     /// The DB stores played_at as the Toronto wall-clock time but with offset +00:00
     /// (i.e. the python importer wrote local time into a datetimeoffset column without
     /// supplying the real offset). This method re-attaches the correct EDT/EST offset
@@ -649,18 +658,20 @@ namespace SpotifyStatisticsWebApp.Controllers
     ///
     /// e.g. stored: 2026-05-06T10:11:00+00:00  →  returned: 2026-05-06T10:11:00-04:00
     /// </summary>
-    private static string TorontoIso(DateTimeOffset stored)
+    private static string TorontoIso(DateTime localDt)
     {
         TimeZoneInfo tz;
         try   { tz = TimeZoneInfo.FindSystemTimeZoneById("America/Toronto"); }
         catch { tz = TimeZoneInfo.FindSystemTimeZoneById("Eastern Standard Time"); }
 
-        // Treat the stored DateTime as Toronto local (ignore the bogus +00:00 offset)
-        var localDt = DateTime.SpecifyKind(stored.DateTime, DateTimeKind.Unspecified);
         var torontoOffset = tz.GetUtcOffset(localDt);
         var corrected = new DateTimeOffset(localDt, torontoOffset);
         return corrected.ToString("o"); // e.g. 2026-05-06T10:11:00-04:00
     }
+
+    /// <summary>Overload for callers that already have a DateTimeOffset.</summary>
+    private static string TorontoIso(DateTimeOffset stored) =>
+        TorontoIso(DateTime.SpecifyKind(stored.DateTime, DateTimeKind.Unspecified));
 
     // ── Request DTOs ──────────────────────────────────────────────────────────
 
