@@ -93,6 +93,9 @@ MUSIC_HISTORY_COLS = [
     'played_at', 'song', 'artist', 'album', 'date', 'country', 'begin_area', 'user_id'
 ]
 
+# Same play event = same second + track + user (Spotify returns last 50 every 30 min → overlap)
+DEDUP_KEY_COLS = ['played_at', 'song', 'artist', 'album', 'user_id']
+
 # ── normalization helpers ─────────────────────────────────────────────────────
 
 def normalize_artist(name: str) -> str:
@@ -121,6 +124,49 @@ def sanitize_begin_area(area: str) -> str:
     if not area or area in COUNTRY_LEVEL_AREAS:
         return 'unknown'
     return area
+
+
+def normalize_for_dedup_df(df: pd.DataFrame) -> pd.DataFrame:
+    """Normalize fields so the same Spotify play always maps to the same dedup key."""
+    df = df.copy()
+    df['played_at'] = pd.to_datetime(df['played_at']).dt.floor('s')
+    df['song'] = df['song'].astype(str).str.strip().str.lower()
+    df['album'] = df['album'].astype(str).str.strip().str.lower()
+    df['artist'] = df['artist'].astype(str).str.strip().str.lower().str.title()
+    df['user_id'] = df['user_id'].astype(str)
+    return df
+
+
+def dedupe_dataframe(df: pd.DataFrame, label: str = "batch") -> pd.DataFrame:
+    """Drop duplicate plays within a dataframe (e.g. overlap from Spotify last-50 window)."""
+    if df.empty:
+        return df
+    df = normalize_for_dedup_df(df)
+    before = len(df)
+    df = df.drop_duplicates(subset=DEDUP_KEY_COLS, keep='first')
+    dropped = before - len(df)
+    if dropped:
+        print(f"[{label}] Dropped {dropped} duplicate rows")
+    return df
+
+
+def rows_not_in_existing(df_new: pd.DataFrame, df_existing: pd.DataFrame) -> pd.DataFrame:
+    """Return rows from df_new whose dedup key is not already in df_existing."""
+    if df_new.empty:
+        return df_new
+    new_n = normalize_for_dedup_df(df_new)
+    if df_existing.empty:
+        return new_n
+    exist_n = normalize_for_dedup_df(df_existing)
+    exist_keys = {
+        tuple(row)
+        for row in exist_n[DEDUP_KEY_COLS].itertuples(index=False, name=None)
+    }
+    mask = ~new_n[DEDUP_KEY_COLS].apply(
+        lambda r: tuple(r) in exist_keys,
+        axis=1,
+    )
+    return new_n.loc[mask].reset_index(drop=True)
 
 
 # ── musicbrainz helpers ───────────────────────────────────────────────────────
@@ -284,10 +330,14 @@ def spotify_history():
 
     @task
     def combine(results):
-        """Flatten per-user track lists into one list."""
+        """Flatten per-user track lists and dedupe overlapping last-50 windows."""
         combined = [record for user_records in results for record in user_records]
-        print(f"Combined {len(combined)} total records")
-        return combined
+        if not combined:
+            print("No tracks fetched")
+            return []
+        df = dedupe_dataframe(pd.DataFrame(combined), label="combine")
+        print(f"Combined {len(df)} unique records after dedup")
+        return df.to_dict(orient="records")
 
     @task
     def enrich(records):
@@ -346,12 +396,7 @@ def spotify_history():
             return
 
         df = prepare_music_history_df(records)
-
-        # Dedup before insert
-        before = len(df)
-        df = df.drop_duplicates(subset=['played_at', 'song', 'artist', 'album', 'user_id'])
-        if before != len(df):
-            print(f"Dropped {before - len(df)} duplicates before insert")
+        df = dedupe_dataframe(df, label="load_postgres")
 
         raw_conn = pg_engine.raw_connection()
         cursor = raw_conn.cursor()
@@ -430,6 +475,13 @@ def spotify_history():
 
     @task
     def load_mssql():
+        """
+        Append rows from Postgres into MSSQL — never truncate.
+
+        Dedup: Spotify returns the last 50 plays every 30 minutes, so consecutive
+        runs overlap. Postgres already dedupes on insert (ON CONFLICT); here we
+        only insert plays whose key is not yet in MSSQL.
+        """
         with pg_engine.connect() as conn:
             df_pg = pd.read_sql(
                 f"SELECT {', '.join(MUSIC_HISTORY_COLS)} FROM music_history",
@@ -440,47 +492,49 @@ def spotify_history():
             print("Postgres is empty, nothing to sync")
             return
 
-        df_pg['played_at'] = pd.to_datetime(df_pg['played_at']).dt.floor('s')
-        df_pg['date'] = pd.to_datetime(df_pg['date']).dt.date
-
         df_ms = pd.read_sql(
-            "SELECT played_at, song, artist, album, user_id FROM dbo.music_history",
+            f"SELECT {', '.join(MUSIC_HISTORY_COLS)} FROM dbo.music_history",
             mssql_engine.raw_connection()
         )
 
-        # played_at in MSSQL is stored as UTC — convert to Toronto for comparison
-        # Postgres data is already in Toronto time (converted in load_postgres)
-        # MSSQL stores played_at as Toronto local time (no tz info).
-        # Parse both as naive datetimes so the keys match without any shift.
-        df_ms['played_at'] = pd.to_datetime(df_ms['played_at']).dt.floor('s')
-
-        key_cols = ['played_at', 'song', 'artist', 'album', 'user_id']
-
-        pg_keys = df_pg[key_cols].astype(str).agg('|'.join, axis=1)
-        ms_keys = df_ms[key_cols].astype(str).agg('|'.join, axis=1)
-
-        only_in_pg = df_pg[~pg_keys.isin(set(ms_keys))]
+        only_in_pg = rows_not_in_existing(df_pg, df_ms)
 
         if only_in_pg.empty:
-            print("MSSQL already in sync")
+            print("MSSQL already in sync — no new plays to insert")
             return
+
+        insert_sql = """
+            INSERT INTO dbo.music_history
+                (played_at, song, artist, album, date, country, begin_area, user_id)
+            SELECT ?, ?, ?, ?, ?, ?, ?, ?
+            WHERE NOT EXISTS (
+                SELECT 1 FROM dbo.music_history m
+                WHERE m.user_id = ?
+                  AND m.played_at = ?
+                  AND ISNULL(m.song, N'') = ISNULL(?, N'')
+                  AND ISNULL(m.artist, N'') = ISNULL(?, N'')
+                  AND ISNULL(m.album, N'') = ISNULL(?, N'')
+            )
+        """
+
         conn = mssql_engine.raw_connection()
         cursor = conn.cursor()
+        inserted = 0
         try:
-            cursor.execute("TRUNCATE TABLE dbo.music_history")
-            insert_query = """
-                           INSERT INTO dbo.music_history
-                               (played_at, song, artist, album, date, country, begin_area, user_id)
-                           VALUES (?, ?, ?, ?, ?, ?, ?, ?) \
-                           """
-            data = [
-                tuple(row) for row in only_in_pg[
-                    MUSIC_HISTORY_COLS
-                ].itertuples(index=False)
-            ]
-            cursor.fast_executemany = True
-            cursor.executemany(insert_query, data)
+            for row in only_in_pg[MUSIC_HISTORY_COLS].itertuples(index=False):
+                played_at, song, artist, album, date, country, begin_area, user_id = row
+                played_at = pd.Timestamp(played_at).floor('s').to_pydatetime()
+                params = (
+                    played_at, song, artist, album, date, country, begin_area, user_id,
+                    user_id, played_at, song, artist, album,
+                )
+                cursor.execute(insert_sql, params)
+                inserted += cursor.rowcount
             conn.commit()
+            print(
+                f"MSSQL sync: {len(only_in_pg)} candidate rows, "
+                f"{inserted} inserted (duplicates skipped)"
+            )
         finally:
             cursor.close()
             conn.close()

@@ -57,6 +57,11 @@ def parse_args() -> argparse.Namespace:
         "--user-id",
         help="Replace every user_id in the CSV with this value (use after new Statify registration)",
     )
+    p.add_argument(
+        "--skip-existing",
+        action="store_true",
+        help="Skip rows that already exist (matched by played_at, song, artist, album, user_id)",
+    )
     p.add_argument("--batch-size", type=int, default=500)
     return p.parse_args()
 
@@ -109,17 +114,52 @@ def ensure_table(conn: pymssql.Connection) -> None:
     cur.close()
 
 
+def existing_keys(conn: pymssql.Connection) -> set[tuple[str, str, str, str, str]]:
+    cur = conn.cursor()
+    cur.execute("SELECT played_at, song, artist, album, user_id FROM music_history")
+    keys: set[tuple[str, str, str, str, str]] = set()
+    for played_at, song, artist, album, user_id in cur.fetchall():
+        ts = pd.Timestamp(played_at).floor("s")
+        keys.add((str(ts), str(song), str(artist), str(album), str(user_id)))
+    cur.close()
+    return keys
+
+
 def import_rows(
     conn: pymssql.Connection,
     df: pd.DataFrame,
     batch_size: int,
     truncate: bool,
+    skip_existing: bool,
 ) -> None:
     cur = conn.cursor()
     if truncate:
         cur.execute("DELETE FROM music_history")
         conn.commit()
         print("Truncated music_history")
+
+    if skip_existing:
+        keys = existing_keys(conn)
+        before = len(df)
+        df = df[
+            ~df.apply(
+                lambda r: (
+                    str(r.played_at),
+                    str(r.song),
+                    str(r.artist),
+                    str(r.album),
+                    str(r.user_id),
+                )
+                in keys,
+                axis=1,
+            )
+        ]
+        print(f"Skipped {before - len(df)} existing rows, inserting {len(df)}")
+
+    if df.empty:
+        print("Nothing new to insert")
+        cur.close()
+        return
 
     sql = """
         INSERT INTO music_history
@@ -166,7 +206,7 @@ def main() -> None:
     conn = connect(args.server, args.database, args.user, args.password)
     try:
         ensure_table(conn)
-        import_rows(conn, df, args.batch_size, args.truncate)
+        import_rows(conn, df, args.batch_size, args.truncate, args.skip_existing)
     finally:
         conn.close()
 

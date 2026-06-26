@@ -37,11 +37,27 @@ get_users → fetch_user[] → combine → enrich → load_postgres → fix_arti
 | `enrich` | Resolves artist country and city via MusicBrainz API |
 | `load_postgres` | Deduplicates by `played_at + user_id` and inserts new records into PostgreSQL |
 | `fix_artist_country_conflicts` | Resolves conflicting country data for the same artist using majority vote |
-| `load_mssql` | Syncs new Postgres records to SQL Server for the web application layer |
+| `load_mssql` | Appends new Postgres records to SQL Server for the web application layer (deduped — never truncates) |
 
 ---
 
-## Data Normalization
+## Deduplication
+
+Spotify's **recently played** API returns the **last 50 tracks** on every DAG run (every 30 minutes). If you listen to 50 tracks in an hour, the same plays appear in both runs — that overlap is expected.
+
+A play is considered a **duplicate** when all of these match:
+
+`played_at` (to the second) + `song` + `artist` + `album` + `user_id`
+
+| Stage | What happens |
+|---|---|
+| `combine` | Drops duplicates within the current batch |
+| `load_postgres` | Dedup again + `ON CONFLICT … DO NOTHING` (needs unique index on Postgres) |
+| `load_mssql` | Inserts only rows not already in MSSQL (`WHERE NOT EXISTS`) — old data is never deleted |
+
+Run `scripts/add_music_history_dedup.sql` on Postgres and MSSQL once to add the unique index and remove any existing duplicate rows.
+
+---
 
 All records are normalized at ingest before hitting either database:
 
