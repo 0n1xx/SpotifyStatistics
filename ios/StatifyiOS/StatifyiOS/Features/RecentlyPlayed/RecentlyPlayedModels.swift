@@ -44,7 +44,6 @@ struct TrackHistory: Decodable, Identifiable {
             return display.string(from: date)
         }
 
-        // Fallback: without fractional seconds
         iso.formatOptions = [.withInternetDateTime]
         if let date = iso.date(from: playedAt) {
             let display = DateFormatter()

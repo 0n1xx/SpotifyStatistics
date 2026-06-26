@@ -636,28 +636,17 @@ namespace SpotifyStatisticsWebApp.Controllers
 
     // ── Helpers ───────────────────────────────────────────────────────────────
 
-    /// <summary>
-    /// Read played_at from MSSQL (DATETIME2) or Postgres-synced datetimeoffset.
-    /// </summary>
     private static string ReadPlayedAtIso(SqlDataReader reader, int ordinal)
     {
         if (reader.IsDBNull(ordinal)) return "";
 
-        DateTime localDt = reader.GetFieldType(ordinal) == typeof(DateTimeOffset)
+        var localDt = reader.GetFieldType(ordinal) == typeof(DateTimeOffset)
             ? reader.GetDateTimeOffset(ordinal).DateTime
             : reader.GetDateTime(ordinal);
 
         return TorontoIso(DateTime.SpecifyKind(localDt, DateTimeKind.Unspecified));
     }
 
-    /// <summary>
-    /// The DB stores played_at as the Toronto wall-clock time but with offset +00:00
-    /// (i.e. the python importer wrote local time into a datetimeoffset column without
-    /// supplying the real offset). This method re-attaches the correct EDT/EST offset
-    /// so iOS displays the right local time.
-    ///
-    /// e.g. stored: 2026-05-06T10:11:00+00:00  →  returned: 2026-05-06T10:11:00-04:00
-    /// </summary>
     private static string TorontoIso(DateTime localDt)
     {
         TimeZoneInfo tz;
@@ -665,13 +654,8 @@ namespace SpotifyStatisticsWebApp.Controllers
         catch { tz = TimeZoneInfo.FindSystemTimeZoneById("Eastern Standard Time"); }
 
         var torontoOffset = tz.GetUtcOffset(localDt);
-        var corrected = new DateTimeOffset(localDt, torontoOffset);
-        return corrected.ToString("o"); // e.g. 2026-05-06T10:11:00-04:00
+        return new DateTimeOffset(localDt, torontoOffset).ToString("o");
     }
-
-    /// <summary>Overload for callers that already have a DateTimeOffset.</summary>
-    private static string TorontoIso(DateTimeOffset stored) =>
-        TorontoIso(DateTime.SpecifyKind(stored.DateTime, DateTimeKind.Unspecified));
 
     // ── Request DTOs ──────────────────────────────────────────────────────────
 
