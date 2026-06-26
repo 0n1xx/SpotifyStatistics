@@ -73,27 +73,52 @@ namespace SpotifyStatisticsWebApp.Pages
             if (avatar == null || avatar.Length == 0)
                 return new JsonResult(new { success = false, error = "No file provided" });
 
-            var allowedTypes = new[] { "image/jpeg", "image/png", "image/gif", "image/webp" };
-            if (!allowedTypes.Contains(avatar.ContentType.ToLower()))
-                return new JsonResult(new { success = false, error = "Invalid file type." });
+            var allowedTypes = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+            {
+                "image/jpeg", "image/jpg", "image/png", "image/gif", "image/webp",
+                "image/heic", "image/heif", "application/octet-stream"
+            };
+            var ext = Path.GetExtension(avatar.FileName).ToLowerInvariant();
+            var allowedExts = new HashSet<string> { ".jpg", ".jpeg", ".png", ".gif", ".webp", ".heic", ".heif" };
+
+            var contentType = avatar.ContentType?.ToLowerInvariant() ?? "";
+            if (!allowedTypes.Contains(contentType) && !allowedExts.Contains(ext))
+                return new JsonResult(new { success = false, error = "Use JPEG, PNG, GIF, or WebP." });
 
             if (avatar.Length > 5 * 1024 * 1024)
                 return new JsonResult(new { success = false, error = "File too large. Max 5 MB." });
 
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
 
-            using var ms = new MemoryStream();
-            await avatar.CopyToAsync(ms);
-            var dataUrl = $"data:{avatar.ContentType};base64,{Convert.ToBase64String(ms.ToArray())}";
+            try
+            {
+                using var ms = new MemoryStream();
+                await avatar.CopyToAsync(ms);
+                var mime = string.IsNullOrWhiteSpace(contentType) || contentType == "application/octet-stream"
+                    ? ext switch
+                    {
+                        ".png" => "image/png",
+                        ".gif" => "image/gif",
+                        ".webp" => "image/webp",
+                        ".heic" or ".heif" => "image/jpeg",
+                        _ => "image/jpeg"
+                    }
+                    : contentType;
+                var dataUrl = $"data:{mime};base64,{Convert.ToBase64String(ms.ToArray())}";
 
-            var profile = await _db.UserProfiles.FirstOrDefaultAsync(p => p.UserId == userId);
-            if (profile == null)
-                _db.UserProfiles.Add(new UserProfile { UserId = userId, AvatarBase64 = dataUrl });
-            else
-                profile.AvatarBase64 = dataUrl;
+                var profile = await _db.UserProfiles.FirstOrDefaultAsync(p => p.UserId == userId);
+                if (profile == null)
+                    _db.UserProfiles.Add(new UserProfile { UserId = userId, AvatarBase64 = dataUrl });
+                else
+                    profile.AvatarBase64 = dataUrl;
 
-            await _db.SaveChangesAsync();
-            return new JsonResult(new { success = true, url = dataUrl });
+                await _db.SaveChangesAsync();
+                return new JsonResult(new { success = true, url = dataUrl });
+            }
+            catch (Exception ex)
+            {
+                return new JsonResult(new { success = false, error = $"Could not save photo: {ex.Message}" });
+            }
         }
 
         public async Task<IActionResult> OnPostSavePhoneAsync(string phone)

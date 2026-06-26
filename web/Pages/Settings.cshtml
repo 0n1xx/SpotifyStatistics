@@ -59,12 +59,11 @@
                     <p class="avatar-name">@(Model.DisplayName ?? User.Identity?.Name)</p>
                     <p class="avatar-email">@User.Identity?.Name</p>
                     <div class="avatar-actions">
-                        <button class="btn btn-outline" id="upload-avatar-btn"
-                                onclick="document.getElementById('avatar-input').click()">
+                        <label class="btn btn-outline" for="avatar-input" id="upload-avatar-btn">
                             Upload photo
-                        </button>
+                        </label>
                         <span id="avatar-upload-status" class="upload-status"></span>
-                        <input id="avatar-input" type="file" accept="image/*"
+                        <input id="avatar-input" type="file" accept="image/jpeg,image/png,image/gif,image/webp,image/heic,image/heif,.jpg,.jpeg,.png,.gif,.webp,.heic,.heif"
                                class="file-input-hidden" aria-label="Upload profile photo">
                         @Html.AntiForgeryToken()
                     </div>

@@ -25,7 +25,7 @@ function setupAvatarUpload() {
         // Show a local preview before the upload finishes (optimistic UI)
         previewAvatarLocally(file);
 
-        btn.disabled    = true;
+        btn.classList.add('is-disabled');
         btn.textContent = 'Uploading…';
         hideStatusEl(status);
 
@@ -33,17 +33,27 @@ function setupAvatarUpload() {
             const token    = getCsrfToken();
             const formData = new FormData();
             formData.append('avatar', file);
+            if (token) formData.append('__RequestVerificationToken', token);
 
-            const res  = await fetch('?handler=UploadAvatar', {
-                method:  'POST',
-                headers: token ? { 'RequestVerificationToken': token } : {},
-                body:    formData
+            const res = await fetch('?handler=UploadAvatar', {
+                method:      'POST',
+                credentials: 'same-origin',
+                headers:     token ? { 'RequestVerificationToken': token } : {},
+                body:        formData
             });
-            const json = await res.json();
+
+            const json = await res.json().catch(() => null);
+            if (!res.ok || !json) {
+                showStatusEl(status, json?.error || `Upload failed (${res.status})`, 'error');
+                revertAvatarPreview();
+                return;
+            }
 
             if (json.success) {
                 showStatusEl(status, '✓ Photo updated', 'success');
                 syncSidebarAvatar(json.url);
+                const preview = document.getElementById('avatar-preview');
+                if (preview) preview.dataset.hadPhoto = '1';
             } else {
                 showStatusEl(status, json.error || 'Upload failed', 'error');
                 revertAvatarPreview();
@@ -51,7 +61,7 @@ function setupAvatarUpload() {
         } catch {
             showStatusEl(status, 'Network error — please try again', 'error');
         } finally {
-            btn.disabled    = false;
+            btn.classList.remove('is-disabled');
             btn.textContent = 'Upload photo';
             input.value     = ''; // reset so same file can be re-selected
         }
