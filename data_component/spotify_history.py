@@ -150,6 +150,19 @@ def dedupe_dataframe(df: pd.DataFrame, label: str = "batch") -> pd.DataFrame:
     return df
 
 
+def xcom_records(df: pd.DataFrame) -> list:
+    """JSON-serializable rows for Airflow XCom (no pandas Timestamp objects)."""
+    if df.empty:
+        return []
+    out = df.copy()
+    if 'played_at' in out.columns:
+        out['played_at'] = (
+            pd.to_datetime(out['played_at'], utc=True)
+            .dt.strftime('%Y-%m-%dT%H:%M:%SZ')
+        )
+    return out.to_dict(orient='records')
+
+
 def rows_not_in_existing(df_new: pd.DataFrame, df_existing: pd.DataFrame) -> pd.DataFrame:
     """Return rows from df_new whose dedup key is not already in df_existing."""
     if df_new.empty:
@@ -337,7 +350,7 @@ def spotify_history():
             return []
         df = dedupe_dataframe(pd.DataFrame(combined), label="combine")
         print(f"Combined {len(df)} unique records after dedup")
-        return df.to_dict(orient="records")
+        return xcom_records(df)
 
     @task
     def enrich(records):
