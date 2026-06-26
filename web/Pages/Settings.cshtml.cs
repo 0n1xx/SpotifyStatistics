@@ -85,8 +85,8 @@ namespace SpotifyStatisticsWebApp.Pages
             if (!allowedTypes.Contains(contentType) && !allowedExts.Contains(ext))
                 return new JsonResult(new { success = false, error = "Use JPEG, PNG, GIF, or WebP." });
 
-            if (avatar.Length > 5 * 1024 * 1024)
-                return new JsonResult(new { success = false, error = "File too large. Max 5 MB." });
+            if (avatar.Length > 512 * 1024)
+                return new JsonResult(new { success = false, error = "File too large. Max 512 KB." });
 
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
 
@@ -113,7 +113,7 @@ namespace SpotifyStatisticsWebApp.Pages
                     profile.AvatarBase64 = dataUrl;
 
                 await _db.SaveChangesAsync();
-                return new JsonResult(new { success = true, url = dataUrl });
+                return new JsonResult(new { success = true });
             }
             catch (Exception ex)
             {

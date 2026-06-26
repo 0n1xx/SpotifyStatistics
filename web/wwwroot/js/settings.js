@@ -22,25 +22,35 @@ function setupAvatarUpload() {
         const btn    = document.getElementById('upload-avatar-btn');
         const status = document.getElementById('avatar-upload-status');
 
-        // Show a local preview before the upload finishes (optimistic UI)
-        previewAvatarLocally(file);
-
         btn.classList.add('is-disabled');
         btn.textContent = 'Uploading…';
         hideStatusEl(status);
 
+        let uploadFile = file;
+        try {
+            uploadFile = await compressAvatarFile(file);
+            previewAvatarLocally(uploadFile);
+        } catch {
+            if (file.size > AVATAR_MAX_BYTES) {
+                showStatusEl(status, 'Image too large — try a smaller photo', 'error');
+                resetUploadBtn(btn, input);
+                return;
+            }
+            previewAvatarLocally(file);
+        }
+
         try {
             const token    = getCsrfToken();
             const formData = new FormData();
-            formData.append('avatar', file);
+            formData.append('avatar', uploadFile, 'avatar.jpg');
             if (token) formData.append('__RequestVerificationToken', token);
 
-            const res = await fetch('?handler=UploadAvatar', {
+            const res = await fetchWithTimeout('?handler=UploadAvatar', {
                 method:      'POST',
                 credentials: 'same-origin',
                 headers:     token ? { 'RequestVerificationToken': token } : {},
                 body:        formData
-            });
+            }, FETCH_TIMEOUT_MS);
 
             const json = await res.json().catch(() => null);
             if (!res.ok || !json) {
@@ -51,21 +61,72 @@ function setupAvatarUpload() {
 
             if (json.success) {
                 showStatusEl(status, '✓ Photo updated', 'success');
-                syncSidebarAvatar(json.url);
                 const preview = document.getElementById('avatar-preview');
+                if (preview?.src) syncSidebarAvatar(preview.src);
                 if (preview) preview.dataset.hadPhoto = '1';
             } else {
                 showStatusEl(status, json.error || 'Upload failed', 'error');
                 revertAvatarPreview();
             }
-        } catch {
-            showStatusEl(status, 'Network error — please try again', 'error');
+        } catch (err) {
+            const msg = err?.name === 'AbortError'
+                ? 'Upload timed out — try a smaller photo'
+                : 'Network error — please try again';
+            showStatusEl(status, msg, 'error');
+            revertAvatarPreview();
         } finally {
-            btn.classList.remove('is-disabled');
-            btn.textContent = 'Upload photo';
-            input.value     = ''; // reset so same file can be re-selected
+            resetUploadBtn(btn, input);
         }
     });
+}
+
+const AVATAR_MAX_PX = 512;
+const AVATAR_MAX_BYTES = 400 * 1024;
+const AVATAR_JPEG_QUALITY = 0.82;
+const FETCH_TIMEOUT_MS = 45000;
+
+// Resize to 512px max and JPEG ~400KB — keeps remote MSSQL writes fast
+async function compressAvatarFile(file) {
+    const bitmap = await createImageBitmap(file);
+    const scale = Math.min(1, AVATAR_MAX_PX / Math.max(bitmap.width, bitmap.height));
+    const w = Math.max(1, Math.round(bitmap.width * scale));
+    const h = Math.max(1, Math.round(bitmap.height * scale));
+    const canvas = document.createElement('canvas');
+    canvas.width = w;
+    canvas.height = h;
+    canvas.getContext('2d').drawImage(bitmap, 0, 0, w, h);
+    bitmap.close();
+
+    let quality = AVATAR_JPEG_QUALITY;
+    let blob = await canvasToJpeg(canvas, quality);
+    while (blob.size > AVATAR_MAX_BYTES && quality > 0.45) {
+        quality -= 0.08;
+        blob = await canvasToJpeg(canvas, quality);
+    }
+    if (blob.size > AVATAR_MAX_BYTES) {
+        throw new Error('too large');
+    }
+    return new File([blob], 'avatar.jpg', { type: 'image/jpeg' });
+}
+
+function canvasToJpeg(canvas, quality) {
+    return new Promise((resolve, reject) => {
+        canvas.toBlob((blob) => blob ? resolve(blob) : reject(new Error('encode failed')), 'image/jpeg', quality);
+    });
+}
+
+function fetchWithTimeout(url, options, ms) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), ms);
+    return fetch(url, { ...options, signal: controller.signal })
+        .finally(() => clearTimeout(timer));
+}
+
+function resetUploadBtn(btn, input) {
+    if (!btn) return;
+    btn.classList.remove('is-disabled');
+    btn.textContent = 'Upload photo';
+    if (input) input.value = '';
 }
 
 // Read file locally and swap the avatar image before server responds

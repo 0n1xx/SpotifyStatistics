@@ -111,6 +111,12 @@ using (var scope = app.Services.CreateScope())
         try
         {
             db.Database.Migrate();
+
+            // UserProfiles may exist from manual SQL setup without DisplayName
+            db.Database.ExecuteSqlRaw(@"
+                IF COL_LENGTH('UserProfiles', 'DisplayName') IS NULL
+                    ALTER TABLE UserProfiles ADD DisplayName NVARCHAR(100) NULL;
+            ");
             break;
         }
         catch (Exception ex) when (ex.Message.Contains("already an object") || ex.Message.Contains("already exists"))
@@ -131,6 +137,8 @@ using (var scope = app.Services.CreateScope())
                     INSERT INTO [__EFMigrationsHistory] VALUES ('20260427000000_AddUserProfiles', '9.0.0');
                 IF NOT EXISTS (SELECT 1 FROM [__EFMigrationsHistory] WHERE [MigrationId] = '20260428000000_AddDisplayName')
                     INSERT INTO [__EFMigrationsHistory] VALUES ('20260428000000_AddDisplayName', '9.0.0');
+                IF COL_LENGTH('UserProfiles', 'DisplayName') IS NULL
+                    ALTER TABLE UserProfiles ADD DisplayName NVARCHAR(100) NULL;
             ");
             break;
         }
