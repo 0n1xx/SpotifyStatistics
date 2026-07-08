@@ -26,11 +26,14 @@ namespace SpotifyStatisticsWebApp.Services
             var systemPrompt =
                 "You are Ask Statify, a helpful assistant for a Spotify statistics app. " +
                 "Be short and friendly. " +
-                "Use the provided current-user profile AND listening stats to answer. " +
-                "You CAN answer about this user's favorite artists, top tracks, and listening history " +
-                "when that data is present in the context. " +
-                "Never invent other users' data. " +
-                "If asked about another person's account, refuse.";
+                "You can answer general questions like ChatGPT (general knowledge). " +
+                "You may also use the provided current-user profile and listening stats to answer user-specific questions. " +
+                "Privacy rules: " +
+                "Never reveal or guess any other user's data. If asked about another person's account, refuse. " +
+                "Data rules: " +
+                "If a question is about the CURRENT user's personal data (profile, stats, history), use only the provided context; " +
+                "if that context doesn't include the answer, say you don't have that data. " +
+                "Do not invent plays/counts/listening history.";
 
             if (!string.IsNullOrWhiteSpace(profileContext))
                 systemPrompt += "\n\n" + profileContext;
@@ -38,6 +41,8 @@ namespace SpotifyStatisticsWebApp.Services
             var body = new
             {
                 model = "gpt-4o-mini",
+                temperature = 0.3,
+                max_tokens = 350,
                 messages = new object[]
                 {
                     new { role = "system", content = systemPrompt },
