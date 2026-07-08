@@ -1,8 +1,8 @@
 # Statify — iOS
 
-> Native iOS companion to the Statify web platform. Full feature parity with the web application — built in Swift with SwiftUI.
+> Native iOS companion to the Statify web platform. Full feature parity with core web analytics — built in Swift with SwiftUI.
 
-**Status: Complete**
+**Status: Complete** (Ask Statify chat remains web-first)
 
 ---
 
@@ -16,6 +16,8 @@ https://github.com/user-attachments/assets/dbe9da7e-1eba-482b-bacb-de784a5cd004
 ## Overview
 
 The Statify iOS app connects to the existing ASP.NET Core backend via REST API, sharing the same authentication system, data layer, and business logic. The mobile experience is designed to match the Statify web design system exactly — dark theme, Syne headings, DM Sans body, and the `#1DB954` green accent.
+
+**Display time zone** preference lives on-device (`UserDefaults`) and only changes how Recently Played timestamps are formatted — it does not rewrite database values.
 
 ---
 
@@ -31,6 +33,7 @@ The Statify iOS app connects to the existing ASP.NET Core backend via REST API, 
 | Auth | ASP.NET Identity via REST · Spotify OAuth (`ASWebAuthenticationSession`) |
 | State Management | `@Observable` / `@StateObject` |
 | Token Storage | Keychain |
+| Preferences | UserDefaults (display time zone) |
 | Minimum Target | iOS 17 |
 
 ---
@@ -43,14 +46,15 @@ Statify iOS
 │   ├── Auth/
 │   │   ├── AuthManager.swift          # Session lifecycle, token refresh
 │   │   └── OAuthHelper.swift          # Spotify OAuth via ASWebAuthenticationSession
-│   └── Network/
-│       ├── APIClient.swift            # URLSession wrapper with JWT injection
-│       └── KeychainManager.swift      # Secure token storage
+│   ├── Network/
+│   │   ├── APIClient.swift            # URLSession wrapper with JWT injection
+│   │   └── KeychainManager.swift      # Secure token storage
+│   └── DisplayTimeZone.swift          # Client-only IANA TZ preference + formatters
 │
 ├── DesignSystem/
-│   ├── AppColors.swift                # Color tokens matching web design system
-│   ├── AppFonts.swift                 # Syne + DM Sans font registration
-│   └── AppStyles.swift                # Shared view modifiers and component styles
+│   ├── AppColors.swift
+│   ├── AppFonts.swift
+│   └── AppStyles.swift
 │
 └── Features/
     ├── Auth/
@@ -58,31 +62,31 @@ Statify iOS
     │   └── RegisterView.swift
     │
     ├── Dashboard/
-    │   ├── DashboardView.swift        # Top tracks, artists, albums
+    │   ├── DashboardView.swift
     │   ├── DashboardViewModel.swift
     │   └── DashboardModels.swift
     │
     ├── RecentlyPlayed/
-    │   ├── RecentlyPlayedView.swift   # Paginated history + search + time filter
+    │   ├── RecentlyPlayedView.swift
     │   ├── RecentlyPlayedViewModel.swift
-    │   └── RecentlyPlayedModels.swift
+    │   └── RecentlyPlayedModels.swift   # Formats playedAt via DisplayTimeZone
     │
     ├── WorldMap/
-    │   ├── WorldMapView.swift         # MapKit + country polygons
+    │   ├── WorldMapView.swift
     │   ├── WorldMapViewModel.swift
     │   └── WorldMapModels.swift
     │
     ├── Settings/
-    │   └── SettingsView.swift         # Profile, email, password, linked accounts
+    │   └── SettingsView.swift           # Profile + display time zone picker
     │
-    └── MainTabView.swift              # Root tab navigation
+    └── MainTabView.swift
 ```
 
 ---
 
 ## Backend Integration
 
-The iOS app connects to the existing ASP.NET Core backend. The following REST endpoints are consumed:
+The iOS app connects to the ASP.NET Core backend. Endpoints consumed:
 
 ```
 POST   /api/auth/login
@@ -99,7 +103,9 @@ GET    /api/settings/export
 DELETE /api/account
 ```
 
-All authenticated requests attach a JWT Bearer token from Keychain. Token refresh is handled transparently by `AuthManager`.
+All authenticated requests attach a JWT Bearer token from Keychain. Token refresh is handled by `AuthManager`.
+
+> **Note:** `POST /api/chat` (Ask Statify + Google Calendar) is currently used by the **web** widget. iOS can call the same endpoint later if/when a mobile chat UI is added.
 
 ---
 
@@ -111,7 +117,7 @@ All authenticated requests attach a JWT Bearer token from Keychain. Token refres
 | Google / GitHub OAuth | ✅ | — |
 | Dashboard — top tracks, artists, albums | ✅ | ✅ |
 | Listening by hour chart | ✅ | ✅ |
-| Activity heatmap by month | ✅ | ✅ |
+| Activity by month | ✅ | ✅ |
 | Recently Played — paginated history | ✅ | ✅ |
 | Search + time range filter | ✅ | ✅ |
 | World Map — artist origins | ✅ | ✅ |
@@ -120,6 +126,23 @@ All authenticated requests attach a JWT Bearer token from Keychain. Token refres
 | Linked accounts | ✅ | ✅ |
 | GDPR data export | ✅ | ✅ |
 | Account deletion | ✅ | ✅ |
+| Display time zone preference | ✅ | ✅ |
+| Ask Statify chat + Google Calendar | ✅ | — |
+
+---
+
+## Display time zone
+
+| Detail | Behavior |
+|---|---|
+| Where | Settings → **Display preferences → Time zone** |
+| Storage | `UserDefaults` key `statify.displayTimeZone` |
+| Effect | Recently Played formatting via `DisplayTimeZone.formatPlayedAt` |
+| Pool | Curated IANA list (Toronto, Cairo, London, …) + device zone if missing |
+
+Same idea as web: **display only** — DB / pipeline values stay unchanged.
+
+If Xcode does not auto-include new files, ensure `Core/DisplayTimeZone.swift` is in the Statify app target.
 
 ---
 
@@ -138,12 +161,11 @@ cd ios
 open StatifyiOS/Statify.xcodeproj
 ```
 
-Configure the backend base URL in `APIClient.swift`:
+Configure the backend base URL (see `AppConfig.swift` / `APIClient.swift`):
 
 ```swift
-private let baseURL = "https://spotifystatistics-production.up.railway.app"
-// or for local development:
-// private let baseURL = "http://localhost:5000"
+// production example
+https://spotifystatistics-production.up.railway.app
 ```
 
 Build and run on your simulator or device.

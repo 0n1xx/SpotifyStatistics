@@ -19,6 +19,8 @@ Statify is an end-to-end analytics platform that continuously ingests your Spoti
 
 The data pipeline runs every **30 minutes**, pulling the latest 50 played tracks per user via the Spotify API, resolving artist origins through MusicBrainz, and distributing records across two purpose-built databases — **PostgreSQL** for fast analytic queries (Superset) and **SQL Server** for the web application layer.
 
+On top of that, **Ask Statify** is a floating chat assistant that answers questions about the *current* user's profile and listening stats (from SQL Server) and their Google Calendar schedule — without ever exposing another user's data.
+
 ---
 
 ## Architecture
@@ -36,9 +38,26 @@ Apache Airflow  ─────────────────────�
                                     │
                                     ▼
                          ASP.NET Core Web App
+                         ├── Dashboard / History / Map / Settings
+                         ├── Ask Statify chat (OpenAI)
+                         │     ├── UserProfiles + music_history (SQL Server)
+                         │     └── Google Calendar API (read-only)
+                         └── REST API for iOS
                                     │
                                     ▼
                             iOS App (Swift)
+```
+
+**Ask Statify flow (important):** ChatGPT does **not** connect to your database or Google directly. The ASP.NET backend authenticates the user, loads **only their** data, builds a text context, then sends that context + the question to OpenAI.
+
+```
+Browser chat widget
+    → POST /api/chat (cookie auth)
+    → ChatController (UserId from claims)
+    → SQL Server (profile + listening stats)
+    → Google Calendar (only if the question is schedule-related)
+    → OpenAI Chat Completions
+    → JSON { reply } → widget
 ```
 
 ---
@@ -47,7 +66,7 @@ Apache Airflow  ─────────────────────�
 
 ```
 Statify/
-├── web/                 # ASP.NET Core (C#) — Razor Pages web application
+├── web/                 # ASP.NET Core (C#) — Razor Pages web application + chat API
 ├── data_component/      # Python — Apache Airflow DAG + custom Docker image
 ├── ios/                 # Swift — native iOS companion app
 └── README.md
@@ -80,6 +99,8 @@ Statify/
 | ORM | Entity Framework Core |
 | Frontend | Vanilla JS · Custom CSS |
 | Maps | D3.js |
+| AI chat | OpenAI `gpt-4o-mini` via `/api/chat` |
+| Calendar | Google Calendar API (read-only, per-user OAuth tokens) |
 | Email | Resend API (`noreply@statify.one`) |
 
 ### iOS
@@ -99,12 +120,23 @@ Statify/
 
 ### Web Application
 
-| Page | Description |
+| Page / Feature | Description |
 |---|---|
-| **Dashboard** | Top tracks, artists, albums · listening by hour · activity heatmap by month |
-| **Recently Played** | Paginated full history with search and time range filter |
+| **Dashboard** | Top tracks, artists, albums · listening by hour · activity by month |
+| **Recently Played** | Paginated full history with search |
 | **World Map** | D3.js visualization — artist origins plotted by country |
-| **Settings** | Profile photo · email · password · linked accounts · GDPR data export |
+| **Settings** | Profile · linked accounts · **display time zone** (client-only) · GDPR export |
+| **Ask Statify** | Floating chat: profile + listening stats from SQL Server; schedule from Google Calendar |
+
+### Ask Statify (chat)
+
+| Capability | Details |
+|---|---|
+| Auth | Only logged-in users (`[Authorize]`); `UserId` always from identity claims |
+| Spotify / profile | Answers using **this user's** `UserProfiles` + `music_history` only |
+| Privacy | Refuses questions about other users — foreign rows never enter the prompt |
+| Google Calendar | Read-only events for the Google account used to sign in; tokens stored in `GoogleCalendarTokens` |
+| General knowledge | Can answer general music questions like ChatGPT when not user-specific |
 
 ### Admin Dashboard (Superset)
 
@@ -136,6 +168,14 @@ Consistent visual identity across web and iOS:
 
 ---
 
+## Display time zones
+
+Pipeline timestamps remain stable in the database. Users can pick a **display time zone** in Settings (web `localStorage` / iOS `UserDefaults`) so Recently Played times look correct for Toronto, Cairo, etc. **without rewriting stored rows**.
+
+Separately, the Airflow DAG can convert ingest `played_at`/`date` with `HISTORY_TIMEZONE` and optional `HISTORY_TIMEZONE_BY_USER` (see [`data_component/README.md`](./data_component/README.md)).
+
+---
+
 ## Roadmap
 
 - [x] Airflow pipeline — fetch, enrich, deduplicate, load
@@ -148,14 +188,19 @@ Consistent visual identity across web and iOS:
 - [x] iOS app — Phase 1: Auth + Dashboard
 - [x] iOS app — Phase 2: Recently Played + World Map
 - [x] iOS app — Phase 3: Settings + Polish
+- [x] Ask Statify chat — OpenAI + current-user DB context
+- [x] Google Calendar read-only integration for schedule questions
+- [x] Client display time zone preference (web + iOS)
+- [ ] Chat function-calling / tools for on-demand DB + Calendar queries
+- [ ] Calendar FreeBusy (“am I free at 15:00?”) precision answers
 
 ---
 
 ## Modules
 
-- [`data_component/`](./data_component/README.md) — Airflow DAG, setup, and deployment
-- [`web/`](./web/README.md) — ASP.NET Core web app, local setup, and Railway deployment
-- [`ios/`](./ios/README.md) — Swift iOS app, architecture, and build plan
+- [`data_component/`](./data_component/README.md) — Airflow DAG, timezone variables, and deployment
+- [`web/`](./web/README.md) — ASP.NET Core web app, Ask Statify, Google Calendar, Railway
+- [`ios/`](./ios/README.md) — Swift iOS app, architecture, display time zone
 
 ---
 

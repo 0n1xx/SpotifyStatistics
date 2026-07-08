@@ -32,12 +32,14 @@ get_users → fetch_user[] → combine → enrich → load_postgres → fix_arti
 | Task | Description |
 |---|---|
 | `get_users` | Fetches all active users and their Spotify refresh tokens from SQL Server |
-| `fetch_user` | Pulls the last 50 played tracks per user from the Spotify API |
+| `fetch_user` | Pulls the last 50 played tracks per user from the Spotify API (UTC `played_at`) |
 | `combine` | Flattens per-user results into a single unified list |
 | `enrich` | Resolves artist country and city via MusicBrainz API |
-| `load_postgres` | Deduplicates by `played_at + user_id` and inserts new records into PostgreSQL |
+| `load_postgres` | Converts timestamps to user-local TZ, derives `date`, dedupes, inserts into PostgreSQL |
 | `fix_artist_country_conflicts` | Resolves conflicting country data for the same artist using majority vote |
-| `load_mssql` | Appends new Postgres records to SQL Server for the web application layer (deduped — never truncates) |
+| `load_mssql` | Appends new Postgres records to SQL Server for the web app (deduped — never truncates) |
+
+The web/iOS apps and **Ask Statify** chat read listening history from **SQL Server** (`music_history`).
 
 ---
 
@@ -59,14 +61,42 @@ Run `scripts/add_music_history_dedup.sql` on Postgres and MSSQL once to add the 
 
 ---
 
+## Normalization & timezones
+
 All records are normalized at ingest before hitting either database:
 
 - **Artist names** → Title Case (resolves API encoding inconsistencies)
 - **Song / album titles** → lowercase
-- **Timestamps** → UTC converted to each user's local timezone before deriving `date`
-  (`HISTORY_TIMEZONE` default + optional `HISTORY_TIMEZONE_BY_USER` map; prevents off-by-one day bugs for Toronto / Cairo / etc.)
+- **Timestamps** → Spotify returns UTC; before deriving `date`, each row is converted to that user's local timezone
 - **Invalid MusicBrainz country codes** (`XW`) → `unknown`
 - **Country-level `begin_area` values** (not city-level) → `unknown`
+
+### Why timezone matters
+
+Hard-coding `America/Toronto` for every user breaks friends in other regions (e.g. Egypt / `Africa/Cairo`): late-night plays can land on the wrong calendar **day**, which confuses day-level analytics and can interact badly with dedup if keys ever include date.
+
+### Airflow Variables for TZ
+
+| Variable | Description |
+|---|---|
+| `HISTORY_TIMEZONE` | Default IANA zone for users without an override (default `America/Toronto`) |
+| `HISTORY_TIMEZONE_BY_USER` | Optional JSON map `{ "aspNetUserId": "Africa/Cairo", ... }` |
+
+Example `HISTORY_TIMEZONE_BY_USER`:
+
+```json
+{
+  "9659c63c-9d61-4000-b42f-d2d85bb84275": "America/Toronto",
+  "ef9f4d4d-fa7d-4f03-896d-147c4d98ae88": "Africa/Cairo"
+}
+```
+
+User IDs come from SQL Server `UserProfiles` / `AspNetUsers`.
+
+### Display vs ingest
+
+- **Ingest (this DAG):** writes `played_at` / `date` using the rules above.
+- **Display (web/iOS Settings):** client-only preference converts *how timestamps look* without rewriting DB rows. See [`web/README.md`](../web/README.md) and [`ios/README.md`](../ios/README.md).
 
 ---
 
@@ -119,7 +149,7 @@ Airflow will auto-discover the DAG on the next scheduler heartbeat.
 
 ## Airflow Variables
 
-The DAG reads all credentials from **Airflow Variables** (not environment variables). Set these in the Airflow UI under **Admin → Variables**, or via the CLI:
+The DAG reads credentials from **Airflow Variables** (Admin → Variables):
 
 | Variable | Description |
 |---|---|
@@ -128,8 +158,8 @@ The DAG reads all credentials from **Airflow Variables** (not environment variab
 | `VLAD_SPOTIFY_CLIENT_ID` | Spotify Developer App — Client ID |
 | `VLAD_SPOTIFY_SECRET_KEY` | Spotify Developer App — Client Secret |
 | `SERVER_LOOPBACK` | Spotify OAuth redirect URI (must match app settings) |
-| `HISTORY_TIMEZONE` | Default IANA timezone for `played_at`/`date` (default `America/Toronto`) |
-| `HISTORY_TIMEZONE_BY_USER` | Optional JSON map `{ "aspNetUserId": "Africa/Cairo", ... }` for per-user TZ |
+| `HISTORY_TIMEZONE` | Default IANA timezone for `played_at`/`date` |
+| `HISTORY_TIMEZONE_BY_USER` | Optional JSON map of AspNet `UserId` → IANA TZ |
 
 `MSSQL_CONN` example (databaseasp.net — URL-encode `#` → `%23`, `!` → `%21`, `@` → `%40`):
 
