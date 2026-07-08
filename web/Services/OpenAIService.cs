@@ -35,7 +35,21 @@ namespace SpotifyStatisticsWebApp.Services
                 "If a question is about the CURRENT user's personal data (profile, stats, history), use only the provided context; " +
                 "if that context doesn't include the answer, say you don't have that data. " +
                 "Do not invent plays/counts/listening history. " +
-                "Build: chat-general-v1";
+                "Build: chat-general-v1\n\n" +
+                "Examples of questions you can answer using the provided context (user-specific):\n" +
+                "- What's my display name / phone number / email?\n" +
+                "- Am I Spotify connected?\n" +
+                "- How many tracks have I played? Unique artists/albums/countries?\n" +
+                "- Who is my favorite artist? What are my top artists / top tracks / top albums?\n" +
+                "- What are my most recent tracks?\n" +
+                "- What's my favorite album by <artist> (based on my history)?\n" +
+                "- Summarize my listening habits in 1-2 sentences.\n" +
+                "- Compare my top 2 artists.\n\n" +
+                "Examples of questions you can answer with general knowledge (NOT user-specific):\n" +
+                "- Tell me interesting facts about <artist>.\n" +
+                "- What genre is <artist>?\n" +
+                "- Recommend music similar to <artist>.\n\n" +
+                "If the user asks for something user-specific that is not in the provided context, say you don't have that data in Statify yet.";
 
             if (!string.IsNullOrWhiteSpace(profileContext))
                 systemPrompt += "\n\n" + profileContext;

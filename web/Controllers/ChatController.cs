@@ -116,6 +116,14 @@ namespace SpotifyStatisticsWebApp.Controllers
                   GROUP BY artist
                   ORDER BY cnt DESC", userId);
 
+            var topAlbums = await QueryNameCountAsync(conn,
+                @"
+                  SELECT TOP 5 album, COUNT(*) as cnt
+                  FROM dbo.music_history
+                  WHERE user_id = @uid AND album IS NOT NULL
+                  GROUP BY album
+                  ORDER BY cnt DESC", userId);
+
             var topTracks = await QueryNameCountAsync(conn,
                 @"SELECT TOP 5 song + ' — ' + ISNULL(artist, 'unknown'), COUNT(*) as cnt
                   FROM dbo.music_history
@@ -142,6 +150,24 @@ namespace SpotifyStatisticsWebApp.Controllers
                 foreach (var (name, count) in topArtists)
                     sb.AppendLine($"  - {name} ({count} plays)");
 
+            sb.AppendLine("- TopAlbums:");
+            if (topAlbums.Count == 0) sb.AppendLine("  (none)");
+            else
+                foreach (var (name, count) in topAlbums)
+                    sb.AppendLine($"  - {name} ({count} plays)");
+
+            // For the user's top artists, compute their favorite album (within this user's history).
+            // This enables questions like: "what is my favourite album by Drake?"
+            if (topArtists.Count > 0)
+            {
+                sb.AppendLine("- FavoriteAlbumByArtist (computed from YOUR history):");
+                foreach (var (artist, _) in topArtists)
+                {
+                    var favAlbum = await FavoriteAlbumForArtistAsync(conn, userId, artist);
+                    sb.AppendLine($"  - {artist}: {favAlbum}");
+                }
+            }
+
             sb.AppendLine("- TopTracks:");
             if (topTracks.Count == 0) sb.AppendLine("  (none)");
             else
@@ -155,6 +181,26 @@ namespace SpotifyStatisticsWebApp.Controllers
                     sb.AppendLine($"  - {name}");
 
             return sb.ToString();
+        }
+
+        private static async Task<string> FavoriteAlbumForArtistAsync(SqlConnection conn, string userId, string artist)
+        {
+            await using var cmd = new SqlCommand(@"
+                SELECT TOP 1 album, COUNT(*) as cnt
+                FROM dbo.music_history
+                WHERE user_id = @uid AND artist = @artist AND album IS NOT NULL
+                GROUP BY album
+                ORDER BY cnt DESC", conn);
+            cmd.Parameters.AddWithValue("@uid", userId);
+            cmd.Parameters.AddWithValue("@artist", artist);
+
+            await using var reader = await cmd.ExecuteReaderAsync();
+            if (!await reader.ReadAsync())
+                return "(no album data)";
+
+            var album = reader.GetString(0);
+            var cnt = reader.GetInt32(1);
+            return $"{album} ({cnt} plays)";
         }
 
         private static async Task<T> ScalarAsync<T>(SqlConnection conn, string sql, string userId)
