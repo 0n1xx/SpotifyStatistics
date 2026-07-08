@@ -57,10 +57,20 @@ builder.Services.AddAuthentication(options =>
 
     // Force refresh_token to be issued (Google issues it only on first consent).
     options.AccessType = "offline";
-    options.Prompt = "consent";
 
     options.Events = new OAuthEvents
     {
+        OnRedirectToAuthorizationEndpoint = context =>
+        {
+            // Google-specific query params:
+            // - prompt=consent helps re-trigger consent screen
+            // - access_type=offline is needed for refresh_token
+            // Note: Google may still not re-issue refresh_token if it was already granted.
+            var uri = context.RedirectUri;
+            var sep = uri.Contains('?') ? "&" : "?";
+            context.Response.Redirect(uri + sep + "prompt=consent&access_type=offline");
+            return Task.CompletedTask;
+        },
         OnCreatingTicket = async context =>
         {
             // Persist tokens per logged-in user so chat can read their calendar.
@@ -70,7 +80,7 @@ builder.Services.AddAuthentication(options =>
 
             var accessToken = context.AccessToken;
             var refreshToken = context.RefreshToken; // may be null if Google didn't re-issue it
-            var expiresAtUtc = DateTime.UtcNow.AddSeconds(context.ExpiresIn ?? 0);
+            var expiresAtUtc = DateTime.UtcNow.Add(context.ExpiresIn ?? TimeSpan.Zero);
 
             var db = context.HttpContext.RequestServices.GetRequiredService<ApplicationDbContext>();
             var existing = await db.GoogleCalendarTokens.FirstOrDefaultAsync(t => t.UserId == userId);
