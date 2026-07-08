@@ -18,32 +18,46 @@ namespace SpotifyStatisticsWebApp.Services
             _config = config;
         }
 
-        public async Task<string> GetUpcomingSummaryAsync(string userId, int maxEvents = 5, string? sharedCalendarName = null)
+        // Reads events from ALL calendars visible to this Google account
+        // (primary, Vlad & Temi, Tasks, AVT, etc.), not just one calendar.
+        public async Task<string> GetUpcomingSummaryAsync(
+            string userId,
+            int maxEvents = 15,
+            string? preferredSharedCalendarName = "Vlad & Temi")
         {
-            // Ensure we have a valid access token for this user
             var token = await GetOrRefreshTokenAsync(userId);
             if (token == null)
                 return "Google Calendar is not connected for this account yet. Log out and sign in with Google again to grant calendar access.";
 
-            var timeMin = Uri.EscapeDataString(DateTime.UtcNow.ToString("o"));
-            var sources = new List<(string CalendarId, string Label)>
-            {
-                ("primary", "Primary")
-            };
+            // Use a daytime window that includes events already in progress.
+            // timeMin = start of today (local Eastern), timeMax = +7 days.
+            var eastern = GetEasternNow();
+            var dayStartLocal = eastern.Date;
+            var windowEndLocal = dayStartLocal.AddDays(7);
 
-            if (!string.IsNullOrWhiteSpace(sharedCalendarName))
-            {
-                var sharedId = await FindCalendarIdByNameAsync(token.AccessToken!, sharedCalendarName);
-                if (!string.IsNullOrWhiteSpace(sharedId))
-                    sources.Add((sharedId, sharedCalendarName));
-            }
+            var timeMin = Uri.EscapeDataString(ToUtcIso(dayStartLocal));
+            var timeMax = Uri.EscapeDataString(ToUtcIso(windowEndLocal));
 
-            var allEvents = new List<(string Start, string End, string Summary, string Source)>();
+            var sources = await ListCalendarsAsync(token.AccessToken!);
+            if (sources.Count == 0)
+                return "Google Calendar: no calendars found on this account.";
+
+            // Prefer putting shared calendar first in labels (optional aesthetic).
+            sources = sources
+                .OrderByDescending(c =>
+                    preferredSharedCalendarName != null &&
+                    string.Equals(c.Label, preferredSharedCalendarName, StringComparison.OrdinalIgnoreCase))
+                .ThenBy(c => c.Label)
+                .ToList();
+
+            var allEvents = new List<(DateTimeOffset SortKey, string Start, string End, string Summary, string Source)>();
+            var errors = new List<string>();
+
             foreach (var (calendarId, label) in sources)
             {
                 var url =
                     $"https://www.googleapis.com/calendar/v3/calendars/{Uri.EscapeDataString(calendarId)}/events" +
-                    $"?timeMin={timeMin}" +
+                    $"?timeMin={timeMin}&timeMax={timeMax}" +
                     "&singleEvents=true&orderBy=startTime" +
                     $"&maxResults={maxEvents}";
 
@@ -54,62 +68,163 @@ namespace SpotifyStatisticsWebApp.Services
                 var json = await resp.Content.ReadAsStringAsync();
 
                 if (!resp.IsSuccessStatusCode)
-                    return $"Google Calendar API error: {(int)resp.StatusCode}";
+                {
+                    errors.Add($"{label}: HTTP {(int)resp.StatusCode}");
+                    continue;
+                }
 
                 using var doc = JsonDocument.Parse(json);
-                var items = doc.RootElement.TryGetProperty("items", out var arr) ? arr : default;
-                if (items.ValueKind != JsonValueKind.Array) continue;
+                if (!doc.RootElement.TryGetProperty("items", out var items) ||
+                    items.ValueKind != JsonValueKind.Array)
+                    continue;
 
                 foreach (var ev in items.EnumerateArray())
                 {
-                    var summary = ev.TryGetProperty("summary", out var s) ? s.GetString() : "(no title)";
+                    var summary = ev.TryGetProperty("summary", out var s)
+                        ? (s.GetString() ?? "(no title)")
+                        : "(no title)";
                     var start = ReadEventDateTime(ev, "start");
                     var end = ReadEventDateTime(ev, "end");
-                    allEvents.Add((start, end, summary ?? "(no title)", label));
+                    var sortKey = ParseSortKey(start);
+                    allEvents.Add((sortKey, start, end, summary, label));
                 }
             }
 
             if (allEvents.Count == 0)
-                return "Google Calendar: no upcoming events found.";
+            {
+                var err = errors.Count > 0 ? " Errors: " + string.Join("; ", errors) : "";
+                return "Google Calendar: no upcoming events found." + err;
+            }
 
-            // Sort by start (string ISO) and take top N
+            var todayLocal = eastern.Date;
+            var todayEvents = allEvents
+                .Where(e => IsSameLocalDay(e.SortKey, todayLocal))
+                .OrderBy(e => e.SortKey)
+                .ToList();
+
             var upcoming = allEvents
-                .OrderBy(e => e.Start)
+                .OrderBy(e => e.SortKey)
                 .Take(maxEvents)
                 .ToList();
 
             var sb = new StringBuilder();
-            sb.AppendLine("Google Calendar (upcoming events):");
+            sb.AppendLine($"Google Calendar connected. Local date now: {eastern:yyyy-MM-dd HH:mm} (Eastern).");
+            sb.AppendLine($"Calendars read: {string.Join(", ", sources.Select(x => x.Label))}");
+
+            sb.AppendLine("Today's events/tasks:");
+            if (todayEvents.Count == 0)
+            {
+                sb.AppendLine("  (none found for today)");
+            }
+            else
+            {
+                foreach (var ev in todayEvents)
+                    sb.AppendLine($"  - [{ev.Source}] {ev.Summary} — {ev.Start} to {ev.End}");
+            }
+
+            sb.AppendLine("Upcoming (next days):");
             foreach (var ev in upcoming)
-                sb.AppendLine($"- [{ev.Source}] {ev.Summary} — {ev.Start} to {ev.End}");
+                sb.AppendLine($"  - [{ev.Source}] {ev.Summary} — {ev.Start} to {ev.End}");
+
+            if (errors.Count > 0)
+                sb.AppendLine("Partial calendar errors: " + string.Join("; ", errors));
 
             return sb.ToString();
         }
 
-        private async Task<string?> FindCalendarIdByNameAsync(string accessToken, string calendarName)
+        private async Task<List<(string CalendarId, string Label)>> ListCalendarsAsync(string accessToken)
         {
-            // List calendars visible to this account and match by summary (display name)
-            using var req = new HttpRequestMessage(HttpMethod.Get, "https://www.googleapis.com/calendar/v3/users/me/calendarList");
+            using var req = new HttpRequestMessage(
+                HttpMethod.Get,
+                "https://www.googleapis.com/calendar/v3/users/me/calendarList?maxResults=50");
             req.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
 
             using var resp = await _http.SendAsync(req);
             var json = await resp.Content.ReadAsStringAsync();
-            if (!resp.IsSuccessStatusCode) return null;
+            if (!resp.IsSuccessStatusCode) return new List<(string, string)>();
 
             using var doc = JsonDocument.Parse(json);
             if (!doc.RootElement.TryGetProperty("items", out var items) || items.ValueKind != JsonValueKind.Array)
-                return null;
+                return new List<(string, string)>();
 
+            var list = new List<(string, string)>();
             foreach (var item in items.EnumerateArray())
             {
+                // Skip calendars user has hidden in Google Calendar UI if marked selected=false
+                if (item.TryGetProperty("selected", out var selected) &&
+                    selected.ValueKind == JsonValueKind.False)
+                    continue;
+
+                var id = item.TryGetProperty("id", out var idEl) ? idEl.GetString() : null;
                 var summary = item.TryGetProperty("summary", out var s) ? s.GetString() : null;
-                if (string.Equals(summary, calendarName, StringComparison.OrdinalIgnoreCase))
-                {
-                    return item.TryGetProperty("id", out var id) ? id.GetString() : null;
-                }
+                if (string.IsNullOrWhiteSpace(id)) continue;
+                list.Add((id, string.IsNullOrWhiteSpace(summary) ? id : summary!));
             }
 
-            return null;
+            return list;
+        }
+
+        private static DateTime GetEasternNow()
+        {
+            try
+            {
+                var tz = TimeZoneInfo.FindSystemTimeZoneById("America/Toronto");
+                return TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, tz);
+            }
+            catch
+            {
+                try
+                {
+                    var tz = TimeZoneInfo.FindSystemTimeZoneById("Eastern Standard Time");
+                    return TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, tz);
+                }
+                catch
+                {
+                    return DateTime.UtcNow.AddHours(-4);
+                }
+            }
+        }
+
+        private static string ToUtcIso(DateTime localEasternUnspecified)
+        {
+            try
+            {
+                TimeZoneInfo tz;
+                try { tz = TimeZoneInfo.FindSystemTimeZoneById("America/Toronto"); }
+                catch { tz = TimeZoneInfo.FindSystemTimeZoneById("Eastern Standard Time"); }
+
+                var utc = TimeZoneInfo.ConvertTimeToUtc(
+                    DateTime.SpecifyKind(localEasternUnspecified, DateTimeKind.Unspecified), tz);
+                return utc.ToString("o");
+            }
+            catch
+            {
+                return DateTime.SpecifyKind(localEasternUnspecified, DateTimeKind.Utc).ToString("o");
+            }
+        }
+
+        private static DateTimeOffset ParseSortKey(string start)
+        {
+            if (DateTimeOffset.TryParse(start, out var dto)) return dto;
+            if (DateTime.TryParse(start, out var d))
+                return new DateTimeOffset(DateTime.SpecifyKind(d, DateTimeKind.Utc));
+            return DateTimeOffset.MaxValue;
+        }
+
+        private static bool IsSameLocalDay(DateTimeOffset start, DateTime todayLocalDate)
+        {
+            try
+            {
+                TimeZoneInfo tz;
+                try { tz = TimeZoneInfo.FindSystemTimeZoneById("America/Toronto"); }
+                catch { tz = TimeZoneInfo.FindSystemTimeZoneById("Eastern Standard Time"); }
+                var local = TimeZoneInfo.ConvertTime(start, tz).Date;
+                return local == todayLocalDate.Date;
+            }
+            catch
+            {
+                return start.Date == todayLocalDate.Date;
+            }
         }
 
         private static string ReadEventDateTime(JsonElement ev, string prop)
@@ -127,14 +242,12 @@ namespace SpotifyStatisticsWebApp.Services
             var stored = await LoadTokenAsync(userId);
             if (stored == null) return null;
 
-            // if still valid for 2 minutes, use it
             if (!string.IsNullOrWhiteSpace(stored.AccessToken) &&
                 stored.ExpiresAtUtc > DateTime.UtcNow.AddMinutes(2))
                 return stored;
 
-            // refresh if possible
             if (string.IsNullOrWhiteSpace(stored.RefreshToken))
-                return stored; // can't refresh; caller may get 401 and need re-consent
+                return stored;
 
             var refreshed = await RefreshAsync(stored.RefreshToken);
             if (refreshed == null) return stored;
@@ -232,4 +345,3 @@ namespace SpotifyStatisticsWebApp.Services
         }
     }
 }
-

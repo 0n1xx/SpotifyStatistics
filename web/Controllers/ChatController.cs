@@ -79,11 +79,12 @@ namespace SpotifyStatisticsWebApp.Controllers
                 $"- DisplayName: {profile?.DisplayName ?? "not set"}\n" +
                 $"- PhoneNumber: {profile?.PhoneNumber ?? "not set"}\n" +
                 "\n" + listeningContext + "\n" +
-                (IsCalendarQuestion(request.Message) ? ("\n" + await _calendar.GetUpcomingSummaryAsync(userId, sharedCalendarName: "Vlad & Temi") + "\n") : "") +
+                (IsCalendarQuestion(request.Message) ? ("\n" + await _calendar.GetUpcomingSummaryAsync(userId, preferredSharedCalendarName: "Vlad & Temi") + "\n") : "") +
                 "Rules:\n" +
                 "- Answer ONLY about THIS user using the data above.\n" +
                 "- If asked about another user (any other name, email, or id), refuse.\n" +
                 "- If the listening data is empty, say you have no listening history for this account yet.\n" +
+                "- For calendar/schedule questions, use ONLY the Google Calendar section provided above.\n" +
                 "- Do not invent artists, tracks, or counts that are not listed above.";
 
             var reply = await _openAI.AskAsync(
@@ -98,7 +99,9 @@ namespace SpotifyStatisticsWebApp.Controllers
             var m = message.ToLowerInvariant();
             return m.Contains("calendar") || m.Contains("availability") || m.Contains("available")
                 || m.Contains("free today") || m.Contains("am i free") || m.Contains("meeting")
-                || m.Contains("schedule") || m.Contains("busy");
+                || m.Contains("schedule") || m.Contains("busy") || m.Contains("event")
+                || m.Contains("today") || m.Contains("task") || m.Contains("tutoring")
+                || m.Contains("what do i have") || m.Contains("what's on");
         }
 
         // Builds a short text summary of THIS user's Spotify stats for ChatGPT.
