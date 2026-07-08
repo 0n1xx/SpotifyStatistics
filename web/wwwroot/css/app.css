@@ -586,6 +586,8 @@ body.sidebar-open #hamburger-btn {
     border-radius: 12px;
     font-size: 13px;
     line-height: 1.4;
+    white-space: pre-wrap; /* keep newlines for nicer list formatting */
+    word-break: break-word;
 }
 
 .chat-msg--bot {
