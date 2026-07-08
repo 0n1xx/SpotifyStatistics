@@ -62,48 +62,15 @@ builder.Services.AddAuthentication(options =>
     {
         OnRedirectToAuthorizationEndpoint = context =>
         {
-            // Google-specific query params:
-            // - prompt=consent helps re-trigger consent screen
-            // Note: access_type=offline is already set via options.AccessType above.
-            // Note: Google may still not re-issue refresh_token if it was already granted.
+            // Force consent so calendar scope is granted again after we added it.
+            // access_type=offline already set via options.AccessType.
             var uri = context.RedirectUri;
             var sep = uri.Contains('?') ? "&" : "?";
             context.Response.Redirect(uri + sep + "prompt=consent");
             return Task.CompletedTask;
-        },
-        OnCreatingTicket = async context =>
-        {
-            // Persist tokens per logged-in user so chat can read their calendar.
-            // This stores ONLY the current user's tokens (no cross-user access).
-            var userId = context.Principal?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-            if (string.IsNullOrWhiteSpace(userId)) return;
-
-            var accessToken = context.AccessToken;
-            var refreshToken = context.RefreshToken; // may be null if Google didn't re-issue it
-            var expiresAtUtc = DateTime.UtcNow.Add(context.ExpiresIn ?? TimeSpan.Zero);
-
-            var db = context.HttpContext.RequestServices.GetRequiredService<ApplicationDbContext>();
-            var existing = await db.GoogleCalendarTokens.FirstOrDefaultAsync(t => t.UserId == userId);
-            if (existing != null)
-            {
-                existing.AccessToken = accessToken;
-                if (!string.IsNullOrWhiteSpace(refreshToken))
-                    existing.RefreshToken = refreshToken;
-                existing.ExpiresAtUtc = expiresAtUtc;
-            }
-            else
-            {
-                db.GoogleCalendarTokens.Add(new GoogleCalendarToken
-                {
-                    UserId = userId,
-                    AccessToken = accessToken,
-                    RefreshToken = refreshToken,
-                    ExpiresAtUtc = expiresAtUtc
-                });
-            }
-
-            await db.SaveChangesAsync();
         }
+        // Tokens are saved AFTER Identity login in ExternalLogin.cshtml.cs
+        // (here NameIdentifier is still Google's id, not AspNetUsers.Id).
     };
 })
 .AddGitHub(options =>

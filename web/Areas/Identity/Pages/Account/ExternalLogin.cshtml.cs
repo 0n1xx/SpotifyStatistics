@@ -17,6 +17,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.Extensions.Logging;
+using SpotifyStatisticsWebApp.Data;
 using SpotifyStatisticsWebApp.Services;
 
 namespace SpotifyStatisticsWebApp.Areas.Identity.Pages.Account
@@ -31,6 +32,7 @@ namespace SpotifyStatisticsWebApp.Areas.Identity.Pages.Account
         private readonly IEmailSender _emailSender;
         private readonly ILogger<ExternalLoginModel> _logger;
         private readonly JwtService _jwt;
+        private readonly ApplicationDbContext _db;
 
         public ExternalLoginModel(
             SignInManager<IdentityUser> signInManager,
@@ -38,7 +40,8 @@ namespace SpotifyStatisticsWebApp.Areas.Identity.Pages.Account
             IUserStore<IdentityUser> userStore,
             ILogger<ExternalLoginModel> logger,
             IEmailSender emailSender,
-            JwtService jwt)
+            JwtService jwt,
+            ApplicationDbContext db)
         {
             _signInManager = signInManager;
             _userManager = userManager;
@@ -47,6 +50,7 @@ namespace SpotifyStatisticsWebApp.Areas.Identity.Pages.Account
             _logger = logger;
             _emailSender = emailSender;
             _jwt = jwt;
+            _db = db;
         }
 
         /// <summary>
@@ -121,6 +125,9 @@ namespace SpotifyStatisticsWebApp.Areas.Identity.Pages.Account
             if (result.Succeeded)
             {
                 _logger.LogInformation("{Name} logged in with {LoginProvider} provider.", info.Principal.Identity.Name, info.LoginProvider);
+
+                // Save Google Calendar tokens under AspNetUsers.Id (not Google subject id).
+                await SaveGoogleCalendarTokensIfNeededAsync(info);
 
                 // Mobile OAuth flow — return JWT via deep-link instead of cookie redirect
                 if (mobile)
@@ -202,6 +209,7 @@ namespace SpotifyStatisticsWebApp.Areas.Identity.Pages.Account
                         }
 
                         await _signInManager.SignInAsync(user, isPersistent: false, info.LoginProvider);
+                        await SaveGoogleCalendarTokensIfNeededAsync(info, user.Id);
                         return LocalRedirect(returnUrl);
                     }
                 }
@@ -214,6 +222,46 @@ namespace SpotifyStatisticsWebApp.Areas.Identity.Pages.Account
             ProviderDisplayName = info.ProviderDisplayName;
             ReturnUrl = returnUrl;
             return Page();
+        }
+
+        private async Task SaveGoogleCalendarTokensIfNeededAsync(ExternalLoginInfo info, string knownUserId = null)
+        {
+            if (!string.Equals(info.LoginProvider, "Google", StringComparison.OrdinalIgnoreCase))
+                return;
+
+            var tokens = info.AuthenticationTokens?.ToList();
+            if (tokens == null || tokens.Count == 0)
+                return;
+
+            var accessToken = tokens.FirstOrDefault(t => t.Name == "access_token")?.Value;
+            var refreshToken = tokens.FirstOrDefault(t => t.Name == "refresh_token")?.Value;
+            var expiresAtRaw = tokens.FirstOrDefault(t => t.Name == "expires_at")?.Value;
+
+            var identityUserId = knownUserId;
+            if (string.IsNullOrWhiteSpace(identityUserId))
+            {
+                var email = info.Principal.FindFirstValue(ClaimTypes.Email);
+                if (string.IsNullOrWhiteSpace(email)) return;
+                var user = await _userManager.FindByEmailAsync(email);
+                identityUserId = user?.Id;
+            }
+
+            if (string.IsNullOrWhiteSpace(identityUserId) || string.IsNullOrWhiteSpace(accessToken))
+                return;
+
+            DateTime expiresAtUtc = DateTime.UtcNow.AddHours(1);
+            if (!string.IsNullOrWhiteSpace(expiresAtRaw) &&
+                DateTimeOffset.TryParse(expiresAtRaw, out var parsed))
+            {
+                expiresAtUtc = parsed.UtcDateTime;
+            }
+
+            await GoogleCalendarTokenStore.UpsertAsync(
+                _db,
+                identityUserId,
+                accessToken,
+                refreshToken,
+                expiresAtUtc);
         }
 
         private IdentityUser CreateUser()
