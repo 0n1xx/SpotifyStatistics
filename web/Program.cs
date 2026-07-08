@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authentication.OAuth;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Identity;
@@ -48,6 +49,52 @@ builder.Services.AddAuthentication(options =>
 {
     options.ClientId = builder.Configuration["Authentication:Google:ClientId"];
     options.ClientSecret = builder.Configuration["Authentication:Google:ClientSecret"];
+
+    // Google Calendar integration (read-only).
+    // We request offline access so we can refresh tokens server-side.
+    options.Scope.Add("https://www.googleapis.com/auth/calendar.readonly");
+    options.SaveTokens = true;
+
+    // Force refresh_token to be issued (Google issues it only on first consent).
+    options.AccessType = "offline";
+    options.Prompt = "consent";
+
+    options.Events = new OAuthEvents
+    {
+        OnCreatingTicket = async context =>
+        {
+            // Persist tokens per logged-in user so chat can read their calendar.
+            // This stores ONLY the current user's tokens (no cross-user access).
+            var userId = context.Principal?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrWhiteSpace(userId)) return;
+
+            var accessToken = context.AccessToken;
+            var refreshToken = context.RefreshToken; // may be null if Google didn't re-issue it
+            var expiresAtUtc = DateTime.UtcNow.AddSeconds(context.ExpiresIn ?? 0);
+
+            var db = context.HttpContext.RequestServices.GetRequiredService<ApplicationDbContext>();
+            var existing = await db.GoogleCalendarTokens.FirstOrDefaultAsync(t => t.UserId == userId);
+            if (existing != null)
+            {
+                existing.AccessToken = accessToken;
+                if (!string.IsNullOrWhiteSpace(refreshToken))
+                    existing.RefreshToken = refreshToken;
+                existing.ExpiresAtUtc = expiresAtUtc;
+            }
+            else
+            {
+                db.GoogleCalendarTokens.Add(new GoogleCalendarToken
+                {
+                    UserId = userId,
+                    AccessToken = accessToken,
+                    RefreshToken = refreshToken,
+                    ExpiresAtUtc = expiresAtUtc
+                });
+            }
+
+            await db.SaveChangesAsync();
+        }
+    };
 })
 .AddGitHub(options =>
 {
@@ -91,6 +138,9 @@ builder.Services.AddDistributedMemoryCache();
 // The API key should be provided as Railway variable OpenAI__ApiKey.
 builder.Services.AddHttpClient<OpenAIService>();
 
+// Google Calendar (read-only) service
+builder.Services.AddHttpClient<GoogleCalendarService>();
+
 // Email sender — Resend API (key: Railway → Variables → RESEND_API_KEY)
 builder.Services.AddTransient<IEmailSender, ResendEmailSender>();
 
@@ -121,6 +171,20 @@ using (var scope = app.Services.CreateScope())
             db.Database.ExecuteSqlRaw(@"
                 IF COL_LENGTH('UserProfiles', 'DisplayName') IS NULL
                     ALTER TABLE UserProfiles ADD DisplayName NVARCHAR(100) NULL;
+            ");
+
+            // Google Calendar tokens table (if not using migrations)
+            db.Database.ExecuteSqlRaw(@"
+                IF OBJECT_ID('dbo.GoogleCalendarTokens', 'U') IS NULL
+                BEGIN
+                    CREATE TABLE dbo.GoogleCalendarTokens (
+                        Id INT IDENTITY(1,1) NOT NULL PRIMARY KEY,
+                        UserId NVARCHAR(450) NULL,
+                        AccessToken NVARCHAR(MAX) NULL,
+                        RefreshToken NVARCHAR(MAX) NULL,
+                        ExpiresAtUtc DATETIME2 NOT NULL
+                    );
+                END
             ");
             break;
         }

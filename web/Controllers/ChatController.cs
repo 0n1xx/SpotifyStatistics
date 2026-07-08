@@ -21,17 +21,20 @@ namespace SpotifyStatisticsWebApp.Controllers
         private readonly ApplicationDbContext _db;
         private readonly UserManager<IdentityUser> _userManager;
         private readonly IConfiguration _config;
+        private readonly GoogleCalendarService _calendar;
 
         public ChatController(
             OpenAIService openAI,
             ApplicationDbContext db,
             UserManager<IdentityUser> userManager,
-            IConfiguration config)
+            IConfiguration config,
+            GoogleCalendarService calendar)
         {
             _openAI = openAI;
             _db = db;
             _userManager = userManager;
             _config = config;
+            _calendar = calendar;
         }
 
         public class ChatRequest
@@ -76,6 +79,7 @@ namespace SpotifyStatisticsWebApp.Controllers
                 $"- DisplayName: {profile?.DisplayName ?? "not set"}\n" +
                 $"- PhoneNumber: {profile?.PhoneNumber ?? "not set"}\n" +
                 "\n" + listeningContext + "\n" +
+                (IsCalendarQuestion(request.Message) ? ("\n" + await _calendar.GetUpcomingSummaryAsync(userId, sharedCalendarName: "Vlad & Temi") + "\n") : "") +
                 "Rules:\n" +
                 "- Answer ONLY about THIS user using the data above.\n" +
                 "- If asked about another user (any other name, email, or id), refuse.\n" +
@@ -87,6 +91,14 @@ namespace SpotifyStatisticsWebApp.Controllers
                 profileContext: profileContext);
 
             return Ok(new ChatResponse { Reply = reply });
+        }
+
+        private static bool IsCalendarQuestion(string message)
+        {
+            var m = message.ToLowerInvariant();
+            return m.Contains("calendar") || m.Contains("availability") || m.Contains("available")
+                || m.Contains("free today") || m.Contains("am i free") || m.Contains("meeting")
+                || m.Contains("schedule") || m.Contains("busy");
         }
 
         // Builds a short text summary of THIS user's Spotify stats for ChatGPT.

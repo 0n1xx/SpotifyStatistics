@@ -12,5 +12,6 @@ public class ApplicationDbContext : IdentityDbContext, IDataProtectionKeyContext
 
     public DbSet<DataProtectionKey> DataProtectionKeys { get; set; }
     public DbSet<SpotifyToken> SpotifyTokens { get; set; }
+    public DbSet<GoogleCalendarToken> GoogleCalendarTokens { get; set; }
     public DbSet<UserProfile> UserProfiles { get; set; }
 }
