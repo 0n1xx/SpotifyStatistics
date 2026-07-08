@@ -147,6 +147,7 @@ Authentication__GitHub__ClientSecret
 Spotify__ClientId
 Spotify__ClientSecret
 Spotify__RedirectUri                       # e.g. https://localhost:5001/spotify/callback
+OpenAI__ApiKey                             # OpenAI key for the Ask Statify chat widget
 RESEND_API_KEY
 JWT_SECRET                                 # Used for iOS API JWT tokens
 ```

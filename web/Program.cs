@@ -86,6 +86,11 @@ builder.Services.AddHttpClient();
 builder.Services.AddScoped<SpotifyStatisticsWebApp.Services.JwtService>();
 builder.Services.AddDistributedMemoryCache();
 
+// Ask Statify chat
+// Registers OpenAIService so ChatController can call OpenAI via DI.
+// The API key should be provided as Railway variable OpenAI__ApiKey.
+builder.Services.AddHttpClient<OpenAIService>();
+
 // Email sender — Resend API (key: Railway → Variables → RESEND_API_KEY)
 builder.Services.AddTransient<IEmailSender, ResendEmailSender>();
 
