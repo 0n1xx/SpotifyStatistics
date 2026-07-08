@@ -196,6 +196,27 @@
         </article>
     </section>
 
+    @* ── Display preferences (client-only; does not change DB timestamps) ── *@
+    <section class="settings-section" aria-labelledby="prefs-heading">
+        <h2 id="prefs-heading" class="section-title">Display preferences</h2>
+        <article class="setting-card">
+            <div class="setting-row">
+                <div class="setting-info">
+                    <p class="setting-label">Time zone</p>
+                    <p class="setting-desc">
+                        How play times are shown on this device. Data in the database stays unchanged —
+                        this only affects display (e.g. Egypt vs Toronto).
+                    </p>
+                </div>
+                <div class="setting-actions">
+                    <select class="input-field" id="timezone-select" aria-label="Display time zone"></select>
+                    <button class="btn btn-green" type="button" id="timezone-save-btn">Save</button>
+                    <span id="timezone-save-status" class="save-status is-hidden"></span>
+                </div>
+            </div>
+        </article>
+    </section>
+
     @* ── Danger zone ── *@
     <section class="settings-section" aria-labelledby="danger-heading">
         <h2 id="danger-heading" class="section-title">Danger zone</h2>

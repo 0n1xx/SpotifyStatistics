@@ -28,31 +28,9 @@ struct TrackHistory: Decodable, Identifiable {
     let country: String
     let playedAt: String
 
-    // Formats "2026-05-04T16:52:38.0000000+00:00" → "May 4, 4:52 PM"
-    // GetDateTimeOffset().ToString("o") produces full ISO-8601 with timezone offset,
-    // which ISO8601DateFormatter handles with .withInternetDateTime + .withFractionalSeconds.
-    // timeStyle = .short gives "4:52 PM" — no seconds, no milliseconds.
+    // Formats ISO play time into the user-selected display timezone
+    // (Settings → Time zone). DB values are unchanged.
     var formattedDate: String {
-        let iso = ISO8601DateFormatter()
-        iso.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-
-        if let date = iso.date(from: playedAt) {
-            let display = DateFormatter()
-            display.dateStyle = .medium
-            display.timeStyle = .short
-            display.timeZone = TimeZone.current
-            return display.string(from: date)
-        }
-
-        iso.formatOptions = [.withInternetDateTime]
-        if let date = iso.date(from: playedAt) {
-            let display = DateFormatter()
-            display.dateStyle = .medium
-            display.timeStyle = .short
-            display.timeZone = TimeZone.current
-            return display.string(from: date)
-        }
-
-        return playedAt
+        DisplayTimeZone.formatPlayedAt(playedAt)
     }
 }

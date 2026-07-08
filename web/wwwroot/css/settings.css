@@ -190,6 +190,11 @@
     width: 220px;
 }
 
+select.input-field {
+    width: min(280px, 100%);
+    cursor: pointer;
+}
+
 .input-field:focus { border-color: var(--green); }
 .input-field::placeholder { color: #444; }
 

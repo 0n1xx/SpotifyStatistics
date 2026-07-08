@@ -25,6 +25,7 @@ struct SettingsView: View {
     @State private var displayName: String = ""
     @State private var email: String = ""
     @State private var phoneNumber: String = ""
+    @State private var selectedTimeZoneId: String = DisplayTimeZone.currentId
 
     // MARK: - UI State
     @State private var showDeleteConfirm: Bool = false      // Delete account alert
@@ -50,6 +51,7 @@ struct SettingsView: View {
                     VStack(spacing: 24) {
                         profileSection
                         accountSection
+                        displayPreferencesSection
                         connectedAccountsSection
                         dangerZoneSection
                     }
@@ -332,6 +334,47 @@ struct SettingsView: View {
                     .stroke(Color.appBorder, lineWidth: 1)
             )
         }
+    }
+
+    // MARK: - Display preferences
+    // Client-only timezone — stored in UserDefaults, never sent to the server.
+    private var displayPreferencesSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Display preferences").sectionHeader()
+
+            VStack(spacing: 0) {
+                SettingRow(
+                    label: "Time zone",
+                    description: "How play times are shown on this device. Database timestamps stay unchanged."
+                ) {
+                    Picker("Time zone", selection: $selectedTimeZoneId) {
+                        ForEach(timezonePickerOptions) { option in
+                            Text(option.label).tag(option.id)
+                        }
+                    }
+                    .pickerStyle(.menu)
+                    .onChange(of: selectedTimeZoneId) { _, newValue in
+                        DisplayTimeZone.currentId = newValue
+                        saveStatus = "Timezone saved on this device"
+                    }
+                }
+            }
+            .background(Color.appCard)
+            .cornerRadius(12)
+            .overlay(
+                RoundedRectangle(cornerRadius: 12)
+                    .stroke(Color.appBorder, lineWidth: 1)
+            )
+        }
+    }
+
+    private var timezonePickerOptions: [DisplayTimeZone.Option] {
+        var list = DisplayTimeZone.options
+        let current = selectedTimeZoneId
+        if !list.contains(where: { $0.id == current }) {
+            list.insert(.init(id: current, label: "\(current) (device)"), at: 0)
+        }
+        return list
     }
 
     // MARK: - Connected Accounts Section

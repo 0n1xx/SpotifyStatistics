@@ -1,7 +1,9 @@
+import json
 import pandas as pd
 import spotipy
 from spotipy.oauth2 import SpotifyOAuth
 from datetime import datetime, timedelta
+from typing import Optional
 from airflow.decorators import dag, task
 from airflow.models import Variable
 from airflow.utils.email import send_email
@@ -87,7 +89,40 @@ COUNTRY_LEVEL_AREAS = {
 # MusicBrainz pseudo-code for "worldwide" — not a real ISO country
 INVALID_COUNTRY_CODES = {'XW'}
 
-TORONTO_TZ = 'America/Toronto'
+# Timezone for deriving local played_at + date.
+# Default used to be hard-coded America/Toronto, which breaks users in other countries
+# (e.g. Egypt / Africa/Cairo) — night plays land on the wrong calendar day.
+#
+# Airflow Variables (Admin → Variables):
+#   HISTORY_TIMEZONE          = default IANA tz, e.g. "America/Toronto"
+#   HISTORY_TIMEZONE_BY_USER  = optional JSON map of AspNet UserId -> IANA tz
+#                               e.g. {"9659c63c-...":"America/Toronto","ef9f4d4d-...":"Africa/Cairo"}
+DEFAULT_HISTORY_TZ = 'America/Toronto'
+
+
+def _load_timezone_by_user() -> dict:
+    raw = Variable.get("HISTORY_TIMEZONE_BY_USER", default_var="{}")
+    try:
+        data = json.loads(raw) if isinstance(raw, str) else (raw or {})
+        if not isinstance(data, dict):
+            print("HISTORY_TIMEZONE_BY_USER is not a JSON object — ignoring")
+            return {}
+        return {str(k): str(v) for k, v in data.items()}
+    except Exception as e:
+        print(f"Failed to parse HISTORY_TIMEZONE_BY_USER: {e}")
+        return {}
+
+
+def resolve_user_timezone(
+    user_id: str,
+    default_tz: Optional[str] = None,
+    tz_by_user: Optional[dict] = None,
+) -> str:
+    """Pick timezone for this Statify user (per-user override, else default)."""
+    default = default_tz or Variable.get("HISTORY_TIMEZONE", default_var=DEFAULT_HISTORY_TZ)
+    mapping = tz_by_user if tz_by_user is not None else _load_timezone_by_user()
+    return mapping.get(str(user_id), default)
+
 
 MUSIC_HISTORY_COLS = [
     'played_at', 'song', 'artist', 'album', 'date', 'country', 'begin_area', 'user_id'
@@ -261,18 +296,34 @@ def get_all_users() -> list:
 
 
 def prepare_music_history_df(records: list) -> pd.DataFrame:
-    """Normalize timestamps and text fields before loading into Postgres."""
-    df = pd.DataFrame(records)
+    """
+    Normalize timestamps and text fields before loading into Postgres.
 
-    # Timezone fix: convert first, then derive date
-    df['played_at'] = (
-        pd.to_datetime(df['played_at'], utc=True)
-        .dt.tz_convert(TORONTO_TZ)
-        .dt.tz_localize(None)
-        .dt.floor('s')  # strip milliseconds for consistent dedup
-    )
-    # date derived AFTER timezone conversion
-    df['date'] = df['played_at'].dt.date
+    Spotify returns played_at in UTC. We convert EACH row to that user's local
+    timezone (HISTORY_TIMEZONE_BY_USER / HISTORY_TIMEZONE), then derive `date`.
+    This keeps local calendar days correct for Toronto AND Cairo users in one DAG.
+    """
+    df = pd.DataFrame(records)
+    if df.empty:
+        return df
+
+    default_tz = Variable.get("HISTORY_TIMEZONE", default_var=DEFAULT_HISTORY_TZ)
+    tz_by_user = _load_timezone_by_user()
+
+    played_utc = pd.to_datetime(df['played_at'], utc=True)
+    local_values = []
+    for ts, uid in zip(played_utc, df['user_id'].astype(str)):
+        tz_name = resolve_user_timezone(uid, default_tz=default_tz, tz_by_user=tz_by_user)
+        try:
+            local_ts = ts.tz_convert(tz_name).tz_localize(None).floor('s')
+        except Exception as e:
+            print(f"[{uid}] Bad timezone '{tz_name}' ({e}) — falling back to {DEFAULT_HISTORY_TZ}")
+            local_ts = ts.tz_convert(DEFAULT_HISTORY_TZ).tz_localize(None).floor('s')
+        local_values.append(local_ts)
+
+    df['played_at'] = pd.Series(local_values, index=df.index)
+    # date derived AFTER per-user timezone conversion
+    df['date'] = pd.to_datetime(df['played_at']).dt.date
 
     # Normalization guard
     df['song'] = df['song'].astype(str).str.strip().str.lower()
@@ -306,8 +357,8 @@ def spotify_history():
         Normalization happens here so data is clean before touching storage:
         - song / album -> lowercase
         - artist -> Title Case (merges encoding artifacts via .lower().title())
-        - date excluded — derived after timezone conversion in load_postgres
-          to avoid UTC vs Toronto day mismatch bug
+        - date excluded — derived after per-user timezone conversion in load_postgres
+          to avoid UTC vs local calendar-day mismatch
         """
         user_id = user["user_id"]
         refresh_token = user["refresh_token"]
@@ -398,8 +449,8 @@ def spotify_history():
         Insert enriched records into PostgreSQL (Superset analytics store).
 
         Fixes:
-        - played_at converted UTC -> Toronto BEFORE deriving date
-          (prevents late-night Toronto plays showing as the next UTC day)
+        - played_at converted UTC -> user local tz BEFORE deriving date
+          (HISTORY_TIMEZONE / HISTORY_TIMEZONE_BY_USER; default America/Toronto)
         - Normalization guard re-applies cleanup in case anything slipped through
         - XW country -> unknown
         - Dedup before insert + ON CONFLICT DO NOTHING after

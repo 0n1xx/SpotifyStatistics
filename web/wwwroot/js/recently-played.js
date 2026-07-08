@@ -156,10 +156,14 @@ function esc(s) {
 
 function formatDate(iso) {
     if (!iso) return '';
+    if (window.StatifyTimeZone && typeof StatifyTimeZone.formatPlayedAt === 'function') {
+        return StatifyTimeZone.formatPlayedAt(iso);
+    }
     try {
         return new Date(iso).toLocaleString('en-CA', {
             month: 'short', day: 'numeric',
-            hour: '2-digit', minute: '2-digit'
+            hour: '2-digit', minute: '2-digit',
+            timeZone: 'America/Toronto'
         });
     } catch { return iso; }
 }

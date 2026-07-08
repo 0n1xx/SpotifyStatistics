@@ -7,7 +7,26 @@
 document.addEventListener('DOMContentLoaded', () => {
     setupAvatarUpload();
     trackExistingAvatar();
+    setupTimezonePreference();
 });
+
+// ── Display timezone (localStorage only; no server save) ───────────────────────
+
+function setupTimezonePreference() {
+    const select = document.getElementById('timezone-select');
+    const btn = document.getElementById('timezone-save-btn');
+    const status = document.getElementById('timezone-save-status');
+    if (!select || !btn || !window.StatifyTimeZone) return;
+
+    StatifyTimeZone.fillTimezoneSelect(select);
+
+    btn.addEventListener('click', () => {
+        const id = select.value;
+        StatifyTimeZone.setDisplayTimeZone(id);
+        showStatusEl(status, '✓ Saved on this device', 'success');
+        setTimeout(() => hideStatusEl(status), 2500);
+    });
+}
 
 // ── Avatar upload ──────────────────────────────────────────────────────────────
 

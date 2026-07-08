@@ -71,6 +71,9 @@
 
     @await RenderSectionAsync("Scripts", required: false)
 
+    @* Shared display-timezone helper (localStorage preference; used by recently-played etc.) *@
+    <script src="~/js/timezone.js" asp-append-version="true"></script>
+
     @if (!string.IsNullOrEmpty(extraJs))
     {
         <script src="@extraJs" asp-append-version="true"></script>

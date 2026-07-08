@@ -63,7 +63,8 @@ All records are normalized at ingest before hitting either database:
 
 - **Artist names** → Title Case (resolves API encoding inconsistencies)
 - **Song / album titles** → lowercase
-- **Timestamps** → UTC converted to Toronto timezone before deriving `date` (prevents off-by-one day bugs at midnight)
+- **Timestamps** → UTC converted to each user's local timezone before deriving `date`
+  (`HISTORY_TIMEZONE` default + optional `HISTORY_TIMEZONE_BY_USER` map; prevents off-by-one day bugs for Toronto / Cairo / etc.)
 - **Invalid MusicBrainz country codes** (`XW`) → `unknown`
 - **Country-level `begin_area` values** (not city-level) → `unknown`
 
@@ -127,6 +128,8 @@ The DAG reads all credentials from **Airflow Variables** (not environment variab
 | `VLAD_SPOTIFY_CLIENT_ID` | Spotify Developer App — Client ID |
 | `VLAD_SPOTIFY_SECRET_KEY` | Spotify Developer App — Client Secret |
 | `SERVER_LOOPBACK` | Spotify OAuth redirect URI (must match app settings) |
+| `HISTORY_TIMEZONE` | Default IANA timezone for `played_at`/`date` (default `America/Toronto`) |
+| `HISTORY_TIMEZONE_BY_USER` | Optional JSON map `{ "aspNetUserId": "Africa/Cairo", ... }` for per-user TZ |
 
 `MSSQL_CONN` example (databaseasp.net — URL-encode `#` → `%23`, `!` → `%21`, `@` → `%40`):
 

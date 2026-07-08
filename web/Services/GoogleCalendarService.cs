@@ -40,7 +40,13 @@ namespace SpotifyStatisticsWebApp.Services
 
             var sources = await ListCalendarsAsync(token.AccessToken!);
             if (sources.Count == 0)
-                return "Google Calendar: no calendars found on this account.";
+            {
+                return
+                    "Google Calendar token works, but calendarList returned 0 calendars. " +
+                    "Usually this means the Google account used for Statify login is NOT the owner of 'Vlad & Temi'. " +
+                    "Owner of that calendar is vlad_sahar27@gmail.com — sign in to Statify with that Google account " +
+                    "(or share Vlad & Temi with the Google account you currently use).";
+            }
 
             // Prefer putting shared calendar first in labels (optional aesthetic).
             sources = sources
@@ -52,6 +58,7 @@ namespace SpotifyStatisticsWebApp.Services
 
             var allEvents = new List<(DateTimeOffset SortKey, string Start, string End, string Summary, string Source)>();
             var errors = new List<string>();
+            var perCalendarCounts = new List<string>();
 
             foreach (var (calendarId, label) in sources)
             {
@@ -69,15 +76,21 @@ namespace SpotifyStatisticsWebApp.Services
 
                 if (!resp.IsSuccessStatusCode)
                 {
-                    errors.Add($"{label}: HTTP {(int)resp.StatusCode}");
+                    // Include short API reason so we can debug (403/401 = wrong account or missing scope)
+                    var shortBody = json.Length > 180 ? json[..180] : json;
+                    errors.Add($"{label}: HTTP {(int)resp.StatusCode} {shortBody}");
                     continue;
                 }
 
                 using var doc = JsonDocument.Parse(json);
                 if (!doc.RootElement.TryGetProperty("items", out var items) ||
                     items.ValueKind != JsonValueKind.Array)
+                {
+                    perCalendarCounts.Add($"{label}=0");
                     continue;
+                }
 
+                var countBefore = allEvents.Count;
                 foreach (var ev in items.EnumerateArray())
                 {
                     var summary = ev.TryGetProperty("summary", out var s)
@@ -88,12 +101,22 @@ namespace SpotifyStatisticsWebApp.Services
                     var sortKey = ParseSortKey(start);
                     allEvents.Add((sortKey, start, end, summary, label));
                 }
+                perCalendarCounts.Add($"{label}={allEvents.Count - countBefore}");
             }
 
             if (allEvents.Count == 0)
             {
-                var err = errors.Count > 0 ? " Errors: " + string.Join("; ", errors) : "";
-                return "Google Calendar: no upcoming events found." + err;
+                var sbEmpty = new StringBuilder();
+                sbEmpty.AppendLine("Google Calendar: connected, but no events found in the date window.");
+                sbEmpty.AppendLine($"Local date window: {dayStartLocal:yyyy-MM-dd} → {windowEndLocal:yyyy-MM-dd} (Eastern).");
+                sbEmpty.AppendLine($"Calendars visible to this Google account: {string.Join(", ", sources.Select(x => x.Label))}");
+                sbEmpty.AppendLine($"Events per calendar: {string.Join(", ", perCalendarCounts)}");
+                if (errors.Count > 0)
+                    sbEmpty.AppendLine("API errors: " + string.Join(" | ", errors));
+                sbEmpty.AppendLine(
+                    "If 'Vlad & Temi' is missing from the calendar list above, you signed into Statify with a different Google account " +
+                    "than the owner (vlad_sahar27@gmail.com).");
+                return sbEmpty.ToString();
             }
 
             var todayLocal = eastern.Date;
@@ -150,11 +173,7 @@ namespace SpotifyStatisticsWebApp.Services
             var list = new List<(string, string)>();
             foreach (var item in items.EnumerateArray())
             {
-                // Skip calendars user has hidden in Google Calendar UI if marked selected=false
-                if (item.TryGetProperty("selected", out var selected) &&
-                    selected.ValueKind == JsonValueKind.False)
-                    continue;
-
+                // Include all calendars (even unchecked in UI) so shared calendars are not missed.
                 var id = item.TryGetProperty("id", out var idEl) ? idEl.GetString() : null;
                 var summary = item.TryGetProperty("summary", out var s) ? s.GetString() : null;
                 if (string.IsNullOrWhiteSpace(id)) continue;
