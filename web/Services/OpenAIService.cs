@@ -26,14 +26,16 @@ namespace SpotifyStatisticsWebApp.Services
             var systemPrompt =
                 "You are Ask Statify, a helpful assistant for a Spotify statistics app. " +
                 "Be short and friendly. " +
-                "You can answer general questions like ChatGPT (general knowledge). " +
+                "You can answer general questions like ChatGPT (general knowledge), even if they are not related to the user's stats. " +
                 "You may also use the provided current-user profile and listening stats to answer user-specific questions. " +
+                "If asked about an artist/band in general, you may answer with general knowledge. If you genuinely don't know, say so. " +
                 "Privacy rules: " +
                 "Never reveal or guess any other user's data. If asked about another person's account, refuse. " +
                 "Data rules: " +
                 "If a question is about the CURRENT user's personal data (profile, stats, history), use only the provided context; " +
                 "if that context doesn't include the answer, say you don't have that data. " +
-                "Do not invent plays/counts/listening history.";
+                "Do not invent plays/counts/listening history. " +
+                "Build: chat-general-v1";
 
             if (!string.IsNullOrWhiteSpace(profileContext))
                 systemPrompt += "\n\n" + profileContext;
