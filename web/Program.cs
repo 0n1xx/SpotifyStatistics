@@ -64,11 +64,11 @@ builder.Services.AddAuthentication(options =>
         {
             // Google-specific query params:
             // - prompt=consent helps re-trigger consent screen
-            // - access_type=offline is needed for refresh_token
+            // Note: access_type=offline is already set via options.AccessType above.
             // Note: Google may still not re-issue refresh_token if it was already granted.
             var uri = context.RedirectUri;
             var sep = uri.Contains('?') ? "&" : "?";
-            context.Response.Redirect(uri + sep + "prompt=consent&access_type=offline");
+            context.Response.Redirect(uri + sep + "prompt=consent");
             return Task.CompletedTask;
         },
         OnCreatingTicket = async context =>
