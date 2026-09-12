@@ -2,7 +2,7 @@
 
 > Native iOS companion to the Statify web platform. Full feature parity with core web analytics — built in Swift with SwiftUI.
 
-**Status: Complete** (Ask Statify chat remains web-first)
+**Status: Complete** (including Ask Statify LLM chat on iOS)
 
 ---
 
@@ -79,7 +79,12 @@ Statify iOS
     ├── Settings/
     │   └── SettingsView.swift           # Profile + display time zone picker
     │
-    └── MainTabView.swift
+    ├── Chat/
+    │   ├── ChatView.swift               # Ask Statify LLM chat UI
+    │   ├── ChatViewModel.swift          # POST /api/chat via APIClient
+    │   └── ChatModels.swift
+    │
+    └── MainTabView.swift                # Dashboard · History · Ask · Map · Settings
 ```
 
 ---
@@ -101,11 +106,12 @@ PUT    /api/settings/email
 PUT    /api/settings/password
 GET    /api/settings/export
 DELETE /api/account
+POST   /api/chat                         # Ask Statify (OpenAI) — Bearer JWT
 ```
 
 All authenticated requests attach a JWT Bearer token from Keychain. Token refresh is handled by `AuthManager`.
 
-> **Note:** `POST /api/chat` (Ask Statify + Google Calendar) is currently used by the **web** widget. iOS can call the same endpoint later if/when a mobile chat UI is added.
+> **Ask Statify:** Same backend as the web widget. iOS sends JWT; web sends cookie. Both resolve `UserId` from auth claims and load only that user's listening/profile context.
 
 ---
 
@@ -127,7 +133,7 @@ All authenticated requests attach a JWT Bearer token from Keychain. Token refres
 | GDPR data export | ✅ | ✅ |
 | Account deletion | ✅ | ✅ |
 | Display time zone preference | ✅ | ✅ |
-| Ask Statify chat + Google Calendar | ✅ | — |
+| Ask Statify chat + Google Calendar | ✅ | ✅ |
 
 ---
 

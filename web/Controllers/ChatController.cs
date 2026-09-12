@@ -5,14 +5,15 @@ using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using SpotifyStatisticsWebApp.Data;
 using SpotifyStatisticsWebApp.Services;
+using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
 
 namespace SpotifyStatisticsWebApp.Controllers
 {
     // Only logged-in users can use chat.
-    // Uses cookie auth from the website (not the iOS Bearer token).
-    [Authorize]
+    // Cookie auth for the website widget; Bearer JWT for the iOS app.
+    [Authorize(AuthenticationSchemes = "Bearer,Identity.Application")]
     [ApiController]
     [Route("api/chat")]
     public class ChatController : ControllerBase
@@ -54,9 +55,9 @@ namespace SpotifyStatisticsWebApp.Controllers
             if (string.IsNullOrWhiteSpace(request.Message))
                 return BadRequest(new ChatResponse { Reply = "Message is empty." });
 
-            // Get CURRENT logged-in user id from auth.
-            // Do not trust any "userId" coming from the chat text.
-            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            // Cookie → NameIdentifier; JWT → often "sub"
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier)
+                ?? User.FindFirstValue(JwtRegisteredClaimNames.Sub);
             if (string.IsNullOrWhiteSpace(userId))
                 return Unauthorized(new ChatResponse { Reply = "Not logged in." });
 

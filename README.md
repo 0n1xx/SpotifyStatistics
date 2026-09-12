@@ -19,7 +19,7 @@ Statify is an end-to-end analytics platform that continuously ingests your Spoti
 
 The data pipeline runs every **30 minutes**, pulling the latest 50 played tracks per user via the Spotify API, resolving artist origins through MusicBrainz, and distributing records across two purpose-built databases — **PostgreSQL** for fast analytic queries (Superset) and **SQL Server** for the web application layer.
 
-On top of that, **Ask Statify** is a floating chat assistant that answers questions about the *current* user's profile and listening stats (from SQL Server) and their Google Calendar schedule — without ever exposing another user's data.
+On top of that, **Ask Statify** is an LLM chat assistant (OpenAI) available on **web and iOS**. It answers questions about the *current* user's profile and listening stats (from SQL Server) and their Google Calendar schedule — without ever exposing another user's data.
 
 ---
 
@@ -42,22 +42,25 @@ Apache Airflow  ─────────────────────�
                          ├── Ask Statify chat (OpenAI)
                          │     ├── UserProfiles + music_history (SQL Server)
                          │     └── Google Calendar API (read-only)
-                         └── REST API for iOS
+                         └── REST API for iOS (incl. Ask Statify)
                                     │
                                     ▼
                             iOS App (Swift)
+                            ├── Dashboard / History / Map / Settings
+                            └── Ask tab → POST /api/chat (Bearer JWT)
 ```
 
 **Ask Statify flow (important):** ChatGPT does **not** connect to your database or Google directly. The ASP.NET backend authenticates the user, loads **only their** data, builds a text context, then sends that context + the question to OpenAI.
 
 ```
-Browser chat widget
-    → POST /api/chat (cookie auth)
-    → ChatController (UserId from claims)
+Web widget  ──cookie──┐
+                      ├──► POST /api/chat
+iOS Ask tab ─Bearer───┘
+    → ChatController (UserId from claims / JWT sub)
     → SQL Server (profile + listening stats)
     → Google Calendar (only if the question is schedule-related)
     → OpenAI Chat Completions
-    → JSON { reply } → widget
+    → JSON { reply }
 ```
 
 ---
@@ -112,6 +115,7 @@ Statify/
 | Charts | Swift Charts |
 | Maps | MapKit |
 | Networking | URLSession + async/await |
+| AI chat | Ask Statify tab → `POST /api/chat` (JWT) |
 | Min target | iOS 17 |
 
 ---
@@ -126,13 +130,13 @@ Statify/
 | **Recently Played** | Paginated full history with search |
 | **World Map** | D3.js visualization — artist origins plotted by country |
 | **Settings** | Profile · linked accounts · **display time zone** (client-only) · GDPR export |
-| **Ask Statify** | Floating chat: profile + listening stats from SQL Server; schedule from Google Calendar |
+| **Ask Statify** | Floating chat (web) + **Ask** tab (iOS): profile + listening stats from SQL Server; schedule from Google Calendar |
 
 ### Ask Statify (chat)
 
 | Capability | Details |
 |---|---|
-| Auth | Only logged-in users (`[Authorize]`); `UserId` always from identity claims |
+| Auth | Web: Identity cookie · iOS: Bearer JWT · `UserId` always from claims |
 | Spotify / profile | Answers using **this user's** `UserProfiles` + `music_history` only |
 | Privacy | Refuses questions about other users — foreign rows never enter the prompt |
 | Google Calendar | Read-only events for the Google account used to sign in; tokens stored in `GoogleCalendarTokens` |
@@ -188,7 +192,7 @@ Separately, the Airflow DAG can convert ingest `played_at`/`date` with `HISTORY_
 - [x] iOS app — Phase 1: Auth + Dashboard
 - [x] iOS app — Phase 2: Recently Played + World Map
 - [x] iOS app — Phase 3: Settings + Polish
-- [x] Ask Statify chat — OpenAI + current-user DB context
+- [x] Ask Statify chat — OpenAI + current-user DB context (web + iOS)
 - [x] Google Calendar read-only integration for schedule questions
 - [x] Client display time zone preference (web + iOS)
 - [ ] Chat function-calling / tools for on-demand DB + Calendar queries
