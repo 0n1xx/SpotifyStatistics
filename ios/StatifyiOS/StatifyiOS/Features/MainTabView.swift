@@ -29,6 +29,12 @@ struct MainTabView: View {
                     Label("History", systemImage: "clock.fill")
                 }
 
+            // MARK: Ask Statify
+            ChatView()
+                .tabItem {
+                    Label("Ask", systemImage: "bubble.left.and.bubble.right.fill")
+                }
+
             // MARK: World Map
             WorldMapView()
                 .tabItem {

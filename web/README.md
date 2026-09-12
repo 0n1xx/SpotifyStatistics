@@ -95,16 +95,16 @@ web/
 
 ## Ask Statify chat
 
-Floating “Ask Statify” widget on authenticated layouts. Backend endpoint: **`POST /api/chat`**.
+Floating “Ask Statify” widget on authenticated layouts (desktop + mobile web). Same backend powers the **iOS Ask tab**. Endpoint: **`POST /api/chat`**.
 
 ### How it works
 
-1. Browser sends `{ message }` with Identity cookie (`credentials: "same-origin"`).
-2. `ChatController` resolves **`UserId` from claims** (never from the chat text).
+1. Client sends `{ message }` — web with Identity cookie (`credentials: "same-origin"`), iOS with `Authorization: Bearer <JWT>`.
+2. `ChatController` resolves **`UserId` from claims** (never from the chat text); schemes: `Bearer,Identity.Application`.
 3. Loads **only this user's** `UserProfiles` + `music_history` aggregates.
 4. If the question looks schedule-related (`meeting`, `today`, `schedule`, …), also calls `GoogleCalendarService`.
 5. Builds a text **context** + rules, sends to OpenAI via `OpenAIService`.
-6. Returns `{ reply }` to the widget.
+6. Returns `{ reply }` to the client.
 
 OpenAI **never** opens SQL Server or Google — it only sees the text context the server assembled.
 
