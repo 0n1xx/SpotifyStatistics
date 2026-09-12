@@ -23,6 +23,16 @@ struct ChatView: View {
             }
             .navigationTitle("Ask Statify")
             .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItemGroup(placement: .keyboard) {
+                    Spacer()
+                    Button("Done") {
+                        dismissKeyboard()
+                    }
+                    .font(.dmSans(16, weight: .bold))
+                    .foregroundColor(.appAccent)
+                }
+            }
         }
     }
 
@@ -38,7 +48,13 @@ struct ChatView: View {
                     }
                 }
                 .padding(16)
+                .frame(maxWidth: .infinity, minHeight: 0, alignment: .topLeading)
+                // Extra empty space so tapping below the last bubble also dismisses
+                .background(Color.appBackground)
+                .contentShape(Rectangle())
+                .onTapGesture { dismissKeyboard() }
             }
+            .scrollDismissesKeyboard(.interactively)
             .onChange(of: viewModel.messages.count) { _, _ in
                 if let last = viewModel.messages.last {
                     withAnimation(.easeOut(duration: 0.2)) {
@@ -71,6 +87,8 @@ struct ChatView: View {
 
             if message.role != .user { Spacer(minLength: 48) }
         }
+        .contentShape(Rectangle())
+        .onTapGesture { dismissKeyboard() }
     }
 
     private func bubbleBackground(for role: ChatMessage.Role) -> Color {
@@ -110,10 +128,12 @@ struct ChatView: View {
                 .focused($inputFocused)
                 .submitLabel(.send)
                 .onSubmit {
+                    dismissKeyboard()
                     Task { await viewModel.send() }
                 }
 
             Button {
+                dismissKeyboard()
                 Task { await viewModel.send() }
             } label: {
                 Image(systemName: "arrow.up.circle.fill")
@@ -130,5 +150,13 @@ struct ChatView: View {
     private var canSend: Bool {
         !viewModel.isSending &&
         !viewModel.draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
+
+    private func dismissKeyboard() {
+        inputFocused = false
+        UIApplication.shared.sendAction(
+            #selector(UIResponder.resignFirstResponder),
+            to: nil, from: nil, for: nil
+        )
     }
 }
