@@ -232,6 +232,10 @@ namespace SpotifyStatisticsWebApp.Controllers
                 if (provider == "GitHub") githubConnected = true;
             }
 
+            var telegramConnected = await ScalarAsync<int>(defaultDb,
+                "SELECT COUNT(*) FROM TelegramLinks WHERE UserId = @uid AND ChatId IS NOT NULL",
+                ("@uid", userId)) > 0;
+
             return Ok(new
             {
                 displayName      = profile?.DisplayName,
@@ -241,6 +245,7 @@ namespace SpotifyStatisticsWebApp.Controllers
                 spotifyConnected,
                 googleConnected,
                 githubConnected,
+                telegramConnected,
             });
         }
 

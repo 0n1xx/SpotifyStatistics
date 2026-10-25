@@ -41,6 +41,8 @@ struct SettingsView: View {
     @State private var spotifyConnected: Bool = false
     @State private var googleConnected:  Bool = false
     @State private var githubConnected:  Bool = false
+    @State private var telegramConnected: Bool = false
+    @State private var isLinkingTelegram: Bool = false
 
     var body: some View {
         NavigationStack {
@@ -57,6 +59,7 @@ struct SettingsView: View {
                     }
                     .padding(16)
                 }
+                .refreshable { await loadProfile() }
                 // Tap anywhere outside a text field to dismiss keyboard
                 .onTapGesture { hideKeyboard() }
             }
@@ -69,33 +72,7 @@ struct SettingsView: View {
             email = authManager.currentUser?.email ?? ""
             displayName = authManager.currentUser?.displayName ?? ""
             // Then refresh from API to pick up any changes made on web or other devices
-            Task {
-                struct ProfileResp: Decodable {
-                    let displayName: String?
-                    let email: String?
-                    let phoneNumber: String?
-                    let avatarBase64: String?
-                    let spotifyConnected: Bool?
-                    let googleConnected:  Bool?
-                    let githubConnected:  Bool?
-                }
-                if let profile: ProfileResp = try? await APIClient.shared.get(path: "/api/profile") {
-                    if let n = profile.displayName { displayName = n }
-                    if let e = profile.email        { email = e }
-                    if let p = profile.phoneNumber  { phoneNumber = p }
-                    // Update connection badges from server — the source of truth
-                    spotifyConnected = profile.spotifyConnected ?? false
-                    googleConnected  = profile.googleConnected  ?? false
-                    githubConnected  = profile.githubConnected  ?? false
-                    // Load saved avatar if user hasn't picked a new one this session
-                    if avatarImage == nil, let b64 = profile.avatarBase64,
-                       let url = URL(string: b64),
-                       let data = try? Data(contentsOf: url),
-                       let img = UIImage(data: data) {
-                        avatarImage = img
-                    }
-                }
-            }
+            Task { await loadProfile() }
         }
         // MARK: Change Password Sheet
         .sheet(isPresented: $showChangePassword) {
@@ -446,6 +423,43 @@ struct SettingsView: View {
 
                 Divider().background(Color.appBorder).padding(.horizontal, 16)
 
+                // Telegram — actually works natively (Bearer API + deep link),
+                // unlike Google/GitHub which need a browser OAuth redirect back to web.
+                SettingRow(label: "Telegram", description: "Get a weekly listening summary sent to you on Telegram") {
+                    HStack(spacing: 8) {
+                        Circle()
+                            .fill(telegramConnected ? Color.appAccent : Color.red.opacity(0.6))
+                            .frame(width: 8, height: 8)
+                        Text(telegramConnected ? "Connected" : "Not connected")
+                            .font(.dmSans(13))
+                            .foregroundColor(telegramConnected ? .appAccent : .appTextSecondary)
+
+                        Spacer()
+
+                        if telegramConnected {
+                            Button("Disconnect") { disconnectTelegram() }
+                                .font(.dmSans(13, weight: .bold))
+                                .foregroundColor(.appTextPrimary)
+                                .padding(.horizontal, 12)
+                                .padding(.vertical, 8)
+                                .background(Color.appBackground)
+                                .cornerRadius(8)
+                                .overlay(RoundedRectangle(cornerRadius: 8).stroke(Color.appBorder, lineWidth: 1))
+                        } else {
+                            Button(isLinkingTelegram ? "Opening…" : "Connect") { connectTelegram() }
+                                .disabled(isLinkingTelegram)
+                                .font(.dmSans(13, weight: .bold))
+                                .foregroundColor(.black)
+                                .padding(.horizontal, 12)
+                                .padding(.vertical, 8)
+                                .background(Color.appAccent)
+                                .cornerRadius(8)
+                        }
+                    }
+                }
+
+                Divider().background(Color.appBorder).padding(.horizontal, 16)
+
                 // Sign Out
                 Button {
                     authManager.logout()
@@ -507,12 +521,75 @@ struct SettingsView: View {
 
     // MARK: - Helpers
 
+    // Re-fetches the current user's profile + connection badges from the server.
+    // Called on first appear and via pull-to-refresh (e.g. after linking Telegram
+    // in the Telegram app and coming back to Statify).
+    private func loadProfile() async {
+        struct ProfileResp: Decodable {
+            let displayName: String?
+            let email: String?
+            let phoneNumber: String?
+            let avatarBase64: String?
+            let spotifyConnected: Bool?
+            let googleConnected:  Bool?
+            let githubConnected:  Bool?
+            let telegramConnected: Bool?
+        }
+        if let profile: ProfileResp = try? await APIClient.shared.get(path: "/api/profile") {
+            if let n = profile.displayName { displayName = n }
+            if let e = profile.email        { email = e }
+            if let p = profile.phoneNumber  { phoneNumber = p }
+            // Update connection badges from server — the source of truth
+            spotifyConnected  = profile.spotifyConnected  ?? false
+            googleConnected   = profile.googleConnected   ?? false
+            githubConnected   = profile.githubConnected   ?? false
+            telegramConnected = profile.telegramConnected ?? false
+            // Load saved avatar if user hasn't picked a new one this session
+            if avatarImage == nil, let b64 = profile.avatarBase64,
+               let url = URL(string: b64),
+               let data = try? Data(contentsOf: url),
+               let img = UIImage(data: data) {
+                avatarImage = img
+            }
+        }
+    }
+
     // MARK: OAuth via ASWebAuthenticationSession
     // Opens Google/GitHub login in a secure in-app browser.
     // On success the server redirects to statify://oauth-callback?token=...&email=...
     // which is handled by StatifyiOSApp.onOpenURL → authManager.handleOAuthCallback.
     private func startOAuth(provider: String) {
         Statify.startOAuth(provider: provider, authManager: authManager)
+    }
+
+    // MARK: Telegram linking
+    // Unlike Google/GitHub (OAuth redirects, web-only), Telegram linking is a simple
+    // Bearer-authenticated API call + opening a t.me deep link, so it works natively here.
+    private func connectTelegram() {
+        guard !isLinkingTelegram else { return }
+        isLinkingTelegram = true
+        Task {
+            defer { isLinkingTelegram = false }
+            struct LinkResp: Decodable { let url: String?; let error: String? }
+            guard let resp: LinkResp = try? await APIClient.shared.request(
+                path: "/api/telegram/link", method: .POST
+            ), let urlString = resp.url, let url = URL(string: urlString) else {
+                saveStatus = "Could not start Telegram linking"
+                return
+            }
+            await UIApplication.shared.open(url)
+            saveStatus = "Tap Start in Telegram, then pull to refresh here"
+        }
+    }
+
+    private func disconnectTelegram() {
+        Task {
+            struct ActionResp: Decodable { let success: Bool }
+            let _: ActionResp? = try? await APIClient.shared.request(
+                path: "/api/telegram/unlink", method: .POST
+            )
+            telegramConnected = false
+        }
     }
 
     // Opens a URL in Safari — used for OAuth flows
