@@ -14,4 +14,5 @@ public class ApplicationDbContext : IdentityDbContext, IDataProtectionKeyContext
     public DbSet<SpotifyToken> SpotifyTokens { get; set; }
     public DbSet<GoogleCalendarToken> GoogleCalendarTokens { get; set; }
     public DbSet<UserProfile> UserProfiles { get; set; }
+    public DbSet<TelegramLink> TelegramLinks { get; set; }
 }

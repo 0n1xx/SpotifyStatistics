@@ -8,7 +8,59 @@ document.addEventListener('DOMContentLoaded', () => {
     setupAvatarUpload();
     trackExistingAvatar();
     setupTimezonePreference();
+    setupTelegram();
 });
+
+// ── Telegram weekly summary ─────────────────────────────────────────────────────
+
+async function setupTelegram() {
+    const connectBtn = document.getElementById('telegram-connect-btn');
+    const disconnectBtn = document.getElementById('telegram-disconnect-btn');
+    const badgeNo = document.getElementById('telegram-badge-no');
+    const badgeYes = document.getElementById('telegram-badge-yes');
+    if (!connectBtn || !disconnectBtn || !badgeNo || !badgeYes) return;
+
+    function renderConnected(connected) {
+        badgeNo.classList.toggle('is-hidden', connected);
+        badgeYes.classList.toggle('is-hidden', !connected);
+        connectBtn.classList.toggle('is-hidden', connected);
+        disconnectBtn.classList.toggle('is-hidden', !connected);
+    }
+
+    try {
+        const res = await fetch('/api/telegram/status', { credentials: 'same-origin' });
+        if (res.ok) {
+            const json = await res.json();
+            renderConnected(!!json.connected);
+        }
+    } catch {
+        // leave default (not connected) state on failure
+    }
+
+    connectBtn.addEventListener('click', async () => {
+        connectBtn.textContent = 'Opening Telegram…';
+        connectBtn.disabled = true;
+        try {
+            const res = await fetch('/api/telegram/link', { method: 'POST', credentials: 'same-origin' });
+            const json = await res.json().catch(() => null);
+            if (!res.ok || !json?.url) {
+                alert(json?.error || 'Could not start Telegram linking.');
+                return;
+            }
+            window.open(json.url, '_blank', 'noopener');
+            alert('Tap Start in the Telegram chat that just opened, then come back and refresh this page.');
+        } finally {
+            connectBtn.textContent = 'Connect';
+            connectBtn.disabled = false;
+        }
+    });
+
+    disconnectBtn.addEventListener('click', async () => {
+        if (!confirm('Disconnect Telegram? You will stop getting weekly summaries.')) return;
+        await fetch('/api/telegram/unlink', { method: 'POST', credentials: 'same-origin' });
+        renderConnected(false);
+    });
+}
 
 // ── Display timezone (localStorage only; no server save) ───────────────────────
 

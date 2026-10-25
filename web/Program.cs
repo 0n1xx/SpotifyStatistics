@@ -132,6 +132,11 @@ builder.Services.AddSession(options =>
 builder.Services.Configure<SpotifySettings>(
     builder.Configuration.GetSection("Spotify"));
 
+// Telegram weekly summary bot
+// Token/webhook secret: Railway variables Telegram__BotToken / Telegram__WebhookSecret.
+builder.Services.AddHttpClient<TelegramService>();
+builder.Services.AddHostedService<TelegramWeeklySummaryService>();
+
 var app = builder.Build();
 
 using (var scope = app.Services.CreateScope())
@@ -160,6 +165,22 @@ using (var scope = app.Services.CreateScope())
                         AccessToken NVARCHAR(MAX) NULL,
                         RefreshToken NVARCHAR(MAX) NULL,
                         ExpiresAtUtc DATETIME2 NOT NULL
+                    );
+                END
+            ");
+
+            // Telegram weekly summary link table (if not using migrations)
+            db.Database.ExecuteSqlRaw(@"
+                IF OBJECT_ID('dbo.TelegramLinks', 'U') IS NULL
+                BEGIN
+                    CREATE TABLE dbo.TelegramLinks (
+                        Id INT IDENTITY(1,1) NOT NULL PRIMARY KEY,
+                        UserId NVARCHAR(450) NOT NULL,
+                        ChatId BIGINT NULL,
+                        LinkToken NVARCHAR(64) NULL,
+                        LinkTokenExpiresAtUtc DATETIME2 NULL,
+                        WeeklySummaryEnabled BIT NOT NULL DEFAULT 1,
+                        LastSummarySentAtUtc DATETIME2 NULL
                     );
                 END
             ");
