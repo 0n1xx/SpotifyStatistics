@@ -110,7 +110,7 @@ namespace SpotifyStatisticsWebApp.Controllers
 
         // POST /api/telegram/webhook — Telegram calls this for every bot update.
         // Verified via the secret token Telegram echoes back in a header
-        // (set once via TelegramService.SetWebhookAsync).
+        // (set once via the Bot API's setWebhook call).
         [AllowAnonymous]
         [HttpPost("webhook")]
         public async Task<IActionResult> Webhook()
@@ -151,8 +151,26 @@ namespace SpotifyStatisticsWebApp.Controllers
                 await HandleStartAsync(chatId.Value, text);
             else if (text.StartsWith("/stop"))
                 await HandleStopAsync(chatId.Value);
+            else if (text.StartsWith("/summary"))
+                await HandleSummaryAsync(chatId.Value);
 
             return Ok();
+        }
+
+        // On-demand "give me this week's stats right now" — does not touch
+        // LastSummarySentAtUtc, so it never skips or delays the scheduled Monday send.
+        private async Task HandleSummaryAsync(long chatId)
+        {
+            var link = await _db.TelegramLinks.AsNoTracking().FirstOrDefaultAsync(l => l.ChatId == chatId);
+            if (link == null)
+            {
+                await _telegram.SendMessageAsync(chatId,
+                    "Not linked yet — open Statify → Settings → Connect Telegram first.");
+                return;
+            }
+
+            var summary = await _telegram.BuildWeeklySummaryAsync(link.UserId);
+            await _telegram.SendMessageAsync(chatId, summary);
         }
 
         private async Task HandleStartAsync(long chatId, string text)
@@ -195,7 +213,8 @@ namespace SpotifyStatisticsWebApp.Controllers
             await _db.SaveChangesAsync();
 
             await _telegram.SendMessageAsync(chatId,
-                "✅ Connected! You'll get a weekly Statify listening summary here. Send /stop anytime to turn it off.");
+                "✅ Connected! You'll get a weekly Statify listening summary here. " +
+                "Send /summary anytime for this week's stats, or /stop to turn it off.");
         }
 
         private async Task HandleStopAsync(long chatId)
