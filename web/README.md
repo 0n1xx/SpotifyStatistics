@@ -2,7 +2,7 @@
 
 > Dark-themed web application built with ASP.NET Core and Razor Pages. Continuously synced with the Airflow data pipeline, deployed on Railway at [spotifystatistics-production.up.railway.app](https://spotifystatistics-production.up.railway.app/).
 
-Includes **Ask Statify** (OpenAI chat over the current user's DB data) and **Google Calendar** (read-only schedule answers).
+Includes **Ask Statify** (OpenAI chat over the current user's DB data), **Google Calendar** (read-only schedule answers), and a **Telegram bot** that sends a weekly listening summary.
 
 ---
 
@@ -21,6 +21,7 @@ Includes **Ask Statify** (OpenAI chat over the current user's DB data) and **Goo
 | AI | OpenAI Chat Completions (`gpt-4o-mini`) |
 | Calendar | Google Calendar API (read-only) |
 | Email | Resend API (`noreply@statify.one`) |
+| Telegram | Telegram Bot API (weekly summary + on-demand `/summary`) |
 | Hosting | Railway |
 
 ---
@@ -38,11 +39,12 @@ web/
 ├── Controllers/
 │   ├── ChatController.cs           # POST /api/chat — Ask Statify
 │   ├── SpotifyAuthController.cs    # Spotify OAuth flow
+│   ├── TelegramController.cs       # link/unlink/status + webhook for the weekly summary bot
 │   ├── ApiController.cs            # REST endpoints for iOS app
 │   └── AccountLinkController.cs
 │
 ├── Data/
-│   └── ApplicationDbContext.cs     # EF Core — Identity, SpotifyTokens, UserProfiles, GoogleCalendarTokens
+│   └── ApplicationDbContext.cs     # EF Core — Identity, SpotifyTokens, UserProfiles, GoogleCalendarTokens, TelegramLinks
 │
 ├── Migrations/
 │
@@ -50,6 +52,7 @@ web/
 │   ├── UserProfile.cs
 │   ├── SpotifyToken.cs
 │   ├── GoogleCalendarToken.cs
+│   ├── TelegramLink.cs             # UserId ↔ Telegram chat_id + weekly-summary opt-in
 │   └── ...
 │
 ├── Pages/
@@ -66,6 +69,8 @@ web/
 │   ├── GoogleCalendarService.cs    # Calendar list + events + token refresh
 │   ├── GoogleCalendarTokenStore.cs
 │   ├── ResendEmailSender.cs
+│   ├── TelegramService.cs          # Bot API sendMessage + weekly summary text builder
+│   ├── TelegramWeeklySummaryService.cs  # BackgroundService — sends Mondays 09:00 UTC
 │   └── JwtService.cs
 │
 ├── wwwroot/
@@ -145,6 +150,43 @@ OpenAI **never** opens SQL Server or Google — it only sees the text context th
 | Chat schedule question | `GoogleCalendarService` refreshes token if needed, lists calendars, fetches events (today → +7 days), returns a text summary for OpenAI |
 
 Tokens follow the **Google account used to sign into Statify**. Shared calendars (e.g. “Vlad & Temi”) only appear if that Google account can see them.
+
+---
+
+## Telegram weekly summary
+
+A bot (`TelegramController` + `TelegramService` + `TelegramWeeklySummaryService`) that links a Telegram chat to a Statify account and sends a weekly listening summary.
+
+### Setup (BotFather)
+
+1. Message **@BotFather** → `/newbot` → get a bot token.
+2. Railway → Variables → `Telegram__BotToken` (token) and `Telegram__WebhookSecret` (any random string).
+3. `appsettings.Production.json` → `Telegram:BotUsername` (the bot's `@username`, no `@`).
+4. Register the webhook once per bot-token/URL change:
+   ```bash
+   curl -F "url=https://spotifystatistics-production.up.railway.app/api/telegram/webhook" \
+        -F "secret_token=<Telegram__WebhookSecret value>" \
+        "https://api.telegram.org/bot<BOT_TOKEN>/setWebhook"
+   ```
+
+### How it works
+
+| Step | What happens |
+|---|---|
+| Connect | Settings (web or iOS) → `POST /api/telegram/link` → returns a `t.me/<bot>?start=<token>` deep link |
+| Linking | User taps **Start** in Telegram → `POST /api/telegram/webhook` → `TelegramController` matches the one-time token to a `TelegramLink` row and stores `ChatId` |
+| Scheduled send | `TelegramWeeklySummaryService` (hosted `BackgroundService`) checks hourly, sends every Monday 09:00 UTC to each linked, opted-in user |
+| On-demand | `/summary` in the bot chat triggers the same summary immediately |
+| Opt out | `/stop` in the bot chat, or Disconnect in Settings |
+
+### Key files
+
+| File | Role |
+|---|---|
+| `Controllers/TelegramController.cs` | `/link`, `/unlink`, `/status`, `/weekly-summary`, `/webhook` |
+| `Services/TelegramService.cs` | `sendMessage` wrapper + `BuildWeeklySummaryAsync` (shared by scheduled + on-demand) |
+| `Services/TelegramWeeklySummaryService.cs` | Hourly check, sends on Mondays, gated by `TelegramLinks.LastSummarySentAtUtc` |
+| `Models/TelegramLink.cs` | `UserId` ↔ `ChatId`, `LinkToken` (handshake), `WeeklySummaryEnabled` |
 
 ---
 
@@ -239,7 +281,11 @@ Spotify__RedirectUri                       # e.g. https://localhost:5001/callbac
 OpenAI__ApiKey                             # Ask Statify chat
 RESEND_API_KEY
 JWT_SECRET                                 # iOS API JWT tokens
+Telegram__BotToken                         # Weekly summary bot (from @BotFather)
+Telegram__WebhookSecret                    # Verifies incoming /api/telegram/webhook calls
 ```
+
+`Telegram:BotUsername` is not a secret — set it in `appsettings.Production.json` instead.
 
 Railway typically uses the same keys with `__` nesting (e.g. `OpenAI__ApiKey`).
 
@@ -262,6 +308,8 @@ On startup the app also ensures helper tables/columns exist when needed (e.g. `G
 4. Deploy — Railway builds and runs the app on every `git push` to `main`
 
 After deploying Calendar changes, sign out and **Sign in with Google** again so calendar consent/tokens refresh.
+
+After deploying Telegram changes (new bot token or URL), re-run the `setWebhook` curl command from [Telegram weekly summary](#telegram-weekly-summary) once.
 
 ---
 

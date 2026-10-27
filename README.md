@@ -131,6 +131,7 @@ Statify/
 | **World Map** | D3.js visualization — artist origins plotted by country |
 | **Settings** | Profile · linked accounts · **display time zone** (client-only) · GDPR export |
 | **Ask Statify** | Floating chat (web) + **Ask** tab (iOS): profile + listening stats from SQL Server; schedule from Google Calendar |
+| **Telegram weekly summary** | Connect from Settings (web or iOS) → get a weekly listening summary in Telegram every Monday, or request one anytime with `/summary` |
 
 ### Ask Statify (chat)
 
@@ -141,6 +142,15 @@ Statify/
 | Privacy | Refuses questions about other users — foreign rows never enter the prompt |
 | Google Calendar | Read-only events for the Google account used to sign in; tokens stored in `GoogleCalendarTokens` |
 | General knowledge | Can answer general music questions like ChatGPT when not user-specific |
+
+### Telegram weekly summary
+
+| Capability | Details |
+|---|---|
+| Linking | Settings (web or iOS) → Connect → opens a `t.me/<bot>?start=<token>` deep link → user taps Start in Telegram |
+| Scheduled send | Background service sends each linked, opted-in user a summary every Monday 09:00 UTC (plays, unique artists, top artists/tracks from the last 7 days) |
+| On-demand | `/summary` in the bot chat returns the same stats immediately, without waiting for Monday |
+| Opt out | `/stop` in the bot chat (or Disconnect in Settings) |
 
 ### Admin Dashboard (Superset)
 
@@ -195,6 +205,7 @@ Separately, the Airflow DAG can convert ingest `played_at`/`date` with `HISTORY_
 - [x] Ask Statify chat — OpenAI + current-user DB context (web + iOS)
 - [x] Google Calendar read-only integration for schedule questions
 - [x] Client display time zone preference (web + iOS)
+- [x] Telegram weekly listening summary (web + iOS, scheduled + on-demand `/summary`)
 - [ ] Chat function-calling / tools for on-demand DB + Calendar queries
 - [ ] Calendar FreeBusy (“am I free at 15:00?”) precision answers
 
