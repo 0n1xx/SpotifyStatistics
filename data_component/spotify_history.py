@@ -26,8 +26,17 @@ schedule_interval = "*/30 * * * *"
 
 # ── connections ───────────────────────────────────────────────────────────────
 
-MSSQL_CONN = Variable.get("MSSQL_CONN")
-mssql_engine = create_engine(MSSQL_CONN, fast_executemany=True)
+def _mssql_url(conn: str) -> str:
+    """Use pymssql — ODBC Driver 18 hangs (login timeout) from Railway to MonsterASP."""
+    if conn.startswith("mssql+pyodbc://"):
+        conn = "mssql+pymssql://" + conn[len("mssql+pyodbc://"):]
+    if "?" in conn:
+        conn = conn.split("?", 1)[0]
+    return conn
+
+
+MSSQL_CONN = _mssql_url(Variable.get("MSSQL_CONN"))
+mssql_engine = create_engine(MSSQL_CONN)
 
 PG_CONN = Variable.get("PG_CONN")
 pg_engine = create_engine(PG_CONN)
@@ -536,14 +545,14 @@ def spotify_history():
         insert_sql = """
             INSERT INTO dbo.music_history
                 (played_at, song, artist, album, date, country, begin_area, user_id)
-            SELECT ?, ?, ?, ?, ?, ?, ?, ?
+            SELECT %s, %s, %s, %s, %s, %s, %s, %s
             WHERE NOT EXISTS (
                 SELECT 1 FROM dbo.music_history m
-                WHERE m.user_id = ?
-                  AND m.played_at = ?
-                  AND ISNULL(m.song, N'') = ISNULL(?, N'')
-                  AND ISNULL(m.artist, N'') = ISNULL(?, N'')
-                  AND ISNULL(m.album, N'') = ISNULL(?, N'')
+                WHERE m.user_id = %s
+                  AND m.played_at = %s
+                  AND ISNULL(m.song, N'') = ISNULL(%s, N'')
+                  AND ISNULL(m.artist, N'') = ISNULL(%s, N'')
+                  AND ISNULL(m.album, N'') = ISNULL(%s, N'')
             )
         """
 
