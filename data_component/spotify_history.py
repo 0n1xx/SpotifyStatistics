@@ -6,50 +6,16 @@ from datetime import datetime, timedelta
 from typing import Optional
 from airflow.decorators import dag, task
 from airflow.models import Variable
-from airflow.utils.email import send_email
 from sqlalchemy import create_engine, text
 import requests
 import time
 
-
-"""
-Send email alert when any Airflow task fails.
-Includes:
-    - DAG name
-    - Task name
-    - Execution timestamp
-    - Direct link to task logs
-Triggered via on_failure_callback in default_args.
-"""
-def notify_email(context):
-    subject = f"Spotify DAG FAILED: {context['task_instance'].task_id}"
-
-    body = f"""
-    <h3>Task Failed</h3>
-
-    <b>DAG:</b> {context['dag'].dag_id} <br>
-    <b>Task:</b> {context['task_instance'].task_id} <br>
-    <b>Execution Time:</b> {context['execution_date']} <br>
-
-    <br>
-    <a href="{context['task_instance'].log_url}"> Open Logs</a>
-    """
-
-    send_email(
-        to="vladsahar27@gmail.com",
-        subject=subject,
-        html_content=body
-    )
 
 # ── default args ──────────────────────────────────────────────────────────────
 
 default_args = {
     'owner': 'vladsahar',
     'depends_on_past': False,
-    'email': 'vladsahar27@gmail.com',
-    'email_on_failure': False,
-    'email_on_retry': False,
-    'on_failure_callback': notify_email,
     'retries': 2,
     'retry_delay': timedelta(minutes=3),
     'start_date': datetime(2026, 3, 25),
