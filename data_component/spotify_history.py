@@ -7,6 +7,8 @@ from typing import Optional
 from airflow.decorators import dag, task
 from airflow.models import Variable
 from sqlalchemy import create_engine, text
+from sqlalchemy.engine import make_url
+import pymssql
 import requests
 import time
 
@@ -26,17 +28,35 @@ schedule_interval = "*/30 * * * *"
 
 # ── connections ───────────────────────────────────────────────────────────────
 
-def _mssql_url(conn: str) -> str:
-    """Use pymssql — ODBC Driver 18 hangs (login timeout) from Railway to MonsterASP."""
-    if conn.startswith("mssql+pyodbc://"):
-        conn = "mssql+pymssql://" + conn[len("mssql+pyodbc://"):]
-    if "?" in conn:
-        conn = conn.split("?", 1)[0]
-    return conn
+def _make_mssql_engine(conn_str: str):
+    """
+    Build MSSQL engine via pymssql.connect (same args that work in Railway shell).
+    ODBC Driver 18 hangs with login timeout; SQLAlchemy URL→pymssql also mangles host.
+    """
+    normalized = conn_str.strip()
+    if normalized.startswith("mssql+pyodbc://"):
+        normalized = "mssql+pymssql://" + normalized[len("mssql+pyodbc://"):]
+    if "?" in normalized:
+        normalized = normalized.split("?", 1)[0]
+
+    url = make_url(normalized)
+
+    def creator():
+        return pymssql.connect(
+            server=url.host,
+            user=url.username,
+            password=url.password,
+            database=url.database,
+            port=url.port or 1433,
+            login_timeout=30,
+            timeout=30,
+        )
+
+    # Dummy URL — real sockets come from creator()
+    return create_engine("mssql+pymssql://", creator=creator)
 
 
-MSSQL_CONN = _mssql_url(Variable.get("MSSQL_CONN"))
-mssql_engine = create_engine(MSSQL_CONN)
+mssql_engine = _make_mssql_engine(Variable.get("MSSQL_CONN"))
 
 PG_CONN = Variable.get("PG_CONN")
 pg_engine = create_engine(PG_CONN)
