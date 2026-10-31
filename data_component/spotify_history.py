@@ -7,7 +7,7 @@ from typing import Optional
 from airflow.decorators import dag, task
 from airflow.models import Variable
 from sqlalchemy import create_engine, text
-from sqlalchemy.engine import make_url
+from urllib.parse import unquote
 import pymssql
 import requests
 import time
@@ -28,31 +28,67 @@ schedule_interval = "*/30 * * * *"
 
 # ── connections ───────────────────────────────────────────────────────────────
 
-def _make_mssql_engine(conn_str: str):
+def _parse_mssql_conn(conn_str: str) -> dict:
     """
-    Build MSSQL engine via pymssql.connect (same args that work in Railway shell).
-    ODBC Driver 18 hangs with login timeout; SQLAlchemy URL→pymssql also mangles host.
+    Parse mssql+pyodbc:// / mssql+pymssql:// URLs.
+
+    Split userinfo/host on the LAST '@' so passwords containing '@' work
+    (sqlalchemy.make_url splits on the first '@' and breaks the host).
     """
     normalized = conn_str.strip()
-    if normalized.startswith("mssql+pyodbc://"):
-        normalized = "mssql+pymssql://" + normalized[len("mssql+pyodbc://"):]
+    for prefix in ("mssql+pyodbc://", "mssql+pymssql://"):
+        if normalized.startswith(prefix):
+            normalized = normalized[len(prefix):]
+            break
     if "?" in normalized:
         normalized = normalized.split("?", 1)[0]
 
-    url = make_url(normalized)
+    if "@" not in normalized:
+        raise ValueError(f"MSSQL_CONN missing '@': {conn_str[:32]}...")
+
+    userinfo, hostpart = normalized.rsplit("@", 1)
+    if ":" not in userinfo:
+        raise ValueError("MSSQL_CONN missing user:password")
+    user, password = userinfo.split(":", 1)
+
+    # hostpart = host:port/database
+    if "/" not in hostpart:
+        raise ValueError("MSSQL_CONN missing /database")
+    hostport, database = hostpart.split("/", 1)
+    if ":" in hostport:
+        host, port_s = hostport.rsplit(":", 1)
+        port = int(port_s)
+    else:
+        host, port = hostport, 1433
+
+    return {
+        "server": host,
+        "user": unquote(user),
+        "password": unquote(password),
+        "database": unquote(database),
+        "port": port,
+    }
+
+
+def _make_mssql_engine(conn_str: str):
+    """pymssql.connect — ODBC 18 login-timeouts from Railway to MonsterASP."""
+    cfg = _parse_mssql_conn(conn_str)
+    print(
+        f"MSSQL target server={cfg['server']} port={cfg['port']} "
+        f"db={cfg['database']} user={cfg['user']}"
+    )
 
     def creator():
         return pymssql.connect(
-            server=url.host,
-            user=url.username,
-            password=url.password,
-            database=url.database,
-            port=url.port or 1433,
+            server=cfg["server"],
+            user=cfg["user"],
+            password=cfg["password"],
+            database=cfg["database"],
+            port=cfg["port"],
             login_timeout=30,
             timeout=30,
         )
 
-    # Dummy URL — real sockets come from creator()
     return create_engine("mssql+pymssql://", creator=creator)
 
 
