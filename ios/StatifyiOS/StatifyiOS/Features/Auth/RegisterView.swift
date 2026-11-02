@@ -31,16 +31,23 @@ struct RegisterView: View {
 
                     // MARK: Header
                     VStack(spacing: 8) {
-                        Text("Create Account")
+                        Text(authManager.pendingConfirmationEmail == nil
+                             ? "Create Account"
+                             : "Check your email")
                             .font(.syne(32, weight: .bold))
                             .foregroundColor(.appTextPrimary)
 
-                        Text("Start tracking your music")
+                        Text(authManager.pendingConfirmationEmail == nil
+                             ? "Start tracking your music"
+                             : "We sent a confirmation link")
                             .font(.dmSans(16))
                             .foregroundColor(.appTextSecondary)
                     }
                     .padding(.top, 60)
 
+                    if let pendingEmail = authManager.pendingConfirmationEmail {
+                        confirmationPendingView(email: pendingEmail)
+                    } else {
                     // MARK: Form
                     VStack(spacing: 16) {
 
@@ -147,10 +154,6 @@ struct RegisterView: View {
                                     email: email,
                                     password: password
                                 )
-                                // If registration succeeded — dismiss the sheet
-                                if authManager.isLoggedIn {
-                                    dismiss()
-                                }
                             }
                         } label: {
                             if authManager.isLoading {
@@ -171,13 +174,17 @@ struct RegisterView: View {
                         .disabled(authManager.isLoading || email.isEmpty || password.isEmpty)
                         .opacity(email.isEmpty || password.isEmpty ? 0.5 : 1)
                     }
+                    }
 
                     // MARK: Back to Login
                     Button {
+                        authManager.pendingConfirmationEmail = nil
                         dismiss()
                     } label: {
                         HStack(spacing: 4) {
-                            Text("Already have an account?")
+                            Text(authManager.pendingConfirmationEmail == nil
+                                 ? "Already have an account?"
+                                 : "Confirmed?")
                                 .foregroundColor(.appTextSecondary)
                             Text("Log in")
                                 .foregroundColor(.appAccent)
@@ -190,5 +197,32 @@ struct RegisterView: View {
                 .padding(.horizontal, 24)
             }
         }
+        .onDisappear {
+            authManager.pendingConfirmationEmail = nil
+        }
+    }
+
+    @ViewBuilder
+    private func confirmationPendingView(email: String) -> some View {
+        VStack(spacing: 16) {
+            Image(systemName: "envelope.open.fill")
+                .font(.system(size: 40))
+                .foregroundColor(.appAccent)
+                .padding(.bottom, 4)
+
+            Text("We sent a confirmation link to \(email). Open it to activate your account, then sign in.")
+                .font(.dmSans(15))
+                .foregroundColor(.appTextSecondary)
+                .multilineTextAlignment(.center)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .padding(20)
+        .frame(maxWidth: .infinity)
+        .background(Color.appCard)
+        .cornerRadius(12)
+        .overlay(
+            RoundedRectangle(cornerRadius: 12)
+                .stroke(Color.appBorder, lineWidth: 1)
+        )
     }
 }
