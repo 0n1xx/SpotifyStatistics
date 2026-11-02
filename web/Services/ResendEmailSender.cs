@@ -23,7 +23,7 @@ namespace SpotifyStatisticsWebApp.Services
         // Email clients fetch this as an <img> tag, which works in Gmail, Outlook, Apple Mail.
         // statify_email_logo.png is a 120x120 PNG with green circle + sound wave bars.
         private const string LogoUrl =
-            "https://spotifystatistics-production.up.railway.app/statify_email_logo.png";
+            "https://statify.one/statify_email_logo.png";
 
         public ResendEmailSender(
             IHttpClientFactory httpClientFactory,
