@@ -7,24 +7,32 @@ using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Threading.Tasks;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.UI.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.Extensions.Logging;
+using SpotifyStatisticsWebApp.Services;
 
 namespace SpotifyStatisticsWebApp.Areas.Identity.Pages.Account
 {
     public class LoginModel : PageModel
     {
         private readonly SignInManager<IdentityUser> _signInManager;
+        private readonly UserManager<IdentityUser> _userManager;
+        private readonly IEmailSender _emailSender;
         private readonly ILogger<LoginModel> _logger;
 
-        public LoginModel(SignInManager<IdentityUser> signInManager, ILogger<LoginModel> logger)
+        public LoginModel(
+            SignInManager<IdentityUser> signInManager,
+            UserManager<IdentityUser> userManager,
+            IEmailSender emailSender,
+            ILogger<LoginModel> logger)
         {
             _signInManager = signInManager;
+            _userManager = userManager;
+            _emailSender = emailSender;
             _logger = logger;
         }
 
@@ -128,8 +136,14 @@ namespace SpotifyStatisticsWebApp.Areas.Identity.Pages.Account
                 }
                 if (result.IsNotAllowed)
                 {
-                    ModelState.AddModelError(string.Empty,
-                        "Please confirm your email before signing in. Check your inbox for the link.");
+                    var user = await _userManager.FindByEmailAsync(Input.Email);
+                    if (user != null && !await _userManager.IsEmailConfirmedAsync(user))
+                    {
+                        await EmailConfirmationHelper.SendAsync(
+                            _userManager, _emailSender, Url, user, Request.Scheme);
+                    }
+
+                    ModelState.AddModelError(string.Empty, EmailConfirmationHelper.RequiredMessage);
                     return Page();
                 }
                 else
