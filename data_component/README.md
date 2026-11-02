@@ -157,7 +157,7 @@ The DAG reads credentials from **Airflow Variables** (Admin → Variables):
 | `MSSQL_CONN` | SQL Server — `SpotifyTokens`, `music_history`, and related app tables |
 | `VLAD_SPOTIFY_CLIENT_ID` | Spotify Developer App — Client ID |
 | `VLAD_SPOTIFY_SECRET_KEY` | Spotify Developer App — Client Secret |
-| `SERVER_LOOPBACK` | Spotify OAuth redirect URI (must match app settings) |
+| `SERVER_LOOPBACK` | Spotify OAuth redirect URI — production: `https://statify.one/callback` |
 | `HISTORY_TIMEZONE` | Default IANA timezone for `played_at`/`date` |
 | `HISTORY_TIMEZONE_BY_USER` | Optional JSON map of AspNet `UserId` → IANA TZ |
 
