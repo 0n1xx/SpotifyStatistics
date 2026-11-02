@@ -162,5 +162,76 @@ namespace SpotifyStatisticsWebApp.Services
 </body>
 </html>";
         }
+
+        /// <summary>
+        /// Branded HTML for email confirmation after registration.
+        /// Uses the public logo URL for a smaller payload than the reset template.
+        /// </summary>
+        public static string BuildConfirmEmailHtml(string confirmLink)
+        {
+            return $@"
+<!DOCTYPE html>
+<html lang=""en"">
+<head><meta charset=""UTF-8""><meta name=""viewport"" content=""width=device-width,initial-scale=1""></head>
+<body style=""margin:0;padding:0;background:#080808;font-family:'DM Sans',Arial,sans-serif;"">
+  <table width=""100%"" cellpadding=""0"" cellspacing=""0"" style=""background:#080808;padding:48px 0;"">
+    <tr>
+      <td align=""center"">
+        <table width=""480"" cellpadding=""0"" cellspacing=""0""
+               style=""background:#111111;border-radius:16px;border:1px solid rgba(255,255,255,0.07);overflow:hidden;"">
+          <tr>
+            <td style=""padding:32px 40px 24px;"">
+              <table cellpadding=""0"" cellspacing=""0"">
+                <tr>
+                  <td style=""vertical-align:middle;"">
+                    <img src=""{LogoUrl}"" width=""36"" height=""36"" alt=""Statify""
+                         style=""display:block;border-radius:8px;border:0;"">
+                  </td>
+                  <td style=""padding-left:10px;vertical-align:middle;"">
+                    <span style=""font-size:20px;font-weight:800;letter-spacing:-0.5px;color:#f0f0f0;"">Statify</span>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+          <tr>
+            <td style=""padding:0 40px 40px;"">
+              <h1 style=""font-size:22px;font-weight:700;color:#f0f0f0;margin:0 0 12px;"">
+                Confirm your email
+              </h1>
+              <p style=""font-size:14px;color:#888888;line-height:1.6;margin:0 0 28px;"">
+                Thanks for signing up for Statify. Click the button below to confirm your email
+                and activate your account.
+              </p>
+              <table cellpadding=""0"" cellspacing=""0"">
+                <tr>
+                  <td style=""background:#1DB954;border-radius:10px;"">
+                    <a href=""{confirmLink}""
+                       style=""display:inline-block;padding:14px 28px;font-size:15px;font-weight:600;color:#000000;text-decoration:none;"">
+                      Confirm email
+                    </a>
+                  </td>
+                </tr>
+              </table>
+              <p style=""font-size:12px;color:#555555;margin:28px 0 0;line-height:1.6;"">
+                If you didn't create a Statify account, you can safely ignore this email.
+              </p>
+            </td>
+          </tr>
+          <tr>
+            <td style=""padding:20px 40px;border-top:1px solid rgba(255,255,255,0.07);"">
+              <p style=""font-size:12px;color:#444444;margin:0;"">
+                © 2026 Statify ·
+                <a href=""https://statify.one"" style=""color:#1DB954;text-decoration:none;"">statify.one</a>
+              </p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>";
+        }
     }
 }

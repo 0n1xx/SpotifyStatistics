@@ -1,7 +1,9 @@
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Identity.UI.Services;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -32,17 +34,20 @@ namespace SpotifyStatisticsWebApp.Controllers
         private readonly ApplicationDbContext _db;
         private readonly UserManager<IdentityUser> _userManager;
         private readonly SignInManager<IdentityUser> _signInManager;
+        private readonly IEmailSender _emailSender;
 
         public ApiController(
             IConfiguration config,
             ApplicationDbContext db,
             UserManager<IdentityUser> userManager,
-            SignInManager<IdentityUser> signInManager)
+            SignInManager<IdentityUser> signInManager,
+            IEmailSender emailSender)
         {
-            _config      = config;
-            _db          = db;
-            _userManager = userManager;
+            _config        = config;
+            _db            = db;
+            _userManager   = userManager;
             _signInManager = signInManager;
+            _emailSender   = emailSender;
         }
 
         // ── Helpers ───────────────────────────────────────────────────────────
@@ -135,6 +140,11 @@ namespace SpotifyStatisticsWebApp.Controllers
                 return Unauthorized(new { error = "Invalid email or password" });
 
             var result = await _signInManager.CheckPasswordSignInAsync(user, req.Password, lockoutOnFailure: false);
+            if (result.IsNotAllowed)
+                return StatusCode(StatusCodes.Status403Forbidden, new
+                {
+                    error = "Please confirm your email before signing in. Check your inbox for the link."
+                });
             if (!result.Succeeded)
                 return Unauthorized(new { error = "Invalid email or password" });
 
@@ -149,48 +159,54 @@ namespace SpotifyStatisticsWebApp.Controllers
             });
         }
 
-        // <summary>
-        // POST /api/auth/register
-        // Creates a new account and returns a JWT token immediately.
-        // Request body: { "email": "...", "password": "..." }
-        // Response:     { "token": "...", "expiresAt": "...", "email": "..." }
-        // </summary>
+        /// <summary>
+        /// POST /api/auth/register
+        /// Creates an unconfirmed account and emails a confirmation link.
+        /// Does not return a JWT — the user must confirm email, then log in.
+        /// </summary>
         [HttpPost("auth/register")]
         [AllowAnonymous]
         public async Task<IActionResult> Register([FromBody] LoginRequest req)
         {
             if (string.IsNullOrWhiteSpace(req.Email) || string.IsNullOrWhiteSpace(req.Password))
                 return BadRequest(new { error = "Email and password are required" });
-        
-            // Check if email already exists
+
             var existing = await _userManager.FindByEmailAsync(req.Email);
             if (existing != null)
                 return Conflict(new { error = "An account with this email already exists" });
-        
-            // Create the new user
+
             var user = new IdentityUser
             {
                 UserName = req.Email,
                 Email = req.Email,
-                EmailConfirmed = true
+                EmailConfirmed = false
             };
-        
+
             var result = await _userManager.CreateAsync(user, req.Password);
             if (!result.Succeeded)
             {
                 var errors = result.Errors.Select(e => e.Description);
                 return BadRequest(new { error = string.Join(" ", errors) });
             }
-        
-            // Generate JWT immediately so user is logged in after registration
-            var token   = GenerateJwt(user);
-            var expires = DateTime.UtcNow.AddDays(30);
-        
+
+            var code = await _userManager.GenerateEmailConfirmationTokenAsync(user);
+            code = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(code));
+            var callbackUrl = Url.Page(
+                "/Account/ConfirmEmail",
+                pageHandler: null,
+                values: new { area = "Identity", userId = user.Id, code },
+                protocol: Request.Scheme)!;
+
+            await _emailSender.SendEmailAsync(
+                req.Email,
+                "Confirm your email",
+                ResendEmailSender.BuildConfirmEmailHtml(callbackUrl));
+
             return Ok(new
             {
-                token,
-                expiresAt = expires.ToString("o"),
-                email     = user.Email,
+                requiresEmailConfirmation = true,
+                email = user.Email,
+                message = "Check your email for a confirmation link before signing in."
             });
         }
 

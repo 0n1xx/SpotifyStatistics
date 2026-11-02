@@ -34,6 +34,9 @@ final class AuthManager {
     // The currently logged in user — populated after login/register.
     var currentUser: User? = nil
 
+    // Set after register succeeds — user must confirm email before login.
+    var pendingConfirmationEmail: String? = nil
+
     private var unauthorizedObserver: (any NSObjectProtocol)?
 
     // MARK: - Init
@@ -138,39 +141,40 @@ final class AuthManager {
             // This triggers ContentView to switch to MainTabView
             isLoggedIn = true
 
+        } catch APIError.serverError(403) {
+            errorMessage = "Confirm your email before signing in. Check your inbox for the link."
         } catch APIError.serverError(let code) {
             errorMessage = "Server error: \(code)"
         } catch APIError.decodingFailed {
             errorMessage = "Decoding failed"
         } catch APIError.unauthorized {
-            errorMessage = "Unauthorized"
+            errorMessage = "Invalid email or password."
         } catch {
             errorMessage = "Error: \(error.localizedDescription)"
         }
     }
 
     // MARK: - Register
-    // Creates a new account and logs in immediately on success.
+    // Creates an account and emails a confirmation link.
+    // Does not log the user in until they confirm and sign in.
     func register(email: String, password: String) async {
 
         errorMessage = nil
+        pendingConfirmationEmail = nil
         isLoading = true
         defer { isLoading = false }
 
         do {
             let body = RegisterRequest(email: email, password: password)
 
-            let response: AuthResponse = try await APIClient.shared.post(
+            let response: RegisterResponse = try await APIClient.shared.post(
                 path: "/api/auth/register",
                 body: body
             )
 
-            KeychainManager.shared.saveToken(response.token)
-            currentUser = User(id: "", email: response.email, displayName: nil)
-            isLoggedIn = true
+            pendingConfirmationEmail = response.email
 
         } catch APIError.serverError(409) {
-            // 409 Conflict — email already registered
             errorMessage = "An account with this email already exists."
         } catch {
             errorMessage = "Something went wrong. Check your connection."
@@ -222,6 +226,12 @@ struct AuthResponse: Decodable {
     let token: String
     let expiresAt: String
     let email: String
+}
+
+struct RegisterResponse: Decodable {
+    let requiresEmailConfirmation: Bool
+    let email: String
+    let message: String?
 }
 
 // MARK: - User Model

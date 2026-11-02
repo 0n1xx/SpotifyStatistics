@@ -30,7 +30,9 @@ builder.Services.AddDatabaseDeveloperPageExceptionFilter();
 // Identity
 builder.Services.AddDefaultIdentity<IdentityUser>(options =>
 {
-    options.SignIn.RequireConfirmedAccount = false;
+    // Email/password accounts must confirm the inbox before sign-in.
+    options.SignIn.RequireConfirmedAccount = true;
+    options.SignIn.RequireConfirmedEmail = true;
 })
 .AddEntityFrameworkStores<ApplicationDbContext>();
 
