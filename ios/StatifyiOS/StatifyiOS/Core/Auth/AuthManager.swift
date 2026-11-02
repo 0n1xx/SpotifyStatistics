@@ -142,7 +142,7 @@ final class AuthManager {
             isLoggedIn = true
 
         } catch APIError.serverError(403) {
-            errorMessage = "Confirm your email before signing in. Check your inbox for the link."
+            errorMessage = "Sorry — we added email confirmation. Check your inbox for the link, then sign in again."
         } catch APIError.serverError(let code) {
             errorMessage = "Server error: \(code)"
         } catch APIError.decodingFailed {

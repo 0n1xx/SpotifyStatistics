@@ -3,7 +3,6 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.UI.Services;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -141,10 +140,18 @@ namespace SpotifyStatisticsWebApp.Controllers
 
             var result = await _signInManager.CheckPasswordSignInAsync(user, req.Password, lockoutOnFailure: false);
             if (result.IsNotAllowed)
+            {
+                if (!await _userManager.IsEmailConfirmedAsync(user))
+                {
+                    await EmailConfirmationHelper.SendAsync(
+                        _userManager, _emailSender, Url, user, Request.Scheme);
+                }
+
                 return StatusCode(StatusCodes.Status403Forbidden, new
                 {
-                    error = "Please confirm your email before signing in. Check your inbox for the link."
+                    error = EmailConfirmationHelper.RequiredMessage
                 });
+            }
             if (!result.Succeeded)
                 return Unauthorized(new { error = "Invalid email or password" });
 
@@ -189,18 +196,8 @@ namespace SpotifyStatisticsWebApp.Controllers
                 return BadRequest(new { error = string.Join(" ", errors) });
             }
 
-            var code = await _userManager.GenerateEmailConfirmationTokenAsync(user);
-            code = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(code));
-            var callbackUrl = Url.Page(
-                "/Account/ConfirmEmail",
-                pageHandler: null,
-                values: new { area = "Identity", userId = user.Id, code },
-                protocol: Request.Scheme)!;
-
-            await _emailSender.SendEmailAsync(
-                req.Email,
-                "Confirm your email",
-                ResendEmailSender.BuildConfirmEmailHtml(callbackUrl));
+            await EmailConfirmationHelper.SendAsync(
+                _userManager, _emailSender, Url, user, Request.Scheme);
 
             return Ok(new
             {
