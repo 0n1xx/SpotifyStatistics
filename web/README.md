@@ -1,6 +1,6 @@
 # Statify — Web
 
-> Dark-themed web application built with ASP.NET Core and Razor Pages. Continuously synced with the Airflow data pipeline, deployed on Railway at [spotifystatistics-production.up.railway.app](https://spotifystatistics-production.up.railway.app/).
+> Dark-themed web application built with ASP.NET Core and Razor Pages. Continuously synced with the Airflow data pipeline, deployed on Railway at [statify.one](https://statify.one/).
 
 Includes **Ask Statify** (OpenAI chat over the current user's DB data), **Google Calendar** (read-only schedule answers), and a **Telegram bot** that sends a weekly listening summary.
 
@@ -138,7 +138,7 @@ OpenAI **never** opens SQL Server or Google — it only sees the text context th
 2. OAuth consent / **Data Access**: add scope  
    `https://www.googleapis.com/auth/calendar.readonly`
 3. **Clients** → Web client redirect URI:  
-   `https://spotifystatistics-production.up.railway.app/signin-google`
+   `https://statify.one/signin-google`
 4. If the app is in **Testing**, add your Google accounts as **Test users**.
 
 ### Runtime behavior
@@ -164,7 +164,7 @@ A bot (`TelegramController` + `TelegramService` + `TelegramWeeklySummaryService`
 3. `appsettings.Production.json` → `Telegram:BotUsername` (the bot's `@username`, no `@`).
 4. Register the webhook once per bot-token/URL change:
    ```bash
-   curl -F "url=https://spotifystatistics-production.up.railway.app/api/telegram/webhook" \
+   curl -F "url=https://statify.one/api/telegram/webhook" \
         -F "secret_token=<Telegram__WebhookSecret value>" \
         "https://api.telegram.org/bot<BOT_TOKEN>/setWebhook"
    ```

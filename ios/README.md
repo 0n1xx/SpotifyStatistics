@@ -171,7 +171,7 @@ Configure the backend base URL (see `AppConfig.swift` / `APIClient.swift`):
 
 ```swift
 // production example
-https://spotifystatistics-production.up.railway.app
+https://statify.one
 ```
 
 Build and run on your simulator or device.
